@@ -1,0 +1,34 @@
+CONFIG ?= debug
+APP_NAME := DOT Launcher.app
+BUILT_APP := build/$(APP_NAME)
+INSTALLED_APP := $(HOME)/Applications/$(APP_NAME)
+BUNDLE_ID := com.pace.DOTLauncher
+
+.PHONY: test app run install logs reset-tcc clean
+
+test:
+	swift test
+
+app:
+	scripts/build-app.sh $(CONFIG)
+
+# Always launch the installed bundle with `open`: running the raw binary
+# makes the terminal the responsible process for TCC and breaks permissions.
+install: app
+	-pkill -x DOTLauncher
+	mkdir -p "$(HOME)/Applications"
+	rm -rf "$(INSTALLED_APP)"
+	ditto "$(BUILT_APP)" "$(INSTALLED_APP)"
+
+run: install
+	open "$(INSTALLED_APP)"
+
+logs:
+	log stream --style compact --level debug --predicate 'subsystem == "$(BUNDLE_ID)"'
+
+reset-tcc:
+	tccutil reset Accessibility $(BUNDLE_ID)
+
+clean:
+	swift package clean
+	rm -rf build

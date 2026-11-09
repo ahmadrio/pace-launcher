@@ -77,7 +77,7 @@ private struct Footer: View {
             }
             Spacer()
             if let selected = model.selected {
-                KeyHint(key: "↩", label: selected.accessory == "Application" ? "Open" : "Run")
+                KeyHint(key: "↩", label: selected.actionTitle)
             }
             KeyHint(key: "↑↓", label: "Navigate")
             KeyHint(key: "esc", label: "Close")

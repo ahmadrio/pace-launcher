@@ -13,6 +13,8 @@ struct LauncherResult: Identifiable {
     let subtitle: String
     let icon: Icon
     let accessory: String
+    /// Footer label for ⏎, such as "Open" or "Copy".
+    let actionTitle: String
     /// What ⏎ does. Runs after the panel has been hidden.
     let perform: () -> Void
 }

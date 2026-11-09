@@ -38,9 +38,31 @@ final class LauncherSearch {
         for index in ranked.indices {
             ranked[index].frecency = usage?.frecency(for: ranked[index].id, now: now) ?? 0
         }
-        return ResultRanker.rank(query, ranked, limit: 30).compactMap { id in
+        let matches = ResultRanker.rank(query, ranked, limit: 30).compactMap { id in
             items[id].map { result(for: $0, id: id) }
         }
+        // A calculation is always the first row.
+        return [calculation(for: query)].compactMap { $0 } + matches
+    }
+
+    private func calculation(for query: String) -> LauncherResult? {
+        guard let value = Calculator.evaluate(query) else { return nil }
+        let separator = Locale.current.decimalSeparator ?? "."
+        let formatted = Calculator.format(value, decimalSeparator: separator)
+        return LauncherResult(
+            id: "calc",
+            title: formatted,
+            subtitle: query.trimmingCharacters(in: .whitespaces),
+            icon: .symbol("equal"),
+            accessory: "Calculator",
+            actionTitle: "Copy",
+            perform: {
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(formatted, forType: .string)
+                Log.panel.info("copied calculator result")
+            }
+        )
     }
 
     private func result(for item: Item, id: String) -> LauncherResult {
@@ -52,6 +74,7 @@ final class LauncherSearch {
                 subtitle: Self.folderName(of: app.path),
                 icon: .image(icons.icon(forPath: app.path)),
                 accessory: "Application",
+                actionTitle: "Open",
                 perform: { [weak self] in
                     self?.recordUse(id)
                     AppLauncher.open(app)

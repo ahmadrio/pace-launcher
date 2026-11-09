@@ -66,9 +66,7 @@ final class LauncherSearch {
             accessory: "Calculator",
             actionTitle: "Copy",
             action: .run {
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(formatted, forType: .string)
+                TextPaster.copy(formatted)
                 Log.panel.info("copied calculator result")
             }
         )

@@ -1,9 +1,9 @@
 import AppKit
-import Carbon.HIToolbox
 import DOTLauncherCore
 
 /// Puts a stored clip back on the pasteboard and pastes it into the app
-/// that was frontmost before the launcher opened.
+/// that was frontmost before the launcher opened. Unlike TextPaster, the
+/// clip stays on the clipboard afterwards (it was copied by the user).
 enum Paster {
     /// Writes the clip, then posts ⌘V when Accessibility is granted.
     /// Returns false when it could only copy.
@@ -12,7 +12,7 @@ enum Paster {
         write(item, representations: representations)
         monitor.ignoreOwnWrite()
 
-        guard AccessibilityPermission.isGranted, CGPreflightPostEventAccess() else {
+        guard KeyboardPaste.canPost else {
             Log.clipboard.notice("copied only: Accessibility is not granted, so ⌘V cannot be sent")
             AccessibilityPermission.prompt()
             return false
@@ -21,7 +21,7 @@ enum Paster {
         Task {
             // Give the panel time to order out so the target window is key again.
             try? await Task.sleep(for: .milliseconds(80))
-            postCommandV()
+            KeyboardPaste.send()
         }
         return true
     }
@@ -44,18 +44,5 @@ enum Paster {
         if !types.contains(.string) {
             pasteboard.setString(item.text, forType: .string)
         }
-    }
-
-    /// kVK_ANSI_V is the physical V key on ANSI layouts; non-QWERTY
-    /// layouts may need a lookup through the current keyboard layout.
-    private static func postCommandV() {
-        let source = CGEventSource(stateID: .combinedSessionState)
-        let keyCode = CGKeyCode(kVK_ANSI_V)
-        let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
-        let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
-        down?.flags = .maskCommand
-        up?.flags = .maskCommand
-        down?.post(tap: .cghidEventTap)
-        up?.post(tap: .cghidEventTap)
     }
 }

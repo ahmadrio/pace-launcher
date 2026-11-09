@@ -36,7 +36,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 121 test Core (Swift Testing)
+make test     # 122 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -53,7 +53,9 @@ make reset-tcc
 - **Translation belum siap untuk concurrency Swift 6.** Framework ini harus di-import dengan `@preconcurrency import Translation`. Semua panggilan dimulai dari main actor.
 - **FoundationModels di macOS 27:** `LanguageModelSession.GenerationError` sudah deprecated. Pakai `LanguageModelError` (`contextSizeExceeded`, `guardrailViolation`, `refusal`, …).
 - **Menu Edit wajib ada.** App accessory tetap butuh `NSApp.mainMenu` agar ⌘C, ⌘V, ⌘A, dan ⌘Z berfungsi di kolom teks (`MainMenu.swift`). Akibatnya, status item kini berada di **menu bar 2** dalam System Events.
-- **Shortcut ⌃ di panel** ditangkap di `sendEvent`, karena ⌃X tidak selalu dikirim sebagai key equivalent.
+- **Shortcut ⌃ di panel** ditangkap di `sendEvent`, karena ⌃X tidak selalu dikirim sebagai key equivalent. Event auto-repeat (tombol ditahan) diabaikan di `KeyShortcut(event:)`. Tanpa itu, menahan ⌃X akan dihitung sebagai tekanan kedua dan langsung menghapus.
+- **Invariant Notes:** selama jendela Notes terbuka, editor harus selalu punya catatan aktif (`currentID`). Setelah catatan dibuang, catatan terbaru (atau catatan baru) langsung dibuka, dan isi editor dikosongkan dulu supaya teks yang dibuang tidak tersimpan lagi.
+- **Translator:** status berubah menjadi `.translating` begitu teks berubah, bukan setelah debounce. Copy dan Paste hanya bekerja pada terjemahan yang sudah selesai untuk teks saat ini.
 - **Tanda tangan:** setiap build ditandatangani dengan sertifikat Apple Development, sehingga izin Accessibility bertahan setelah rebuild. Sertifikat ini **kedaluwarsa 2027-02-04**. Kalau izin bermasalah setelah perpanjangan, jalankan `make reset-tcc`.
 - **`make install`** menunggu proses lama berhenti sebelum `open`.
 - **Hotkey Carbon:** konflik dengan app lain tidak terdeteksi. Itu sebabnya shortcut bergantung pada app yang berjalan.

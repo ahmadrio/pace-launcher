@@ -39,7 +39,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
         menu.addItem(.sectionHeader(title: "Shortcuts"))
         for blocker in blockedGroups() {
-            let item = addItem("\(blocker.group) are off while \(blocker.appName) runs — Enable anyway", action: #selector(enable(_:)))
+            let item = addItem("\(blocker.group): off while \(blocker.appName) runs — Enable anyway", action: #selector(enable(_:)))
             item.representedObject = blocker
         }
         let all = NSMenuItem(title: "All Shortcuts", action: nil, keyEquivalent: "")
@@ -65,7 +65,17 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        if LoginItem.isInstalled {
+            let login = addItem("Launch at Login", action: #selector(toggleLoginItem))
+            login.state = LoginItem.isEnabled ? .on : .off
+        } else {
+            addInfo("Launch at Login: run `make run` to install first")
+        }
         addItem("Quit DOT Launcher", action: #selector(quit), key: "q")
+    }
+
+    @objc private func toggleLoginItem() {
+        LoginItem.setEnabled(!LoginItem.isEnabled)
     }
 
     private func shortcutsSubmenu() -> NSMenu {

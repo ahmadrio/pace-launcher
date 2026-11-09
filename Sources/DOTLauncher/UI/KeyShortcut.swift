@@ -12,8 +12,12 @@ struct KeyShortcut: Equatable {
         self.modifiers = modifiers.intersection(Self.relevant)
     }
 
+    /// Nil for key auto-repeats: holding ⌃X must not count as the second
+    /// press that confirms a delete.
     init?(event: NSEvent) {
-        guard event.type == .keyDown, let characters = event.charactersIgnoringModifiers, !characters.isEmpty else {
+        guard event.type == .keyDown, !event.isARepeat,
+              let characters = event.charactersIgnoringModifiers, !characters.isEmpty
+        else {
             return nil
         }
         self.init(key: characters, modifiers: event.modifierFlags.intersection(.deviceIndependentFlagsMask))

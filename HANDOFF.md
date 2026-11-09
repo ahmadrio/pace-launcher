@@ -51,7 +51,7 @@ make reset-tcc
 - **Swift Testing di CLT:** plugin `TestingMacros` tidak dimuat otomatis. `Package.swift` menambahkan `-plugin-path`.
 - **`@State` tidak bisa dipakai.** Di SDK macOS 27, `@State` berupa macro (`SwiftUIMacros`) yang plugin-nya tidak ada di CLT. State view disimpan di model `@Observable`. `@FocusState`, `@Bindable`, dan `@Observable` aman.
 - **Translation belum siap untuk concurrency Swift 6.** Framework ini harus di-import dengan `@preconcurrency import Translation`. Semua panggilan dimulai dari main actor.
-- **FoundationModels di macOS 27:** `LanguageSession.GenerationError` sudah deprecated. Pakai `LanguageModelError` (`contextSizeExceeded`, `guardrailViolation`, `refusal`, …).
+- **FoundationModels di macOS 27:** `LanguageModelSession.GenerationError` sudah deprecated. Pakai `LanguageModelError` (`contextSizeExceeded`, `guardrailViolation`, `refusal`, …).
 - **Menu Edit wajib ada.** App accessory tetap butuh `NSApp.mainMenu` agar ⌘C, ⌘V, ⌘A, dan ⌘Z berfungsi di kolom teks (`MainMenu.swift`). Akibatnya, status item kini berada di **menu bar 2** dalam System Events.
 - **Shortcut ⌃ di panel** ditangkap di `sendEvent`, karena ⌃X tidak selalu dikirim sebagai key equivalent.
 - **Tanda tangan:** setiap build ditandatangani dengan sertifikat Apple Development, sehingga izin Accessibility bertahan setelah rebuild. Sertifikat ini **kedaluwarsa 2027-02-04**. Kalau izin bermasalah setelah perpanjangan, jalankan `make reset-tcc`.

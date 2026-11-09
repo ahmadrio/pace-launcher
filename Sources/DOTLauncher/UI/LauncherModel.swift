@@ -104,6 +104,8 @@ final class LauncherModel {
     @ObservationIgnored var customContent: [Mode: () -> AnyView] = [:]
     /// Hides the panel. Set by PanelController.
     @ObservationIgnored var close: () -> Void = {}
+    /// Tab in the search field. Set by the composition root.
+    @ObservationIgnored var onTab: (() -> Void)?
     /// The search field, so the panel can give it focus on every show.
     @ObservationIgnored weak var searchField: NSTextField?
     @ObservationIgnored private var listTask: Task<Void, Never>?

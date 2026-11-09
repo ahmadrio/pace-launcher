@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipboard: ClipboardController?
     private var windows: WindowManager?
     private var translator: Translator?
+    private var chat: AIChatController?
 
     private var gatedHotKeys: [GatedHotKey] = []
     /// Blockers the user chose to ignore ("Enable anyway").
@@ -54,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let search = LauncherSearch(
             indexer: indexer, usage: Self.openUsageStore(), icons: icons,
             commands: { [weak self] in
-                [CommandCatalog.clipboardHistory(), CommandCatalog.translate()] + windowCommands
+                [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat()] + windowCommands
                     + CommandCatalog.appCommands(
                         toggleIcon: { self?.toggleMenuBarIcon() },
                         iconVisible: { AppSettings.showMenuBarIcon }
@@ -90,6 +91,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             entered: { translate.reset() }
         )
         self.translator = translator
+
+        let chat = AIChatController(translator: translator)
+        let askAI: (String) -> Void = { query in
+            model.reset(to: .ai)
+            chat.send(query)
+        }
+        search.askAI = askAI
+        model.onTab = {
+            guard model.mode == .root, !model.query.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+            askAI(model.query)
+        }
+        model.customContent[.ai] = { AnyView(ChatView(chat: chat)) }
+        model.handlers[.ai] = LauncherModel.ModeHandler(
+            submit: {
+                guard !chat.isGenerating, !model.query.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                chat.send(model.query)
+                model.query = ""
+            },
+            submitTitle: "Send",
+            actions: {
+                var actions = [
+                    SecondaryAction(title: "New Chat", shortcut: .command("n"), action: .stay { chat.reset() }),
+                ]
+                if let answer = chat.lastAnswer {
+                    actions.append(SecondaryAction(title: "Copy Answer", shortcut: .command("c", shift: true), action: .stay {
+                        TextPaster.copy(answer)
+                        model.notice = "Answer copied"
+                    }))
+                    actions.append(SecondaryAction(title: "Paste Answer", shortcut: .command("\r"), action: .run {
+                        TextPaster.paste(answer, monitor: clipboard?.monitor)
+                    }))
+                }
+                if chat.lastAnswerHasOriginal {
+                    actions.append(SecondaryAction(
+                        title: chat.showOriginal ? "Show Translation" : "Show Original",
+                        shortcut: .command("o", shift: true),
+                        action: .stay { chat.showOriginal.toggle() }
+                    ))
+                }
+                return actions
+            },
+            escape: { chat.cancel() },
+            entered: { chat.prewarm() }
+        )
+        self.chat = chat
         indexer.onUpdate = {
             search.rebuild()
             if panelController.isVisible { model.refresh() }

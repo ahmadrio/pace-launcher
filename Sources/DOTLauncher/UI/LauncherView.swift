@@ -92,8 +92,8 @@ private struct Footer: View {
     var body: some View {
         HStack(spacing: 16) {
             if let notice = model.notice {
-                Label(notice, systemImage: "exclamationmark.circle")
-                    .foregroundStyle(.orange)
+                Label(notice, systemImage: "info.circle")
+                    .foregroundStyle(.secondary)
             } else {
                 Text(model.mode.title).foregroundStyle(.tertiary)
             }

@@ -57,6 +57,10 @@ struct SearchField: NSViewRepresentable {
                 model.performSelected()
             case #selector(NSResponder.cancelOperation(_:)):
                 model.escape()
+            case #selector(NSResponder.insertTab(_:)):
+                // Tab sends the query to AI Chat from root; elsewhere it
+                // does nothing (there is no other control to focus).
+                model.onTab?()
             default:
                 return false
             }

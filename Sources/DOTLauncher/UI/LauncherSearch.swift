@@ -52,8 +52,26 @@ final class LauncherSearch {
         let matches = ResultRanker.rank(query, ranked, limit: 30).compactMap { id in
             items[id].map { result(for: $0, id: id) }
         }
-        // A calculation is always the first row.
-        return [calculation(for: query)].compactMap { $0 } + matches
+        // A calculation is always the first row; "Ask AI" is always the last.
+        let calculation = calculation(for: query)
+        return [calculation].compactMap { $0 } + matches + [calculation == nil ? askAIRow(for: query) : nil].compactMap { $0 }
+    }
+
+    /// Sends a root query to AI Chat. Set by the composition root.
+    var askAI: ((String) -> Void)?
+
+    private func askAIRow(for query: String) -> LauncherResult? {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2, let askAI else { return nil }
+        return LauncherResult(
+            id: "ask-ai",
+            title: "Ask AI",
+            subtitle: trimmed,
+            icon: .symbol("sparkles"),
+            accessory: "Tab",
+            actionTitle: "Ask",
+            action: .stay { askAI(trimmed) }
+        )
     }
 
     private func calculation(for query: String) -> LauncherResult? {

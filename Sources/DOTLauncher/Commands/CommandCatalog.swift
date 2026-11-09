@@ -84,6 +84,18 @@ enum CommandCatalog {
         }
     }
 
+    static func aiChat() -> LauncherCommand {
+        LauncherCommand(
+            id: "ai-chat",
+            title: "AI Chat",
+            subtitle: "Ask Apple's on-device model",
+            aliases: ["ai", "ask", "chat"],
+            symbol: "sparkles",
+            actionTitle: "Open",
+            action: .enter(.ai)
+        )
+    }
+
     static func translate() -> LauncherCommand {
         LauncherCommand(
             id: "translate",

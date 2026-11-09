@@ -39,6 +39,7 @@ struct SettingsView: View {
     let settings: SettingsStore
     let scripts: ScriptLibrary
     let autoExpand: AutoExpandController
+    let sync: SyncController
 
     var body: some View {
         HStack(spacing: 0) {
@@ -90,8 +91,8 @@ struct SettingsView: View {
             ScriptsSettings(scripts: scripts)
         case .snippets:
             SnippetSettings(settings: settings, autoExpand: autoExpand)
-        default:
-            Text("Coming in a later step.").foregroundStyle(.secondary)
+        case .sync:
+            SyncSettings(sync: sync, settings: settings)
         }
     }
 }
@@ -301,5 +302,112 @@ private struct SnippetSettings: View {
                 return (app.localizedName ?? id, id)
             }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+}
+
+private struct SyncSettings: View {
+    let sync: SyncController
+    let settings: SettingsStore
+
+    var body: some View {
+        @Bindable var settings = settings
+        VStack(alignment: .leading, spacing: 14) {
+            Toggle("Store data in iCloud Drive", isOn: Binding(
+                get: { sync.isEnabled },
+                set: { on in Task { try? await sync.setEnabled(on) } }
+            ))
+            .disabled(sync.isBusy)
+            Text(sync.isEnabled
+                ? "Snippets, notes, script commands and settings live in iCloud Drive › DOT Launcher, so they survive a reset and open in the Files app. The clipboard and usage databases always stay on this Mac."
+                : "Everything stays on this Mac. While this is off, DOT doesn’t read or write iCloud Drive.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            if sync.isBusy {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text("Working…").foregroundStyle(.secondary)
+                }
+            }
+            if let status = sync.status {
+                Text(status)
+                    .font(.system(size: 12))
+                    .foregroundStyle(sync.statusIsError ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                    .textSelection(.enabled)
+            }
+
+            Divider()
+
+            Text("Clipboard history backup").font(.headline)
+            Toggle("Include clipboard history in backup", isOn: $settings.data.includeClipboardInBackup)
+                .disabled(!sync.isEnabled)
+            Text("Clipboard history can contain sensitive data. Files in iCloud Drive are encrypted by Apple, but end-to-end only when Advanced Data Protection is on.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            if sync.isEnabled {
+                if let choice = sync.pendingRestoreChoice {
+                    restoreChoice(choice)
+                }
+                Text(sync.lastBackup.map { "Last backup: \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "No backup yet.")
+                HStack {
+                    Button("Back Up Now") { Task { await sync.backupNow() } }
+                        .disabled(!settings.data.includeClipboardInBackup || sync.pendingRestoreChoice != nil || sync.isBusy)
+                }
+                if !sync.backups.isEmpty {
+                    Text("Restore clipboard history").font(.system(size: 12, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(sync.backups) { backup in
+                            backupRow(backup)
+                        }
+                    }
+                }
+            } else {
+                Text("Clipboard backups already in iCloud Drive are kept while sync is off.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Button(sync.armedAction == "delete" ? "Press Again to Delete All iCloud Backups" : "Delete iCloud Backups…") {
+                if sync.confirm("delete") { sync.deleteBackups() }
+            }
+            .disabled(sync.isBusy)
+        }
+    }
+
+    private func restoreChoice(_ choice: SyncController.RestoreChoice) -> some View {
+        let date = choice.backup.date.formatted(date: .abbreviated, time: .shortened)
+        let clips = choice.clips.map { "\($0) clips" } ?? "downloading…"
+        let restoreKey = "choice-restore"
+        return VStack(alignment: .leading, spacing: 8) {
+            Label("Found a clipboard backup from an earlier install: \(date), \(clips). Automatic backups are paused until you choose.", systemImage: "clock.arrow.circlepath")
+            HStack {
+                Button(sync.armedAction == restoreKey ? "Press Again to Restore" : "Restore from Backup") {
+                    if sync.confirm(restoreKey) { Task { await sync.restore(choice.backup) } }
+                }
+                Button("Keep Current History") { Task { await sync.keepCurrentHistory() } }
+            }
+            .disabled(sync.isBusy)
+        }
+        .padding(10)
+        .background(.quaternary, in: .rect(cornerRadius: 8))
+    }
+
+    private func backupRow(_ backup: SyncController.Backup) -> some View {
+        let key = "restore-" + backup.url.lastPathComponent
+        return HStack {
+            Image(systemName: backup.isDownloaded ? "doc" : "icloud")
+            Text(backup.date.formatted(date: .abbreviated, time: .shortened))
+            if !backup.isDownloaded {
+                Text("in iCloud").font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button(sync.armedAction == key ? "Press Again to Restore" : "Restore…") {
+                if sync.confirm(key) { Task { await sync.restore(backup) } }
+            }
+            .disabled(sync.isBusy)
+        }
+        .padding(6)
+        .background(.quaternary, in: .rect(cornerRadius: 6))
     }
 }

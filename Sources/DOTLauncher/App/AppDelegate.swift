@@ -41,6 +41,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var startScript: ((ScriptCommand, [String]) -> Void)?
     private var scriptActions: ScriptActions?
     private var autoExpand: AutoExpandController?
+    private var sync: SyncController?
+
+    /// With sync on, quitting writes one last clipboard backup first
+    /// (at most 10 s, so quitting never hangs).
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let sync, sync.wantsBackupOnQuit else { return .terminateNow }
+        var replied = false
+        let reply = {
+            guard !replied else { return }
+            replied = true
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        Task {
+            await sync.backupOnQuit()
+            reply()
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(10))
+            reply()
+        }
+        return .terminateLater
+    }
 
     func applicationWillTerminate(_ notification: Notification) {
         notesWindow?.model.flush()
@@ -84,7 +106,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     )
             }
         )
-        let clipboard = Self.openClipboardStore().map { ClipboardController(store: $0, icons: icons) }
+        let clipboardStore = Self.openClipboardStore()
+        let clipboard = clipboardStore.map { ClipboardController(store: $0, icons: icons) }
 
         let snippets = SnippetLibrary(store: SnippetStore(directory: AppPaths.snippetsDirectory))
         let snippetRow: (Snippet) -> LauncherResult = { [weak self] snippet in
@@ -123,9 +146,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.autoExpand = autoExpand
         autoExpand.refresh()
 
-        let notes = NotesModel(store: NoteStore(directory: AppPaths.notesDirectory) { url in
-            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
-        })
+        let notes = NotesModel(store: Self.noteStore())
         let notesWindow = NotesWindowController(model: notes, theme: theme)
         let relative = RelativeDateTimeFormatter()
         relative.unitsStyle = .abbreviated
@@ -137,7 +158,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     FuzzyMatcher.score(query, in: $0.title) != nil
                         || notes.body(of: $0.id).localizedCaseInsensitiveContains(query)
                 }
-                return matches.map { note in
+                let downloading = notes.downloadingCount > 0 ? [LauncherResult(
+                    id: "notes-downloading",
+                    title: "Downloading \(notes.downloadingCount) note(s) from iCloud…",
+                    subtitle: "They appear here once they are on this Mac",
+                    icon: .symbol("icloud.and.arrow.down"),
+                    accessory: "iCloud",
+                    actionTitle: "Refresh",
+                    action: .stay { notes.reloadList() }
+                )] : []
+                return downloading + matches.map { note in
                     LauncherResult(
                         id: "note:" + note.id.uuidString,
                         title: note.title,
@@ -301,8 +331,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             search.rebuild()
             if panelController.isVisible { model.refresh() }
         }
+        let sync = SyncController(
+            settings: settings, clipboard: clipboardStore,
+            beforeMove: { notes.flush() },
+            afterMove: { [weak self] in
+                snippets.switchStore(SnippetStore(directory: AppPaths.snippetsDirectory))
+                notes.switchStore(Self.noteStore())
+                scriptLibrary.reload()
+                self?.settings.reload()
+            }
+        )
+        self.sync = sync
+        notes.onPlaceholders = { sync.downloadPlaceholders() }
         panelController.onShow = {
             indexer.refreshIfStale()
+            sync.downloadPlaceholders()
             // Snippet files can change outside the app (another editor,
             // a synced folder); re-read them on every open. This also
             // rebuilds search through snippets.onChange.
@@ -353,7 +396,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
 
-        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand)
+        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand, sync: sync)
         self.settingsWindow = settingsWindow
         panelController.canHideApp = { !settingsWindow.isVisible }
         settings.onChange = { [weak self] old, new in
@@ -368,6 +411,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.statusMenu?.setIconVisible(new.showMenuBarIcon)
                 self.search?.rebuild()
             }
+            if !old.includeClipboardInBackup, new.includeClipboardInBackup {
+                Task { await self.sync?.backupIfDue() }
+            }
+        }
+        sync.start()
+    }
+
+    /// Notes in the active data folder; deleted notes go to the Trash.
+    private static func noteStore() -> NoteStore {
+        NoteStore(directory: AppPaths.notesDirectory) { url in
+            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
         }
     }
 

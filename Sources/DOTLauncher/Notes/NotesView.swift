@@ -78,6 +78,11 @@ private struct NoteSwitcher: View {
         VStack(alignment: .leading, spacing: 8) {
             TextField("Search notes", text: $model.switcherQuery)
                 .textFieldStyle(.roundedBorder)
+            if model.downloadingCount > 0 {
+                Label("Downloading \(model.downloadingCount) note(s) from iCloud…", systemImage: "icloud.and.arrow.down")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 2) {
                     ForEach(matches) { note in

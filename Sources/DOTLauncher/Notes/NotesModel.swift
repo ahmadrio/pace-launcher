@@ -22,7 +22,14 @@ final class NotesModel {
     /// First ⌃X / Delete press seen; the next one deletes.
     private(set) var deleteArmed = false
 
-    @ObservationIgnored private let store: NoteStore
+    /// Notes iCloud has not downloaded to this Mac yet.
+    private(set) var downloadingCount = 0
+    /// Called when placeholders are seen, to ask iCloud for them.
+    @ObservationIgnored var onPlaceholders: (() -> Void)?
+
+    @ObservationIgnored private var store: NoteStore
+    /// The text last read from or written to disk for the open note.
+    @ObservationIgnored private var savedBody = ""
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     @ObservationIgnored private var isLoading = false
     @ObservationIgnored private var confirmation = PressConfirmation()
@@ -34,12 +41,36 @@ final class NotesModel {
 
     var title: String { NoteTitle.title(for: body) }
 
+    /// Points the model at another folder (sync turned on or off). Call
+    /// `flush()` before the files move; the open note is re-read after.
+    func switchStore(_ store: NoteStore) {
+        saveTask?.cancel()
+        saveTask = nil
+        self.store = store
+        if let id = currentID, let body = try? store.load(id) {
+            load(body)
+        }
+        reloadList()
+    }
+
     func reloadList() {
         do {
             summaries = try store.list()
         } catch {
             Log.app.error("could not list notes: \(String(describing: error), privacy: .public)")
         }
+        downloadingCount = store.placeholders().count
+        if downloadingCount > 0 { onPlaceholders?() }
+        reloadOpenNoteIfChangedOnDisk()
+    }
+
+    /// Picks up edits made elsewhere (Files on iPhone, another editor),
+    /// but never over typing that is not saved yet.
+    private func reloadOpenNoteIfChangedOnDisk() {
+        guard let id = currentID, saveTask == nil, body == savedBody,
+              let disk = try? store.load(id), disk != body
+        else { return }
+        load(disk)
     }
 
     func open(_ id: UUID) {
@@ -74,6 +105,7 @@ final class NotesModel {
         guard let id = currentID else { return }
         do {
             try store.save(id, body: body)
+            savedBody = body
         } catch {
             Log.app.error("could not save note: \(String(describing: error), privacy: .public)")
         }
@@ -122,6 +154,7 @@ final class NotesModel {
     private func load(_ text: String) {
         isLoading = true
         body = text
+        savedBody = text
         isLoading = false
         deleteArmed = false
         confirmation.reset()

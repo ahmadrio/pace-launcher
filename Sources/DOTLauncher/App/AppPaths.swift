@@ -27,6 +27,8 @@ enum AppPaths {
                 .appending(path: "Library/Mobile Documents/com~apple~CloudDocs/DOT Launcher")
     }
 
+    static var isICloudOverridden: Bool { override(iCloudOverrideKey) != nil }
+
     static var isUsingTestFolders: Bool {
         override(dataOverrideKey) != nil || override(iCloudOverrideKey) != nil
     }

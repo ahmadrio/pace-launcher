@@ -126,6 +126,19 @@ struct BackupRotationTests {
         #expect(kept.last?.date == base.addingTimeInterval(2 * 3600))
         #expect(FileManager.default.fileExists(atPath: folder.url.appending(path: "notes.txt").path))
     }
+
+    @Test func `lists backups that iCloud has not downloaded yet`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let name = BackupRotation.fileName(for: date)
+        try folder.write(".\(name).icloud", "stub")
+
+        let backups = BackupRotation.backups(in: folder.url)
+
+        #expect(backups.map(\.date) == [date])
+        #expect(backups.first?.url.lastPathComponent == ".\(name).icloud")
+    }
 }
 
 struct ClipboardBackupTests {
@@ -149,6 +162,20 @@ struct ClipboardBackupTests {
 
         #expect(try await store.count() == 3)
         #expect(try await store.search("two").map(\.text) == ["two"])
+    }
+
+    @Test func `a backup is one file with no -wal or -shm beside it`() async throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        try FileManager.default.createDirectory(at: folder.url, withIntermediateDirectories: true)
+        let store = try ClipboardStore(path: folder.url.appending(path: "clipboard.sqlite").path)
+        try await store.save(draft("one"))
+        let backups = folder.url.appending(path: "out")
+        try FileManager.default.createDirectory(at: backups, withIntermediateDirectories: true)
+
+        try await store.backup(to: backups.appending(path: "backup.sqlite").path)
+
+        #expect(try FileManager.default.contentsOfDirectory(atPath: backups.path) == ["backup.sqlite"])
     }
 }
 

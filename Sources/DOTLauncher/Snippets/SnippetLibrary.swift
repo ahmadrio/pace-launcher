@@ -3,12 +3,18 @@ import DOTLauncherCore
 
 /// The snippets on disk, cached for search, plus the actions on them.
 final class SnippetLibrary {
-    private let store: SnippetStore
+    private var store: SnippetStore
     private(set) var snippets: [Snippet] = []
     /// Called after every change, so search can rebuild its candidates.
     var onChange: (() -> Void)?
 
     init(store: SnippetStore) {
+        self.store = store
+        reload()
+    }
+
+    /// Points the library at another folder (sync turned on or off).
+    func switchStore(_ store: SnippetStore) {
         self.store = store
         reload()
     }

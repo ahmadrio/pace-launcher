@@ -19,13 +19,16 @@ public enum BackupRotation {
     }
 
     /// Every backup in `folder`, newest first. Other files are ignored.
+    /// Backups iCloud has not downloaded yet are included; their `url` is
+    /// the placeholder file (see `ICloudPlaceholder`).
     public static func backups(in folder: URL) -> [(url: URL, date: Date)] {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
         let formatter = formatter()
         return names
             .compactMap { name -> (url: URL, date: Date)? in
-                guard name.hasPrefix(prefix), name.hasSuffix(suffix),
-                      let date = formatter.date(from: String(name.dropFirst(prefix.count).dropLast(suffix.count)))
+                let original = ICloudPlaceholder.originalName(of: name) ?? name
+                guard original.hasPrefix(prefix), original.hasSuffix(suffix),
+                      let date = formatter.date(from: String(original.dropFirst(prefix.count).dropLast(suffix.count)))
                 else { return nil }
                 return (folder.appending(path: name), date)
             }

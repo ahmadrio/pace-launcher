@@ -142,6 +142,16 @@ public final class SQLiteDatabase {
     /// backup). The copy uses a rollback journal, so it is one self-contained
     /// file with no -wal/-shm companions.
     public func backup(to path: String) throws {
+        try writeCopy(to: path)
+        // Leaving WAL mode can leave an empty -shm behind once the copy's
+        // connection has closed; the copy no longer needs it.
+        for suffix in ["-wal", "-shm"] {
+            try? FileManager.default.removeItem(atPath: path + suffix)
+        }
+    }
+
+    /// Kept separate so the copy's connection is closed when it returns.
+    private func writeCopy(to path: String) throws {
         let destination = try SQLiteDatabase(path: path)
         try Self.copy(from: self, to: destination)
         try destination.execute("PRAGMA journal_mode = DELETE")

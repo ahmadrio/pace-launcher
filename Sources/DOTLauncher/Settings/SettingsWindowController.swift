@@ -8,12 +8,14 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let settings: SettingsStore
     private let scripts: ScriptLibrary
     private let autoExpand: AutoExpandController
+    private let sync: SyncController
     private var window: NSWindow?
 
-    init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController) {
+    init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController, sync: SyncController) {
         self.settings = settings
         self.scripts = scripts
         self.autoExpand = autoExpand
+        self.sync = sync
     }
 
     var isVisible: Bool { window?.isVisible ?? false }
@@ -40,7 +42,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.title = "DOT Launcher Settings"
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync))
         if !window.setFrameUsingName("DOTSettingsWindow") {
             window.center()
         }

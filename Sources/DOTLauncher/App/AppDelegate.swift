@@ -343,9 +343,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.sync = sync
         notes.onPlaceholders = { sync.downloadPlaceholders() }
-        panelController.onShow = {
+        panelController.onShow = { [weak self] in
             indexer.refreshIfStale()
             sync.downloadPlaceholders()
+            self?.settings.reloadIfDownloaded()
             // Snippet files can change outside the app (another editor,
             // a synced folder); re-read them on every open. This also
             // rebuilds search through snippets.onChange.
@@ -392,7 +393,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.applyGatedHotKeys()
             },
             hideIcon: { [weak self] in self?.toggleMenuBarIcon() },
-            openSettings: { [weak self] in self?.settingsWindow?.show() }
+            openSettings: { [weak self] in self?.settingsWindow?.show() },
+            autoExpandStatus: { autoExpand.status }
         )
         statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
 

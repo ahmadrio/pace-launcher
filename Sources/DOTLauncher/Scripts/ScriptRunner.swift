@@ -16,7 +16,7 @@ final class ScriptRun {
     private(set) var launchError: String?
 
     @ObservationIgnored var onFinish: ((ScriptRun) -> Void)?
-    @ObservationIgnored fileprivate var process: Process?
+    @ObservationIgnored fileprivate var process: ScriptProcess?
     @ObservationIgnored private var receivedBytes = 0
 
     init(script: ScriptCommand) {
@@ -31,15 +31,11 @@ final class ScriptRun {
             .map(String.init) ?? ""
     }
 
-    /// Asks the script to stop (SIGTERM), then kills it after a second.
+    /// Asks the script and its background children to stop (SIGTERM),
+    /// then kills them after a second.
     func stop() {
-        guard isRunning, let process else { return }
-        process.terminate()
-        let pid = process.processIdentifier
-        Task {
-            try? await Task.sleep(for: .seconds(1))
-            if self.isRunning { kill(pid, SIGKILL) }
-        }
+        guard isRunning else { return }
+        process?.stop()
     }
 
     fileprivate func append(_ data: Data) {
@@ -76,42 +72,24 @@ enum ScriptRunner {
         let run = ScriptRun(script: script)
         let key = ObjectIdentifier(run)
         active[key] = run
-        let process = Process()
-        process.executableURL = script.url
-        process.arguments = arguments
-        process.currentDirectoryURL = workingDirectory(for: script)
-        process.environment = ShellEnvironment.current
-        process.standardInput = FileHandle.nullDevice
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        let reader = pipe.fileHandleForReading
-
-        reader.readabilityHandler = { [weak run] handle in
-            let data = handle.availableData
-            guard !data.isEmpty else {
-                handle.readabilityHandler = nil
-                return
-            }
-            Task { @MainActor in run?.append(data) }
-        }
-        process.terminationHandler = { [weak run] finished in
-            let status = finished.terminationStatus
-            reader.readabilityHandler = nil
-            let rest = reader.readDataToEndOfFile()
-            Task { @MainActor in
-                if !rest.isEmpty { run?.append(rest) }
-                run?.finish(status: status)
-                active[key] = nil
-            }
-        }
-
+        let process = ScriptProcess(
+            executable: script.url,
+            arguments: arguments,
+            directory: workingDirectory(for: script),
+            environment: ShellEnvironment.current
+        )
         do {
-            try process.run()
+            try process.start(
+                onOutput: { [weak run] data in Task { @MainActor in run?.append(data) } },
+                onExit: { [weak run] status in
+                    Task { @MainActor in
+                        run?.finish(status: status)
+                        active[key] = nil
+                    }
+                }
+            )
             run.process = process
         } catch {
-            reader.readabilityHandler = nil
             active[key] = nil
             run.fail(script.isExecutable
                 ? "Could not start: \(error.localizedDescription)"

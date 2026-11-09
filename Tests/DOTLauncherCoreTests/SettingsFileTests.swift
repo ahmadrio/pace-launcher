@@ -47,4 +47,18 @@ struct SettingsFileTests {
         try folder.write("settings.json", #"{"showMenuBarIcon": false, "futureOption": 42}"#)
         #expect(SettingsFile(url: folder.url.appending(path: "settings.json")).load().showMenuBarIcon == false)
     }
+
+    @Test func `does not write over settings iCloud has not downloaded`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        try folder.write(".settings.json.icloud", "stub")
+        let file = SettingsFile(url: folder.url.appending(path: "settings.json"))
+
+        #expect(file.isWaitingForDownload)
+        #expect(throws: (any Error).self) { try file.save(SettingsData()) }
+        #expect(!FileManager.default.fileExists(atPath: file.url.path))
+
+        try folder.write("settings.json", "{}")
+        #expect(!file.isWaitingForDownload)
+    }
 }

@@ -55,6 +55,26 @@ public struct SnippetStore: Sendable {
             .map { directory.appending(path: $0) }
     }
 
+    /// Gives snippets that a sync move renamed ("<UUID> (from This Mac).json")
+    /// a fresh id, so both copies show up. Returns how many were adopted.
+    /// Files that do not decode are left alone.
+    public func adoptRenamedCopies() throws -> Int {
+        guard FileManager.default.fileExists(atPath: directory.path) else { return 0 }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        var adopted = 0
+        for name in try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        where FolderMigration.isRenamedCopy(name, fileExtension: "json") {
+            let file = directory.appending(path: name)
+            guard let data = try? Data(contentsOf: file), var snippet = try? decoder.decode(Snippet.self, from: data) else { continue }
+            snippet.id = UUID()
+            try save(snippet)
+            try FileManager.default.removeItem(at: file)
+            adopted += 1
+        }
+        return adopted
+    }
+
     private func url(for id: UUID) -> URL {
         directory.appending(path: "\(id.uuidString).json")
     }

@@ -78,6 +78,19 @@ public struct NoteStore: Sendable {
             .map { directory.appending(path: $0) }
     }
 
+    /// Gives notes that a sync move renamed ("<UUID> (from This Mac).md")
+    /// a fresh id, so both copies show up. Returns how many were adopted.
+    public func adoptRenamedCopies() throws -> Int {
+        guard FileManager.default.fileExists(atPath: directory.path) else { return 0 }
+        var adopted = 0
+        for name in try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        where FolderMigration.isRenamedCopy(name, fileExtension: "md") {
+            try FileManager.default.moveItem(at: directory.appending(path: name), to: url(for: UUID()))
+            adopted += 1
+        }
+        return adopted
+    }
+
     private func url(for id: UUID) -> URL {
         directory.appending(path: "\(id.uuidString).md")
     }

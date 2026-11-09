@@ -101,6 +101,56 @@ struct FolderMigrationTests {
         #expect(read(destination, "Notes/.b.md.icloud") == nil)
         #expect(read(destination, "Notes/a.md") == "A")
     }
+
+    @Test func `never writes onto a file iCloud has not downloaded yet`() throws {
+        let root = TemporaryFolder()
+        defer { root.remove() }
+        let source = root.url.appending(path: "local"), destination = root.url.appending(path: "icloud")
+        try write(source, "Notes/a.md", "local")
+        try write(destination, "Notes/.a.md.icloud", "stub")
+
+        let report = try FolderMigration.move(from: source, to: destination, label: "This Mac")
+
+        #expect(read(destination, "Notes/a.md") == nil)
+        #expect(read(destination, "Notes/.a.md.icloud") == "stub")
+        #expect(read(destination, "Notes/a (from This Mac).md") == "local")
+        #expect(report.renamed == ["Notes/a.md": "Notes/a (from This Mac).md"])
+    }
+
+    @Test func `a single file never lands on an evicted one`() throws {
+        let root = TemporaryFolder()
+        defer { root.remove() }
+        try write(root.url, "local/settings.json", "{}")
+        try write(root.url, "icloud/.settings.json.icloud", "stub")
+
+        let report = try FolderMigration.move(
+            from: root.url.appending(path: "local/settings.json"),
+            to: root.url.appending(path: "icloud/settings.json"),
+            label: "This Mac"
+        )
+
+        #expect(read(root.url, "icloud/settings.json") == nil)
+        #expect(read(root.url, "icloud/settings (from This Mac).json") == "{}")
+        #expect(report.renamed == ["settings.json": "settings (from This Mac).json"])
+    }
+
+    @Test func `a failed move reports what it already moved`() throws {
+        let root = TemporaryFolder()
+        defer { root.remove() }
+        let source = root.url.appending(path: "local"), destination = root.url.appending(path: "icloud")
+        try write(source, "Notes/a.md", "A")
+        try write(source, "Snippets/s.json", "S")
+        // A file where the Snippets folder should go makes the second half fail.
+        try write(destination, "Snippets", "in the way")
+
+        #expect {
+            _ = try FolderMigration.move(from: source, to: destination, label: "This Mac")
+        } throws: { error in
+            (error as? FolderMigration.Interrupted)?.report.moved == ["Notes/a.md"]
+        }
+        #expect(read(destination, "Notes/a.md") == "A")
+        #expect(read(source, "Snippets/s.json") == "S")
+    }
 }
 
 struct BackupRotationTests {
@@ -176,6 +226,49 @@ struct ClipboardBackupTests {
         try await store.backup(to: backups.appending(path: "backup.sqlite").path)
 
         #expect(try FileManager.default.contentsOfDirectory(atPath: backups.path) == ["backup.sqlite"])
+    }
+}
+
+struct RenamedCopyTests {
+    @Test func `notes renamed during a move get their own id and stay listed`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        let id = UUID()
+        try folder.write("\(id.uuidString).md", "# Cloud")
+        try folder.write("\(id.uuidString) (from This Mac).md", "# Local")
+        let notes = NoteStore(directory: folder.url) { _ in }
+
+        #expect(try notes.adoptRenamedCopies() == 1)
+
+        let titles = try notes.list().map(\.title).sorted()
+        #expect(titles == ["Cloud", "Local"])
+        #expect(folder.files().allSatisfy { UUID(uuidString: String($0.dropLast(3))) != nil })
+    }
+
+    @Test func `snippets renamed during a move get their own id and stay listed`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        let store = SnippetStore(directory: folder.url)
+        let original = Snippet(name: "Address", keyword: ";addr", content: "Jl. Contoh 1")
+        try store.save(original)
+        let file = folder.url.appending(path: "\(original.id.uuidString).json")
+        try FileManager.default.copyItem(at: file, to: folder.url.appending(path: "\(original.id.uuidString) (from This Mac).json"))
+
+        #expect(try store.adoptRenamedCopies() == 1)
+
+        let all = try store.all()
+        #expect(all.count == 2)
+        #expect(Set(all.map(\.id)).count == 2)
+        #expect(all.allSatisfy { $0.name == "Address" && $0.keyword == ";addr" })
+    }
+
+    @Test func `other files are left alone`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        try folder.write("notes.txt", "x")
+        try folder.write("Untitled (from This Mac).md", "x")
+        #expect(try NoteStore(directory: folder.url) { _ in }.adoptRenamedCopies() == 0)
+        #expect(folder.files() == ["Untitled (from This Mac).md", "notes.txt"])
     }
 }
 

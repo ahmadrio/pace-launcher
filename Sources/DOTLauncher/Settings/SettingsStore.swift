@@ -25,6 +25,16 @@ final class SettingsStore {
         migrateLegacyDefaults()
     }
 
+    /// After iCloud finishes downloading settings.json, read it.
+    func reloadIfDownloaded() {
+        guard isWaitingForDownload, !file.isWaitingForDownload else { return }
+        reload()
+    }
+
+    /// True while settings.json in iCloud is only a placeholder: changes
+    /// are not saved then, so the real file is never replaced by defaults.
+    var isWaitingForDownload: Bool { file.isWaitingForDownload }
+
     /// Re-reads settings.json, e.g. after the data folder moved.
     func reload() {
         file = SettingsFile(url: AppPaths.settingsFile)
@@ -34,6 +44,10 @@ final class SettingsStore {
     }
 
     private func save() {
+        guard !file.isWaitingForDownload else {
+            Log.app.notice("settings not saved: settings.json is still downloading from iCloud")
+            return
+        }
         do {
             try file.save(data)
         } catch {

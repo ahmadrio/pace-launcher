@@ -16,6 +16,22 @@ public enum FolderMigration {
         public init() {}
     }
 
+    /// Thrown when a move stops partway; `report` lists what already moved.
+    public struct Interrupted: LocalizedError {
+        public let report: Report
+        public let underlying: any Error
+
+        public var errorDescription: String? { underlying.localizedDescription }
+    }
+
+    /// True for a file a move renamed to keep both copies, like
+    /// "<UUID> (from This Mac).md" for `fileExtension` "md".
+    public static func isRenamedCopy(_ name: String, fileExtension: String) -> Bool {
+        let suffix = ")." + fileExtension
+        guard name.count > 36, name.hasSuffix(suffix), UUID(uuidString: String(name.prefix(36))) != nil else { return false }
+        return name.dropFirst(36).hasPrefix(" (from ")
+    }
+
     private static let partialPrefix = ".dot-migrating-"
 
     /// Moves `source` into `destination`. A folder moves its contents
@@ -27,22 +43,26 @@ public enum FolderMigration {
         var isFolder: ObjCBool = false
         guard fileManager.fileExists(atPath: source.path, isDirectory: &isFolder) else { return report }
 
-        if !isFolder.boolValue {
-            try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try moveFile(source, to: destination, relative: source.lastPathComponent, label: label, report: &report)
-            return report
-        }
-
-        for relative in try files(in: source) {
-            let name = (relative as NSString).lastPathComponent
-            if name == ".DS_Store" || name.hasPrefix(partialPrefix) { continue }
-            if ICloudPlaceholder.originalName(of: name) != nil {
-                report.skipped.append(relative)
-                continue
+        do {
+            if !isFolder.boolValue {
+                try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try moveFile(source, to: destination, relative: source.lastPathComponent, label: label, report: &report)
+                return report
             }
-            let target = destination.appending(path: relative)
-            try fileManager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try moveFile(source.appending(path: relative), to: target, relative: relative, label: label, report: &report)
+
+            for relative in try files(in: source) {
+                let name = (relative as NSString).lastPathComponent
+                if name == ".DS_Store" || name.hasPrefix(partialPrefix) { continue }
+                if ICloudPlaceholder.originalName(of: name) != nil {
+                    report.skipped.append(relative)
+                    continue
+                }
+                let target = destination.appending(path: relative)
+                try fileManager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try moveFile(source.appending(path: relative), to: target, relative: relative, label: label, report: &report)
+            }
+        } catch {
+            throw Interrupted(report: report, underlying: error)
         }
         removeEmptyFolders(in: source)
         return report
@@ -69,7 +89,7 @@ public enum FolderMigration {
     private static func moveFile(_ file: URL, to target: URL, relative: String, label: String, report: inout Report) throws {
         var candidate = target
         var attempt = 1
-        while FileManager.default.fileExists(atPath: candidate.path) || isSymlink(candidate) {
+        while isOccupied(candidate) {
             if sameContent(file, candidate) {
                 // Already there (an earlier run copied it): just drop the original.
                 try FileManager.default.removeItem(at: file)
@@ -108,6 +128,14 @@ public enum FolderMigration {
         let suffix = attempt == 1 ? " (from \(label))" : " (from \(label) \(attempt))"
         let renamed = target.deletingLastPathComponent().appending(path: name + suffix)
         return target.pathExtension.isEmpty ? renamed : renamed.appendingPathExtension(target.pathExtension)
+    }
+
+    /// A name is taken by a file, a symlink, or an iCloud placeholder: a new
+    /// file under an evicted item's name would replace it in iCloud.
+    private static func isOccupied(_ url: URL) -> Bool {
+        let placeholder = url.deletingLastPathComponent().appending(path: "." + url.lastPathComponent + ".icloud")
+        return FileManager.default.fileExists(atPath: url.path) || isSymlink(url)
+            || FileManager.default.fileExists(atPath: placeholder.path)
     }
 
     private static func isSymlink(_ url: URL) -> Bool {

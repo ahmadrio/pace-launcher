@@ -12,6 +12,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let enableAnyway: (GatedHotKey.Blocker) -> Void
     private let hideIcon: () -> Void
     private let openSettings: () -> Void
+    private let autoExpandStatus: () -> AutoExpandController.Status
 
     init(
         hotKeys: HotKeyCenter,
@@ -20,7 +21,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         openLauncher: @escaping () -> Void,
         enableAnyway: @escaping (GatedHotKey.Blocker) -> Void,
         hideIcon: @escaping () -> Void,
-        openSettings: @escaping () -> Void
+        openSettings: @escaping () -> Void,
+        autoExpandStatus: @escaping () -> AutoExpandController.Status
     ) {
         self.hotKeys = hotKeys
         self.blockedGroups = blockedGroups
@@ -29,6 +31,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.enableAnyway = enableAnyway
         self.hideIcon = hideIcon
         self.openSettings = openSettings
+        self.autoExpandStatus = autoExpandStatus
         super.init()
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "command.square", accessibilityDescription: "DOT Launcher")
@@ -62,6 +65,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         } else {
             addItem("Accessibility: not granted — Open Settings…", action: #selector(openAccessibility))
         }
+        switch autoExpandStatus() {
+        case .on:
+            addInfo("Input Monitoring (auto-expand): granted")
+        case .needsPermission:
+            addItem("Input Monitoring: not granted — auto-expand paused. Open Settings…", action: #selector(openInputMonitoring))
+        case .off:
+            addInfo("Auto-expand: off")
+        }
         switch clipboardAccess() {
         case .recording?:
             addInfo("Clipboard history: recording")
@@ -88,6 +99,13 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// Hiding keeps everything reachable through launcher commands.
     func setIconVisible(_ visible: Bool) {
         statusItem.isVisible = visible
+    }
+
+    @objc private func openInputMonitoring() {
+        KeystrokeMonitor.requestPermission()
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     @objc private func showSettings() {

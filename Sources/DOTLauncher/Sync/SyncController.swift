@@ -46,6 +46,8 @@ final class SyncController {
     static let backupInterval: TimeInterval = 6 * 3600
     static let keptBackups = 5
     private static let pendingChoiceKey = "syncRestoreChoicePending"
+    /// "on" or "off" while files are moving; still set after a crash.
+    private static let moveInProgressKey = "syncMoveInProgress"
     /// What moves between this Mac and iCloud Drive. SQLite never does.
     private static let items = ["Snippets", "Notes", "Scripts", "settings.json"]
 
@@ -60,8 +62,29 @@ final class SyncController {
 
     private var backupFolder: URL { AppPaths.iCloudRoot.appending(path: "Backups") }
 
-    /// At launch: resume backups and downloads when sync is on.
+    /// At launch: finish a move that was cut short, then resume backups
+    /// and downloads when sync is on.
     func start() {
+        if let pending = UserDefaults.standard.string(forKey: Self.moveInProgressKey) {
+            let on = pending == "on"
+            if on == isEnabled {
+                // The switch flipped; only the marker was left behind.
+                UserDefaults.standard.removeObject(forKey: Self.moveInProgressKey)
+            } else {
+                // The user already chose this direction; finish it.
+                report("DOT stopped while moving your data \(on ? "to" : "from") iCloud Drive. Finishing the move…")
+                Task {
+                    do {
+                        try await setEnabled(on)
+                        report("Finished the move that was interrupted. " + (status ?? ""))
+                    } catch {
+                        // setEnabled already reported the error.
+                    }
+                }
+                return
+            }
+        }
+        adoptRenamedCopies()
         guard isEnabled else { return }
         refreshBackups()
         downloadPlaceholders()
@@ -93,9 +116,11 @@ final class SyncController {
     private func turnOn() async throws {
         try Self.checkICloudAvailable()
         beforeMove()
-        let renamed = try Self.migrate(from: AppPaths.localRoot, to: AppPaths.iCloudRoot, label: "This Mac")
+        let renamed = try Self.migrate(from: AppPaths.localRoot, to: AppPaths.iCloudRoot, label: "This Mac", direction: "on")
         UserDefaults.standard.set(true, forKey: AppPaths.syncEnabledKey)
+        UserDefaults.standard.removeObject(forKey: Self.moveInProgressKey)
         isEnabled = true
+        adoptRenamedCopies()
         afterMove()
         Log.app.notice("sync turned on")
 
@@ -104,7 +129,7 @@ final class SyncController {
         downloadPlaceholders()
         report(renamed == 0
             ? "Your snippets, notes, scripts and settings are now in iCloud Drive › DOT Launcher."
-            : "Moved to iCloud Drive › DOT Launcher. \(renamed) file(s) already existed there and were kept; this Mac’s copies got “(from This Mac)” in their name.")
+            : "Moved to iCloud Drive › DOT Launcher. \(renamed) file(s) already existed there; both copies were kept (this Mac’s copy is marked “from This Mac” where a name was needed).")
         if backups.isEmpty {
             await backupNow()
         } else {
@@ -121,38 +146,81 @@ final class SyncController {
         beforeMove()
         timer?.cancel()
         timer = nil
-        let renamed = try Self.migrate(from: AppPaths.iCloudRoot, to: AppPaths.localRoot, label: "iCloud")
+        let renamed = try Self.migrate(from: AppPaths.iCloudRoot, to: AppPaths.localRoot, label: "iCloud", direction: "off")
         UserDefaults.standard.set(false, forKey: AppPaths.syncEnabledKey)
+        UserDefaults.standard.removeObject(forKey: Self.moveInProgressKey)
         UserDefaults.standard.removeObject(forKey: Self.pendingChoiceKey)
         isEnabled = false
         backups = []
         pendingRestoreChoice = nil
+        adoptRenamedCopies()
         afterMove()
         Log.app.notice("sync turned off")
-        report((renamed == 0 ? "Your data is back on this Mac." : "Your data is back on this Mac; \(renamed) file(s) got “(from iCloud)” in their name to keep both copies.")
+        report((renamed == 0 ? "Your data is back on this Mac." : "Your data is back on this Mac; \(renamed) file(s) existed in both places and both copies were kept.")
             + " Clipboard backups in iCloud Drive were kept; delete them below if you want.")
     }
 
-    /// Moves every synced item; on failure, moves back what this run moved
-    /// so the app never shows half the data. Returns how many were renamed.
-    private static func migrate(from source: URL, to destination: URL, label: String) throws -> Int {
+    /// Moves every synced item. A marker records the move until the switch
+    /// flips, so a crash midway is finished at the next launch. On an error,
+    /// exactly the files this run moved are moved back, so the app never
+    /// shows half the data. Returns how many were renamed.
+    private static func migrate(from source: URL, to destination: URL, label: String, direction: String) throws -> Int {
         try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        UserDefaults.standard.set(direction, forKey: moveInProgressKey)
         var renamed = 0
-        var done: [String] = []
+        var moved: [(item: String, report: FolderMigration.Report)] = []
         do {
             for item in items {
-                done.append(item)
-                let report = try FolderMigration.move(from: source.appending(path: item), to: destination.appending(path: item), label: label)
+                let report: FolderMigration.Report
+                do {
+                    report = try FolderMigration.move(from: source.appending(path: item), to: destination.appending(path: item), label: label)
+                } catch let interrupted as FolderMigration.Interrupted {
+                    moved.append((item, interrupted.report))
+                    throw interrupted
+                }
+                moved.append((item, report))
                 renamed += report.renamed.count
                 removeIfEmpty(source.appending(path: item))
             }
         } catch {
-            for item in done {
-                _ = try? FolderMigration.move(from: destination.appending(path: item), to: source.appending(path: item), label: label == "iCloud" ? "This Mac" : "iCloud")
-            }
-            throw error
+            let restored = rollBack(moved, from: destination, to: source, label: label == "iCloud" ? "This Mac" : "iCloud")
+            if restored { UserDefaults.standard.removeObject(forKey: moveInProgressKey) }
+            throw SyncError.moveFailed(error.localizedDescription, restored: restored)
         }
         return renamed
+    }
+
+    /// Moves back the files listed in `moved`. False when any stayed put.
+    private static func rollBack(_ moved: [(item: String, report: FolderMigration.Report)], from destination: URL, to source: URL, label: String) -> Bool {
+        var restored = true
+        for (item, report) in moved {
+            // Report paths are relative to the item's folder, or to the
+            // data folder for the one single-file item (settings.json).
+            let prefix = item.contains(".") ? "" : item + "/"
+            let pairs = report.moved.map { ($0, $0) } + report.renamed.map { ($0.value, $0.key) }
+            for (now, before) in pairs {
+                do {
+                    _ = try FolderMigration.move(from: destination.appending(path: prefix + now), to: source.appending(path: prefix + before), label: label)
+                } catch {
+                    restored = false
+                }
+            }
+        }
+        return restored
+    }
+
+    /// Notes and snippets renamed to keep both copies get their own id,
+    /// so both stay visible in DOT.
+    private func adoptRenamedCopies() {
+        do {
+            let notes = try NoteStore(directory: AppPaths.notesDirectory) { _ in }.adoptRenamedCopies()
+            let snippets = try SnippetStore(directory: AppPaths.snippetsDirectory).adoptRenamedCopies()
+            if notes + snippets > 0 {
+                Log.app.notice("kept \(notes, privacy: .public) note and \(snippets, privacy: .public) snippet copies under new ids")
+            }
+        } catch {
+            Log.app.error("could not adopt renamed copies: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private static func removeIfEmpty(_ folder: URL) {
@@ -182,6 +250,8 @@ final class SyncController {
         guard isEnabled else { return [] }
         return Self.items.flatMap { item -> [URL] in
             let folder = AppPaths.iCloudRoot.appending(path: item)
+            let placeholder = AppPaths.iCloudRoot.appending(path: "." + item + ".icloud")
+            if FileManager.default.fileExists(atPath: placeholder.path) { return [placeholder] }
             guard let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: nil) else { return [] }
             return enumerator.compactMap { $0 as? URL }.filter { ICloudPlaceholder.originalName(of: $0.lastPathComponent) != nil }
         }
@@ -398,6 +468,7 @@ enum SyncError: LocalizedError {
     case iCloudDriveOff
     case testFoldersNeedICloudOverride
     case stillDownloading(Int)
+    case moveFailed(String, restored: Bool)
 
     var errorDescription: String? {
         switch self {
@@ -405,6 +476,10 @@ enum SyncError: LocalizedError {
             "iCloud Drive isn’t on for this Mac. Turn it on in System Settings › Apple Account › iCloud, then try again."
         case .testFoldersNeedICloudOverride:
             "Test data folders are in use but DOTiCloudRootOverride is not set, so sync stays off to keep test data out of your real iCloud Drive."
+        case .moveFailed(let reason, restored: true):
+            "Moving stopped: \(reason). Everything that had moved was put back, so nothing changed. Try again."
+        case .moveFailed(let reason, restored: false):
+            "Moving stopped: \(reason). Some files could not be put back yet; DOT finishes the move the next time it starts. Nothing was deleted."
         case .stillDownloading(let count):
             "\(count) file(s) are still downloading from iCloud. Sync stays on so nothing is left behind; try again in a moment."
         }

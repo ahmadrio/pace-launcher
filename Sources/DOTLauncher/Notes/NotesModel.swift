@@ -67,6 +67,10 @@ final class NotesModel {
     func flush() {
         saveTask?.cancel()
         saveTask = nil
+        // Never drop typed text: text without a note becomes a new note.
+        if currentID == nil, !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            currentID = UUID()
+        }
         guard let id = currentID else { return }
         do {
             try store.save(id, body: body)
@@ -87,10 +91,15 @@ final class NotesModel {
         trash(id)
     }
 
-    /// Moves a note to the Trash (from the launcher or the window).
+    /// Moves a note to the Trash (from the launcher or the window). When it
+    /// is the open note, the next most recent one (or a new one) opens, so
+    /// the editor always has a note to save into.
     func trash(_ id: UUID) {
-        if id == currentID {
+        let wasCurrent = id == currentID
+        if wasCurrent {
             flush()
+            // Clear the editor too, or the next flush would save the
+            // trashed text again as a new note.
             currentID = nil
             load("")
         }
@@ -99,7 +108,11 @@ final class NotesModel {
         } catch {
             Log.app.error("could not trash note: \(String(describing: error), privacy: .public)")
         }
-        reloadList()
+        if wasCurrent {
+            openLatest()
+        } else {
+            reloadList()
+        }
     }
 
     func body(of id: UUID) -> String {

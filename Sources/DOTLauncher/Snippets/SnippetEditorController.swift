@@ -9,8 +9,11 @@ final class SnippetEditorController: NSObject, NSWindowDelegate {
     private var panel: NSPanel?
     private var confirmation = PressConfirmation()
 
-    init(library: SnippetLibrary) {
+    private let theme: ThemeController
+
+    init(library: SnippetLibrary, theme: ThemeController) {
         self.library = library
+        self.theme = theme
     }
 
     /// Opens the editor for `snippet`, or for a new one when nil.
@@ -37,7 +40,8 @@ final class SnippetEditorController: NSObject, NSWindowDelegate {
         panel.becomesKeyOnlyIfNeeded = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
-        panel.contentView = NSHostingView(rootView: view)
+        panel.contentView = NSHostingView(rootView: ThemedRoot(theme: theme, content: view))
+        theme.register(panel)
         panel.delegate = self
         panel.center()
         panel.makeKeyAndOrderFront(nil)

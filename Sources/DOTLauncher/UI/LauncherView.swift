@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LauncherView: View {
     let model: LauncherModel
+    @Environment(ThemeController.self) private var theme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,7 +15,7 @@ struct LauncherView: View {
                         .font(.system(size: 12, weight: .medium))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(.quaternary, in: .capsule)
+                        .background(theme.accentColor.opacity(0.25), in: .capsule)
                 }
                 SearchField(model: model, placeholder: model.mode.placeholder)
             }

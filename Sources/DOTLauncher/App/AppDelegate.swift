@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = SettingsStore()
     private var statusMenu: StatusMenuController?
     private var settingsWindow: SettingsWindowController?
+    private var theme: ThemeController?
     private var panelController: PanelController?
     private var hotKeys: HotKeyCenter?
     private var indexer: AppIndexer?
@@ -56,7 +57,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let indexer = AppIndexer()
         let windows = WindowManager()
         let model = LauncherModel()
-        let panelController = PanelController(model: model)
+        let theme = ThemeController(theme: settings.data.theme)
+        self.theme = theme
+        let panelController = PanelController(model: model, theme: theme)
         let hotKeys = HotKeyCenter()
 
         let windowCommands = CommandCatalog.windowCommands { action in
@@ -106,12 +109,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         self.snippets = snippets
-        snippetEditor = SnippetEditorController(library: snippets)
+        snippetEditor = SnippetEditorController(library: snippets, theme: theme)
 
         let notes = NotesModel(store: NoteStore(directory: AppPaths.notesDirectory) { url in
             try FileManager.default.trashItem(at: url, resultingItemURL: nil)
         })
-        let notesWindow = NotesWindowController(model: notes)
+        let notesWindow = NotesWindowController(model: notes, theme: theme)
         let relative = RelativeDateTimeFormatter()
         relative.unitsStyle = .abbreviated
         model.handlers[.notes] = LauncherModel.ModeHandler(
@@ -281,6 +284,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panelController.canHideApp = { !settingsWindow.isVisible }
         settings.onChange = { [weak self] old, new in
             guard let self else { return }
+            if old.theme != new.theme {
+                self.theme?.update(new.theme)
+            }
             if old.showMenuBarIcon != new.showMenuBarIcon {
                 self.statusMenu?.setIconVisible(new.showMenuBarIcon)
                 self.search?.rebuild()

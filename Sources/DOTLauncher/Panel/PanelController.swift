@@ -19,23 +19,22 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// Called every time the panel opens, before results are computed.
     var onShow: (() -> Void)?
 
-    init(model: LauncherModel) {
+    init(model: LauncherModel, theme: ThemeController) {
         self.model = model
         panel = LauncherPanel(contentRect: NSRect(origin: .zero, size: Self.size))
         super.init()
 
-        let hosting = NSHostingView(rootView: LauncherView(model: model))
+        let hosting = NSHostingView(rootView: ThemedRoot(theme: theme, content: LauncherView(model: model)))
         hosting.sizingOptions = []
         hosting.autoresizingMask = [.width, .height]
 
         let glass = NSGlassEffectView(frame: NSRect(origin: .zero, size: Self.size))
         glass.cornerRadius = 24
-        // Plain glass lets busy windows behind show through; tint it with
-        // the (light/dark aware) window background so text stays legible.
-        glass.tintColor = NSColor.windowBackgroundColor.withAlphaComponent(0.6)
         glass.contentView = hosting
         hosting.frame = glass.bounds
         panel.contentView = glass
+        // Glass density (tint) and light/dark come from the theme.
+        theme.register(panel, glass: glass, content: hosting)
         panel.delegate = self
 
         model.close = { [weak self] in self?.hide() }

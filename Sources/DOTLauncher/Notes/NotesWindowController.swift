@@ -8,8 +8,11 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
     private var panel: NotesPanel?
     private weak var textView: NSTextView?
 
-    init(model: NotesModel) {
+    private let theme: ThemeController
+
+    init(model: NotesModel, theme: ThemeController) {
         self.model = model
+        self.theme = theme
     }
 
     /// Shows the window on the current note, or the latest one.
@@ -69,10 +72,11 @@ final class NotesWindowController: NSObject, NSWindowDelegate {
         panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         panel.minSize = NSSize(width: 300, height: 240)
         panel.delegate = self
-        panel.contentView = NSHostingView(rootView: NotesView(model: model) { [weak self] textView in
+        panel.contentView = NSHostingView(rootView: ThemedRoot(theme: theme, content: NotesView(model: model) { [weak self] textView in
             self?.textView = textView
             Task { self?.focusText() }
-        })
+        }))
+        theme.register(panel)
         if !panel.setFrameUsingName("DOTNotesWindow") {
             panel.center()
         }

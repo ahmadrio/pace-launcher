@@ -82,6 +82,8 @@ struct SettingsView: View {
         switch model.section {
         case .general:
             GeneralSettings(settings: settings)
+        case .appearance:
+            AppearanceSettings(settings: settings)
         default:
             Text("Coming in a later step.").foregroundStyle(.secondary)
         }
@@ -118,6 +120,59 @@ private struct GeneralSettings: View {
                     }
                 }
             }
+        }
+    }
+}
+
+private struct AppearanceSettings: View {
+    let settings: SettingsStore
+
+    private var theme: ThemeSettings { settings.data.theme }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Picker("Theme", selection: Binding(
+                get: { theme.preset },
+                set: { settings.data.theme.apply($0) }
+            )) {
+                ForEach(ThemePreset.allCases.filter { $0 != .custom }, id: \.self) { preset in
+                    Text(preset.title).tag(preset)
+                }
+                if theme.preset == .custom {
+                    Text(ThemePreset.custom.title).tag(ThemePreset.custom)
+                }
+            }
+
+            HStack {
+                ColorPicker("Accent color", selection: Binding(
+                    get: { theme.accent.map { Color(red: $0.red, green: $0.green, blue: $0.blue) } ?? .accentColor },
+                    set: { settings.data.theme.setAccent(RGB($0)) }
+                ), supportsOpacity: false)
+                if theme.accent != nil {
+                    Button("Use system accent") { settings.data.theme.setAccent(nil) }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Glass density: \(Int(theme.glassTint * 100))%")
+                Slider(value: Binding(
+                    get: { theme.glassTint },
+                    set: { settings.data.theme.setGlassTint($0) }
+                ), in: 0...0.9)
+                Text("Lower lets more of the desktop show through the launcher.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Picker("Mode", selection: Binding(
+                get: { theme.appearance },
+                set: { settings.data.theme.setAppearance($0) }
+            )) {
+                Text("System").tag(AppearanceMode.system)
+                Text("Light").tag(AppearanceMode.light)
+                Text("Dark").tag(AppearanceMode.dark)
+            }
+            .pickerStyle(.segmented)
         }
     }
 }

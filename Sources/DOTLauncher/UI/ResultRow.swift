@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ResultRow: View {
+    @Environment(ThemeController.self) private var theme
     let result: LauncherResult
     let isSelected: Bool
 
@@ -28,7 +29,7 @@ struct ResultRow: View {
         .padding(.horizontal, 10)
         .frame(height: 44)
         .background(
-            isSelected ? AnyShapeStyle(.selection.opacity(0.35)) : AnyShapeStyle(.clear),
+            isSelected ? AnyShapeStyle(theme.accentColor.opacity(0.3)) : AnyShapeStyle(.clear),
             in: .rect(cornerRadius: 10)
         )
     }

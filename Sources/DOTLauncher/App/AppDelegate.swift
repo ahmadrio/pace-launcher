@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windows: WindowManager?
     private var translator: Translator?
     private var chat: AIChatController?
+    private var snippets: SnippetLibrary?
 
     private var gatedHotKeys: [GatedHotKey] = []
     /// Blockers the user chose to ignore ("Enable anyway").
@@ -56,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             indexer: indexer, usage: Self.openUsageStore(), icons: icons,
             commands: { [weak self] in
                 [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat()] + windowCommands
+                    + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
                     + CommandCatalog.appCommands(
                         toggleIcon: { self?.toggleMenuBarIcon() },
                         iconVisible: { AppSettings.showMenuBarIcon }
@@ -63,6 +65,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         let clipboard = Self.openClipboardStore().map { ClipboardController(store: $0, icons: icons) }
+
+        let snippets = SnippetLibrary(store: SnippetStore(directory: AppPaths.snippetsDirectory))
+        let snippetRow: (Snippet) -> LauncherResult = { [weak self] snippet in
+            let firstLine = snippet.content.split(whereSeparator: \.isNewline).first.map(String.init)
+            let details = [snippet.keyword, firstLine].compactMap { $0 }.filter { !$0.isEmpty }
+            return LauncherResult(
+                id: "snippet-row:" + snippet.id.uuidString,
+                title: snippet.name,
+                subtitle: details.joined(separator: " · "),
+                icon: .symbol("text.quote"),
+                accessory: "Snippet",
+                actionTitle: "Paste",
+                action: .run { snippets.paste(snippet, monitor: clipboard?.monitor) },
+                secondaryActions: [
+                    SecondaryAction(title: "Edit", shortcut: .command("e"), action: .run { self?.editSnippet(snippet) }),
+                    SecondaryAction(title: "Delete", shortcut: .delete, confirm: true, action: .stay { snippets.delete(snippet.id) }),
+                ]
+            )
+        }
+        search.snippets = { snippets.snippets }
+        search.snippetRow = snippetRow
+        snippets.onChange = { search.rebuild() }
+        search.rebuild()
+        model.handlers[.snippets] = LauncherModel.ModeHandler(
+            results: { query in snippets.search(query).map(snippetRow) },
+            actions: { [weak self] in
+                [SecondaryAction(title: "New Snippet", shortcut: .command("n"), action: .run { self?.editSnippet(nil) })]
+            }
+        )
+        self.snippets = snippets
 
         model.search = { query in search.results(for: query) }
         model.handlers[.clipboard] = LauncherModel.ModeHandler(
@@ -192,6 +224,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         panelController?.show()
         return false
+    }
+
+    /// TEMPORARY (Task 10): replaced by the snippet editor in Task 11.
+    private func editSnippet(_ snippet: Snippet?) {
+        Log.app.notice("snippet editor not available yet")
     }
 
     private func toggleMenuBarIcon() {

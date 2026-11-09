@@ -11,4 +11,8 @@ enum AppPaths {
 
     static var launcherDatabase: URL { supportDirectory.appending(path: "launcher.sqlite") }
     static var clipboardDatabase: URL { supportDirectory.appending(path: "clipboard.sqlite") }
+    /// One JSON file per snippet; sync-friendly (tahap 3).
+    static var snippetsDirectory: URL { supportDirectory.appending(path: "Snippets") }
+    /// One Markdown file per note.
+    static var notesDirectory: URL { supportDirectory.appending(path: "Notes") }
 }

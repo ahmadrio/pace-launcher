@@ -84,6 +84,29 @@ enum CommandCatalog {
         }
     }
 
+    static func snippetCommands(create: @escaping () -> Void) -> [LauncherCommand] {
+        [
+            LauncherCommand(
+                id: "search-snippets",
+                title: "Search Snippets",
+                subtitle: "Paste saved text",
+                aliases: ["snippet", "snip"],
+                symbol: "text.quote",
+                actionTitle: "Open",
+                action: .enter(.snippets)
+            ),
+            LauncherCommand(
+                id: "create-snippet",
+                title: "Create Snippet",
+                subtitle: "Save text you type often",
+                aliases: ["new snippet"],
+                symbol: "plus.square.on.square",
+                actionTitle: "Create",
+                action: .run(create)
+            ),
+        ]
+    }
+
     static func aiChat() -> LauncherCommand {
         LauncherCommand(
             id: "ai-chat",

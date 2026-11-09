@@ -1,12 +1,19 @@
 import AppKit
 import DOTLauncherCore
 
-/// Turns a root-mode query into launcher rows by ranking apps and commands.
+/// Turns a root-mode query into launcher rows by ranking apps, commands
+/// and snippets.
 final class LauncherSearch {
     private enum Item {
         case app(AppEntry)
         case command(LauncherCommand)
+        case snippet(Snippet)
     }
+
+    /// Snippets to rank in root search, and how to show one as a row.
+    /// Set by the composition root.
+    var snippets: () -> [Snippet] = { [] }
+    var snippetRow: ((Snippet) -> LauncherResult)?
 
     private let indexer: AppIndexer
     private let usage: UsageStore?
@@ -39,6 +46,11 @@ final class LauncherSearch {
             candidates.append(SearchCandidate(id: id, title: app.name, aliases: app.aliases))
             items[id] = .app(app)
         }
+        for snippet in snippets() {
+            let id = "snippet:" + snippet.id.uuidString
+            candidates.append(SearchCandidate(id: id, title: snippet.name, aliases: [snippet.keyword].compactMap { $0 }))
+            items[id] = .snippet(snippet)
+        }
         self.candidates = candidates
         self.items = items
     }
@@ -50,7 +62,7 @@ final class LauncherSearch {
             ranked[index].frecency = usage?.frecency(for: ranked[index].id, now: now) ?? 0
         }
         let matches = ResultRanker.rank(query, ranked, limit: 30).compactMap { id in
-            items[id].map { result(for: $0, id: id) }
+            items[id].flatMap { result(for: $0, id: id) }
         }
         // A calculation is always the first row; "Ask AI" is always the last.
         let calculation = calculation(for: query)
@@ -92,10 +104,18 @@ final class LauncherSearch {
         )
     }
 
-    private func result(for item: Item, id: String) -> LauncherResult {
+    private func result(for item: Item, id: String) -> LauncherResult? {
         switch item {
+        case .snippet(let snippet):
+            guard let row = snippetRow?(snippet) else { return nil }
+            // Same row, keyed for root ranking and learning frecency.
+            return LauncherResult(
+                id: id, title: row.title, subtitle: row.subtitle, icon: row.icon, accessory: row.accessory,
+                actionTitle: row.actionTitle, action: recordingUse(of: id, row.action),
+                secondaryActions: row.secondaryActions
+            )
         case .app(let app):
-            LauncherResult(
+            return LauncherResult(
                 id: id,
                 title: app.name,
                 subtitle: Self.folderName(of: app.path),
@@ -108,7 +128,7 @@ final class LauncherSearch {
                 }
             )
         case .command(let command):
-            LauncherResult(
+            return LauncherResult(
                 id: id,
                 title: command.title,
                 subtitle: command.subtitle,

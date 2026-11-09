@@ -1,13 +1,17 @@
 import AppKit
 import DOTLauncherCore
+import Observation
 
 /// The script commands found in the main Scripts folder plus any extra
 /// folders the user added (those are per-Mac and never synced).
+@Observable
 final class ScriptLibrary {
     static let extraFoldersKey = "extraScriptFolders"
 
     private(set) var scripts: [ScriptCommand] = []
-    var onChange: (() -> Void)?
+    @ObservationIgnored var onChange: (() -> Void)?
+    /// Bumped when the extra folders change, so Settings re-reads them.
+    private(set) var foldersVersion = 0
 
     var folders: [URL] {
         [AppPaths.scriptsDirectory] + extraFolders
@@ -19,6 +23,7 @@ final class ScriptLibrary {
 
     func setExtraFolders(_ urls: [URL]) {
         UserDefaults.standard.set(urls.map(\.path), forKey: Self.extraFoldersKey)
+        foldersVersion += 1
         reload()
     }
 

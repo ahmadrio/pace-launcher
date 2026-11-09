@@ -42,6 +42,7 @@ final class LauncherModel {
         case snippets
         case notes
         case scriptOutput
+        case scriptArguments
 
         var placeholder: String {
             switch self {
@@ -52,6 +53,7 @@ final class LauncherModel {
             case .snippets: "Search snippets…"
             case .notes: "Search notes…"
             case .scriptOutput: "Script output"
+            case .scriptArguments: "Fill in the arguments below"
             }
         }
 
@@ -64,6 +66,7 @@ final class LauncherModel {
             case .snippets: "Snippets"
             case .notes: "Notes"
             case .scriptOutput: "Script"
+            case .scriptArguments: "Script"
             }
         }
     }

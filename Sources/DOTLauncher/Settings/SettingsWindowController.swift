@@ -6,10 +6,12 @@ import SwiftUI
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let model = SettingsWindowModel()
     private let settings: SettingsStore
+    private let scripts: ScriptLibrary
     private var window: NSWindow?
 
-    init(settings: SettingsStore) {
+    init(settings: SettingsStore, scripts: ScriptLibrary) {
         self.settings = settings
+        self.scripts = scripts
     }
 
     var isVisible: Bool { window?.isVisible ?? false }
@@ -36,7 +38,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.title = "DOT Launcher Settings"
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts))
         if !window.setFrameUsingName("DOTSettingsWindow") {
             window.center()
         }

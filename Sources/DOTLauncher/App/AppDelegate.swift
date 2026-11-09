@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let scriptLibrary = ScriptLibrary()
     private var hud: HUDController?
     private var startScript: ((ScriptCommand, [String]) -> Void)?
+    private var scriptActions: ScriptActions?
 
     func applicationWillTerminate(_ notification: Notification) {
         notesWindow?.model.flush()
@@ -190,17 +191,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.startScript = startScript
         search.scripts = { scriptLibrary.scripts }
-        search.scriptRow = { script in
-            LauncherResult(
-                id: "script-row:" + script.id,
-                title: script.metadata.title,
-                subtitle: script.metadata.packageName ?? script.metadata.description ?? script.url.deletingLastPathComponent().lastPathComponent,
-                icon: ScriptLibrary.icon(for: script),
-                accessory: "Script",
-                actionTitle: "Run",
-                action: .stay { startScript(script, []) }
-            )
+        let argumentForm = ScriptArgumentForm()
+        let scriptActions = ScriptActions(library: scriptLibrary, form: argumentForm, model: model, start: startScript)
+        self.scriptActions = scriptActions
+        search.scriptRow = { script in scriptActions.row(for: script) }
+        scriptActions.onInlineUpdate = {
+            search.rebuild()
+            if panelController.isVisible, model.mode == .root { model.refresh() }
         }
+        model.customContent[.scriptArguments] = {
+            AnyView(ScriptArgumentsView(form: argumentForm, submit: { scriptActions.submitArguments() }, cancel: { model.reset(to: .root) }))
+        }
+        model.handlers[.scriptArguments] = LauncherModel.ModeHandler(
+            submit: { scriptActions.submitArguments() },
+            submitTitle: "Run",
+            queryChanged: { _ in }
+        )
         scriptLibrary.onChange = { search.rebuild() }
 
         model.search = { query in search.results(for: query) }
@@ -295,6 +301,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // rebuilds search through snippets.onChange.
             snippets.reload()
             scriptLibrary.reload()
+            scriptActions.refreshInline()
         }
         indexer.refreshIfStale()
         clipboard?.start()
@@ -339,7 +346,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
 
-        let settingsWindow = SettingsWindowController(settings: settings)
+        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary)
         self.settingsWindow = settingsWindow
         panelController.canHideApp = { !settingsWindow.isVisible }
         settings.onChange = { [weak self] old, new in

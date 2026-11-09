@@ -37,6 +37,7 @@ final class SettingsWindowModel {
 struct SettingsView: View {
     let model: SettingsWindowModel
     let settings: SettingsStore
+    let scripts: ScriptLibrary
 
     var body: some View {
         HStack(spacing: 0) {
@@ -84,6 +85,8 @@ struct SettingsView: View {
             GeneralSettings(settings: settings)
         case .appearance:
             AppearanceSettings(settings: settings)
+        case .scripts:
+            ScriptsSettings(scripts: scripts)
         default:
             Text("Coming in a later step.").foregroundStyle(.secondary)
         }
@@ -174,5 +177,60 @@ private struct AppearanceSettings: View {
             }
             .pickerStyle(.segmented)
         }
+    }
+}
+
+private struct ScriptsSettings: View {
+    let scripts: ScriptLibrary
+
+    var body: some View {
+        // Reading foldersVersion makes the list refresh after Add/Remove.
+        let _ = scripts.foldersVersion
+        VStack(alignment: .leading, spacing: 12) {
+            Text("DOT runs any script whose header has a title (`# @dot.title` or `# @raycast.title`). Found \(scripts.scripts.count) script command(s).")
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                folderRow(AppPaths.scriptsDirectory, note: "Main folder (follows iCloud sync)", removable: false)
+                ForEach(scripts.extraFolders, id: \.path) { folder in
+                    folderRow(folder, note: "This Mac only", removable: true)
+                }
+            }
+
+            HStack {
+                Button("Add Folder…", action: addFolder)
+                Button("Reload") { scripts.reload() }
+                Button("Open Main Folder") { scripts.openFolder() }
+            }
+        }
+    }
+
+    private func folderRow(_ folder: URL, note: String, removable: Bool) -> some View {
+        HStack {
+            Image(systemName: "folder")
+            VStack(alignment: .leading, spacing: 1) {
+                Text((folder.path as NSString).abbreviatingWithTildeInPath).lineLimit(1).truncationMode(.middle)
+                Text(note).font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Show") { NSWorkspace.shared.open(folder) }
+            if removable {
+                Button("Remove") {
+                    scripts.setExtraFolders(scripts.extraFolders.filter { $0 != folder })
+                }
+            }
+        }
+        .padding(8)
+        .background(.quaternary, in: .rect(cornerRadius: 6))
+    }
+
+    private func addFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Add Folder"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        scripts.setExtraFolders(scripts.extraFolders + [url])
     }
 }

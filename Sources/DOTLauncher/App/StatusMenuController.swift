@@ -37,6 +37,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
 
+        if AppPaths.isUsingTestFolders {
+            addInfo("⚠︎ Test data folders in use")
+        }
         addItem("Open DOT Launcher   \(AppDelegate.launcherHotKey.displayString)", action: #selector(open))
         menu.addItem(.separator())
 

@@ -20,6 +20,8 @@ struct GatedHotKey {
 
 /// Composition root: creates the services and wires them together.
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// settings.json in the active data folder.
+    let settings = SettingsStore()
     private var statusMenu: StatusMenuController?
     private var panelController: PanelController?
     private var hotKeys: HotKeyCenter?
@@ -67,7 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
                     + CommandCatalog.appCommands(
                         toggleIcon: { self?.toggleMenuBarIcon() },
-                        iconVisible: { AppSettings.showMenuBarIcon }
+                        iconVisible: { self?.settings.data.showMenuBarIcon ?? true }
                     )
             }
         )
@@ -269,7 +271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             hideIcon: { [weak self] in self?.toggleMenuBarIcon() }
         )
-        statusMenu?.setIconVisible(AppSettings.showMenuBarIcon)
+        statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
     }
 
     /// Opening the app again while it runs (Finder, Spotlight, `open`)
@@ -286,10 +288,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func toggleMenuBarIcon() {
-        AppSettings.showMenuBarIcon.toggle()
-        statusMenu?.setIconVisible(AppSettings.showMenuBarIcon)
+        settings.data.showMenuBarIcon.toggle()
+        statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
         search?.rebuild()
-        Log.app.notice("menu bar icon \(AppSettings.showMenuBarIcon ? "shown" : "hidden", privacy: .public)")
+        Log.app.notice("menu bar icon \(self.settings.data.showMenuBarIcon ? "shown" : "hidden", privacy: .public)")
     }
 
     private func isRunning(_ blocker: GatedHotKey.Blocker) -> Bool {

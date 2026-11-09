@@ -147,18 +147,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.customContent[.translate] = { AnyView(TranslateView(controller: translate)) }
         model.handlers[.translate] = LauncherModel.ModeHandler(
             submit: {
-                guard !translate.output.isEmpty else { return }
+                // Only a finished translation of the current text; while a
+                // newer one is running, the shown output is stale.
+                guard translate.status == .done, !translate.output.isEmpty else {
+                    if translate.status == .translating { model.notice = "Still translating…" }
+                    return
+                }
                 TextPaster.copy(translate.output)
                 model.close()
             },
             submitTitle: "Copy",
             actions: {
-                [
-                    SecondaryAction(title: "Paste", shortcut: .command("\r"), action: .run {
-                        TextPaster.paste(translate.output, monitor: clipboard?.monitor)
-                    }),
+                var actions = [
                     SecondaryAction(title: "Swap", shortcut: .command("l"), action: .stay { translate.swap() }),
                 ]
+                if translate.status == .done, !translate.output.isEmpty {
+                    let output = translate.output
+                    actions.insert(SecondaryAction(title: "Paste", shortcut: .command("\r"), action: .run {
+                        TextPaster.paste(output, monitor: clipboard?.monitor)
+                    }), at: 0)
+                }
+                return actions
             },
             queryChanged: { translate.update($0) },
             entered: { translate.reset() }

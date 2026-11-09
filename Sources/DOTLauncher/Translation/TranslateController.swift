@@ -40,6 +40,9 @@ final class TranslateController {
             reset()
             return
         }
+        // Mark the shown output stale right away, not after the debounce,
+        // so Copy/Paste never act on the previous text's translation.
+        status = .translating
         schedule(after: .milliseconds(300))
     }
 
@@ -47,6 +50,7 @@ final class TranslateController {
     func swap() {
         guard !query.isEmpty else { return }
         swapped.toggle()
+        status = .translating
         schedule(after: .zero)
     }
 

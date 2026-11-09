@@ -215,7 +215,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         panelController.onShow = {
             indexer.refreshIfStale()
-            search.rebuild()
+            // Snippet files can change outside the app (another editor,
+            // a synced folder); re-read them on every open. This also
+            // rebuilds search through snippets.onChange.
+            snippets.reload()
         }
         indexer.refreshIfStale()
         clipboard?.start()

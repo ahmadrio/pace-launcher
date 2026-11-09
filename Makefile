@@ -16,6 +16,8 @@ app:
 # makes the terminal the responsible process for TCC and breaks permissions.
 install: app
 	-pkill -x DOTLauncher
+	@# Wait for the old instance to exit, or `open` may target the dying process.
+	@for i in $$(seq 50); do pgrep -x DOTLauncher >/dev/null || break; sleep 0.1; done
 	mkdir -p "$(HOME)/Applications"
 	rm -rf "$(INSTALLED_APP)"
 	ditto "$(BUILT_APP)" "$(INSTALLED_APP)"

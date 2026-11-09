@@ -13,6 +13,9 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// paste and window commands.
     private(set) var targetApp: NSRunningApplication?
 
+    /// Called every time the panel opens, before results are computed.
+    var onShow: (() -> Void)?
+
     init(model: LauncherModel) {
         self.model = model
         panel = LauncherPanel(contentRect: NSRect(origin: .zero, size: Self.size))
@@ -46,6 +49,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
             targetApp = front
         }
+        onShow?()
         model.reset()
         position()
         panel.makeKeyAndOrderFront(nil)

@@ -52,8 +52,12 @@ final class LauncherModel {
     }
 
     func refresh() {
+        let started = ContinuousClock.now
         results = search(query)
         selectedIndex = 0
+        let elapsed = started.duration(to: .now)
+        // Debug level is never persisted; visible only with `make logs`.
+        Log.panel.debug("query “\(self.query, privacy: .public)” → \(self.results.count) results, top: \(self.results.first?.title ?? "-", privacy: .public) in \(elapsed, privacy: .public)")
     }
 
     func moveSelection(by delta: Int) {

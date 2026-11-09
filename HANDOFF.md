@@ -47,7 +47,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 170 test Core (Swift Testing)
+make test     # 180 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -66,7 +66,10 @@ make reset-tcc
 - **Auto-expand:** ⌘V harus dikirim langsung setelah backspace, tanpa jeda. Dengan jeda 140 ms, teks yang diketik setelah keyword muncul sebelum snippet (`x ;addr y` → `x  yJl. …`).
 - **Skrip:** `ScriptRun` disimpan di registry statis. Kalau hanya dipegang referensi weak, run langsung hilang dan HUD tidak pernah muncul. Pembacaan environment login shell memakai deadline sebelum membaca output.
 - **SQLite backup:** salinan dari database WAL diubah ke `journal_mode=DELETE`, dan file `-shm` sisa dihapus, supaya backup berupa satu file. Backup ditulis dulu di folder lokal, lalu dipindah ke iCloud.
-- **Placeholder iCloud** (`.nama.icloud`) dikenali oleh store, oleh daftar backup, dan oleh migrasi. Placeholder tidak pernah disalin dan tidak pernah hilang dari daftar ("Downloading…").
+- **Placeholder iCloud** (`.nama.icloud`) dikenali oleh store, oleh daftar backup, dan oleh migrasi. Placeholder tidak pernah disalin dan tidak pernah hilang dari daftar ("Downloading…"). Nama yang placeholder-nya ada dianggap **sudah terpakai**, karena file baru di path item yang di-evict akan menggantikan isinya di iCloud. `settings.json` tidak disimpan selama yang ada baru placeholder-nya.
+- **Pemindahan yang terputus:** penanda `syncMoveInProgress` di UserDefaults dipasang sebelum memindah file. Saat app start, pemindahan diselesaikan ke arah yang dipilih. Kalau gagal di tengah, hanya file yang dipindah oleh proses itu yang dikembalikan.
+- **Catatan/snippet dengan ID sama di dua tempat** diberi nama `<UUID> (from This Mac).md`, lalu langsung diberi ID baru (`adoptRenamedCopies`) supaya tetap terlihat.
+- **`Process` dan grup proses:** setiap skrip berjalan di grup prosesnya sendiri (pgid = pid), dan `terminate()` menghentikan seluruh grup. Akhir skrip dilaporkan tanpa menunggu EOF pipe, karena proses latar belakang bisa memegang pipe berjam-jam (`ScriptProcess` di Core).
 - **Uji UI dengan System Events:**
   - `entire contents` tidak melihat isi SwiftUI. Pakai path eksplisit, misalnya `checkbox 1 of scroll area 1 of group 1 of window "DOT Launcher Settings"`. Sidebar Settings adalah `button N of group 1`.
   - Tombol SwiftUI tidak punya AXTitle, jadi diklik berdasarkan urutan lalu dicek dengan screenshot.

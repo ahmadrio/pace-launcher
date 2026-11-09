@@ -8,6 +8,7 @@ enum DOTLauncherApp {
         app.delegate = delegate
         // Menu bar agent: no Dock icon, no main menu.
         app.setActivationPolicy(.accessory)
+        MainMenu.install()
         // NSApplication.delegate is weak; keep ours alive for the app's lifetime.
         withExtendedLifetime(delegate) {
             app.run()

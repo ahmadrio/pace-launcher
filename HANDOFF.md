@@ -45,7 +45,7 @@ make reset-tcc
 - **Struktur kode:**
   - `Sources/DOTLauncherCore` berisi logika murni yang dites: fuzzy, ranker, kalkulator, SQLite, clipboard store, geometri window, KeyCombo, deteksi bahasa dan arah terjemahan, segmen Markdown, highlighter Markdown, snippet store/expander, dan note store.
   - `Sources/DOTLauncher` berisi app AppKit + SwiftUI. Mode panel (`root`, `clipboard`, `translate`, `ai`, `snippets`, `notes`) diatur lewat `LauncherModel.ModeHandler` dan `customContent`.
-- Ledger eksekusi tahap 2 (lokal, di-ignore git): `.superpowers/sdd/2026-11-09-tahap-2/progress.md`. Semua keputusan teknis tercatat di baris `Ruling:`.
+- Ledger eksekusi tahap 2: `docs/superpowers/plans/2026-11-09-tahap-2-ledger.md`. Semua keputusan teknis tercatat di baris `Ruling:`, termasuk hasil review akhir.
 
 ## Jebakan yang sudah ditemukan
 - **Swift Testing di CLT:** plugin `TestingMacros` tidak dimuat otomatis. `Package.swift` menambahkan `-plugin-path`.

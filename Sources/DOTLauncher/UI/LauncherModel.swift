@@ -8,6 +8,8 @@ struct LauncherResult: Identifiable {
     enum Icon {
         case image(NSImage)
         case symbol(String)
+        /// An emoji or a short glyph.
+        case text(String)
     }
 
     enum Action {
@@ -39,6 +41,7 @@ final class LauncherModel {
         case ai
         case snippets
         case notes
+        case scriptOutput
 
         var placeholder: String {
             switch self {
@@ -48,6 +51,7 @@ final class LauncherModel {
             case .ai: "Ask anything…"
             case .snippets: "Search snippets…"
             case .notes: "Search notes…"
+            case .scriptOutput: "Script output"
             }
         }
 
@@ -59,6 +63,7 @@ final class LauncherModel {
             case .ai: "AI Chat"
             case .snippets: "Snippets"
             case .notes: "Notes"
+            case .scriptOutput: "Script"
             }
         }
     }

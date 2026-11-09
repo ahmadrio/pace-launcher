@@ -40,6 +40,10 @@ struct ResultRow: View {
             Image(nsImage: image)
                 .resizable()
                 .interpolation(.high)
+        case .text(let glyph):
+            Text(glyph)
+                .font(.system(size: 20))
+                .frame(width: 28, height: 28)
         case .symbol(let name):
             Image(systemName: name)
                 .font(.system(size: 16, weight: .medium))

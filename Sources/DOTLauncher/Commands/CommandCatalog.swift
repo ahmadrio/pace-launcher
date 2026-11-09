@@ -135,6 +135,19 @@ enum CommandCatalog {
         ]
     }
 
+    static func scriptCommands(create: @escaping () -> Void, openFolder: @escaping () -> Void) -> [LauncherCommand] {
+        [
+            LauncherCommand(
+                id: "create-script", title: "Create Script Command", subtitle: "Start a new shell script in the Scripts folder",
+                aliases: ["new script"], symbol: "terminal", actionTitle: "Create", action: .run(create)
+            ),
+            LauncherCommand(
+                id: "open-scripts-folder", title: "Open Scripts Folder", subtitle: "Where DOT looks for script commands",
+                aliases: ["scripts"], symbol: "folder", actionTitle: "Open", action: .run(openFolder)
+            ),
+        ]
+    }
+
     static func aiChat() -> LauncherCommand {
         LauncherCommand(
             id: "ai-chat",

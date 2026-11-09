@@ -36,6 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var snippets: SnippetLibrary?
     private var snippetEditor: SnippetEditorController?
     private var notesWindow: NotesWindowController?
+    private let scriptLibrary = ScriptLibrary()
+    private var hud: HUDController?
+    private var startScript: ((ScriptCommand, [String]) -> Void)?
 
     func applicationWillTerminate(_ notification: Notification) {
         notesWindow?.model.flush()
@@ -71,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat()] + windowCommands
                     + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
                     + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
+                    + CommandCatalog.scriptCommands(create: { self?.scriptLibrary.createTemplate() }, openFolder: { self?.scriptLibrary.openFolder() })
                     + CommandCatalog.appCommands(
                         toggleIcon: { self?.toggleMenuBarIcon() },
                         iconVisible: { self?.settings.data.showMenuBarIcon ?? true },
@@ -143,6 +147,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         self.notesWindow = notesWindow
+
+        // Script commands
+        Task { await ShellEnvironment.load() }
+        let scriptLibrary = self.scriptLibrary
+        let session = ScriptSession()
+        let hud = HUDController()
+        self.hud = hud
+        model.customContent[.scriptOutput] = { AnyView(ScriptOutputView(session: session)) }
+        model.handlers[.scriptOutput] = LauncherModel.ModeHandler(
+            actions: {
+                guard let run = session.run, !run.output.isEmpty else { return [] }
+                return [SecondaryAction(title: "Copy Output", shortcut: .command("c", shift: true), action: .stay {
+                    TextPaster.copy(run.output)
+                    model.notice = "Output copied"
+                })]
+            },
+            queryChanged: { _ in },
+            escape: {
+                guard let run = session.run, run.isRunning else { return false }
+                run.stop()
+                return true
+            }
+        )
+        let startScript: (ScriptCommand, [String]) -> Void = { script, arguments in
+            let run = ScriptRunner.run(script, arguments: arguments)
+            switch script.metadata.mode {
+            case .fullOutput:
+                session.run = run
+                model.reset(to: .scriptOutput)
+            case .compact, .silent, .inline:
+                model.close()
+                let compact = script.metadata.mode != .silent
+                run.onFinish = { run in
+                    if run.succeeded {
+                        hud.show(compact ? run.lastLine : "✓ \(script.metadata.title)", isError: false)
+                    } else {
+                        hud.show(run.lastLine.isEmpty ? "\(script.metadata.title) failed" : run.lastLine, isError: true)
+                    }
+                }
+            }
+        }
+        self.startScript = startScript
+        search.scripts = { scriptLibrary.scripts }
+        search.scriptRow = { script in
+            LauncherResult(
+                id: "script-row:" + script.id,
+                title: script.metadata.title,
+                subtitle: script.metadata.packageName ?? script.metadata.description ?? script.url.deletingLastPathComponent().lastPathComponent,
+                icon: ScriptLibrary.icon(for: script),
+                accessory: "Script",
+                actionTitle: "Run",
+                action: .stay { startScript(script, []) }
+            )
+        }
+        scriptLibrary.onChange = { search.rebuild() }
 
         model.search = { query in search.results(for: query) }
         model.handlers[.clipboard] = LauncherModel.ModeHandler(
@@ -235,6 +294,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // a synced folder); re-read them on every open. This also
             // rebuilds search through snippets.onChange.
             snippets.reload()
+            scriptLibrary.reload()
         }
         indexer.refreshIfStale()
         clipboard?.start()

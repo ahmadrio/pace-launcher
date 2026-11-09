@@ -8,12 +8,15 @@ final class LauncherSearch {
         case app(AppEntry)
         case command(LauncherCommand)
         case snippet(Snippet)
+        case script(ScriptCommand)
     }
 
     /// Snippets to rank in root search, and how to show one as a row.
     /// Set by the composition root.
     var snippets: () -> [Snippet] = { [] }
     var snippetRow: ((Snippet) -> LauncherResult)?
+    var scripts: () -> [ScriptCommand] = { [] }
+    var scriptRow: ((ScriptCommand) -> LauncherResult)?
 
     private let indexer: AppIndexer
     private let usage: UsageStore?
@@ -45,6 +48,11 @@ final class LauncherSearch {
             let id = app.usageID
             candidates.append(SearchCandidate(id: id, title: app.name, aliases: app.aliases))
             items[id] = .app(app)
+        }
+        for script in scripts() {
+            let id = "script:" + script.id
+            candidates.append(SearchCandidate(id: id, title: script.metadata.title, aliases: [script.metadata.packageName].compactMap { $0 }))
+            items[id] = .script(script)
         }
         for snippet in snippets() {
             let id = "snippet:" + snippet.id.uuidString
@@ -106,6 +114,13 @@ final class LauncherSearch {
 
     private func result(for item: Item, id: String) -> LauncherResult? {
         switch item {
+        case .script(let script):
+            guard let row = scriptRow?(script) else { return nil }
+            return LauncherResult(
+                id: id, title: row.title, subtitle: row.subtitle, icon: row.icon, accessory: row.accessory,
+                actionTitle: row.actionTitle, action: recordingUse(of: id, row.action),
+                secondaryActions: row.secondaryActions
+            )
         case .snippet(let snippet):
             guard let row = snippetRow?(snippet) else { return nil }
             // Same row, keyed for root ranking and learning frecency.

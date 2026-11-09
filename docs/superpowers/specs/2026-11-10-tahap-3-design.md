@@ -124,7 +124,11 @@ Fakta di Mac ini: iCloud Drive aktif di `~/Library/Mobile Documents/com~apple~Cl
 - **Logika yang dites di Core:** pencocok keyword dengan buffer (keyword terpanjang menang, aturan reset, batas panjang buffer).
 
 ## Fitur 4: Sync lewat iCloud Drive
-- **Toggle "Store data in iCloud Drive"** di Settings → Sync, default mati.
+- **Toggle "Store data in iCloud Drive"** di Settings → Sync, **default mati**. Penegasan dari Pace: kalau toggle ini tidak dicentang, DOT sama sekali tidak menyentuh iCloud Drive.
+  - Semua data tinggal di folder lokal.
+  - Tidak ada backup clipboard, tidak ada pemindahan file, dan tidak ada baca-tulis ke folder iCloud.
+  - Opsi "Include clipboard history" hanya bisa diubah saat sync menyala.
+  - Satu-satunya pengecualian: tombol "Delete iCloud backups" kalau Pace menekannya sendiri.
   - **Saat dinyalakan:** `Snippets/`, `Notes/`, `Scripts/`, dan `settings.json` dipindah dari `~/Library/Application Support/DOT Launcher/` ke `~/Library/Mobile Documents/com~apple~CloudDocs/DOT Launcher/`. Prosesnya: salin, verifikasi isinya identik, baru hapus yang lokal. Kalau nama file di tujuan sudah ada, keduanya disimpan (file yang masuk diberi akhiran) dan tidak ada yang ditimpa.
   - **Saat dimatikan:** dipindah balik dengan aturan yang sama.
   - Lokasi folder data aktif disimpan di UserDefaults.

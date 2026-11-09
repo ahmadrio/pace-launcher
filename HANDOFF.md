@@ -1,45 +1,63 @@
-# Handoff: Launcher macOS ala Raycast (gratis)
+# Handoff: DOT Launcher
 
-Ringkasan dari percakapan di claude.ai, untuk dilanjutkan di Claude Code.
+Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di paket Pro. Dibuat untuk dipakai sendiri.
 
-## Konteks
-- Pace sedang mempertimbangkan membuat sendiri aplikasi launcher macOS mirip Raycast, termasuk fitur yang di Raycast hanya ada di paket Pro, supaya bisa dipakai gratis.
-- Alternatif yang sudah dicek:
-  - Raycast Free: fitur inti gratis. AI, sync, clipboard tanpa batas, notes tanpa batas, dan custom window management masuk Pro.
-  - Sol: open source, tapi fiturnya terbatas.
-  - SuperCmd v2: berbayar sekali beli dan wajib macOS 26.
-  - Brow: proprietary, status gratisnya tidak jelas.
+## Status (9 Nov 2026)
+**MVP tahap 1 sudah selesai** (commit M0–M6 di branch `main`). Isinya:
 
-## Stack (usulan)
-Swift + SwiftUI/AppKit, native, tanpa Electron.
+| Fitur | Cara pakai |
+|---|---|
+| Launcher | ⌥Space membuka panel. App yang sedang aktif tetap di depan. |
+| Cari & buka aplikasi | Pencarian fuzzy dengan bonus akronim (`vsc` → Visual Studio Code). Urutan hasil belajar dari pemakaian. Kalau pencarian kosong, yang tampil adalah app yang sering dipakai. |
+| Kalkulator | Ketik ekspresi (`(2+3)*4/3`), lalu ⏎ untuk menyalin hasilnya. Titik dan koma sama-sama diterima sebagai desimal. Hasil memakai pemisah desimal sesuai locale. |
+| Clipboard history tanpa batas | Ketik "clip" atau tekan ⇧⌥C, lalu ⏎ untuk paste ke app sebelumnya. Isi password manager tidak ikut disimpan. |
+| Window snapping | Perintah "Left Half", "Maximize", "Restore", dan lainnya di launcher. Shortcut ⌃⌥ sama dengan default Rectangle. |
+| Menu bar | Status izin, status shortcut, Launch at Login, Quit. |
 
-## Fitur & pendekatan teknis (usulan)
-| Fitur | Tingkat | Pendekatan |
-|---|---|---|
-| Launcher + hotkey global | Mudah | `NSPanel` non-activating, cari app via `NSMetadataQuery` |
-| Kalkulator & konversi | Mudah | Parser ekspresi sendiri, kurs dari API gratis |
-| Clipboard history tanpa batas | Mudah–sedang | Polling `NSPasteboard.changeCount`, simpan ke SQLite/SwiftData |
-| Notes, quicklinks, custom theme | Mudah | Penyimpanan lokal |
-| AI chat | Mudah | API key sendiri (OpenAI/Claude) atau Ollama lokal |
-| Translator | Mudah | Framework Translation Apple (macOS 15+), on-device |
-| Window management custom | Sedang | Accessibility API (`AXUIElement`), butuh izin Accessibility |
-| Snippet auto-expand | Sedang–sulit | `CGEventTap`, banyak edge case |
-| Cloud sync | Sedang | CloudKit (butuh Apple Developer berbayar) atau folder iCloud Drive |
+## Keputusan
+- Nama: **DOT Launcher**. Bundle ID: `com.pace.DOTLauncher`.
+- Target: **khusus macOS 27**.
+- Build memakai SwiftPM + script, tanpa Xcode. Hanya Command Line Tools yang terpasang.
+- Distribusi pribadi, tanpa notarisasi dan tanpa lisensi.
+- Tanpa dependensi eksternal.
+- Shortcut ⌃⌥ (window) dan ⇧⌥C (clipboard) **hanya aktif kalau Rectangle/Maccy tidak berjalan**. Lewat menu bar ada opsi "Enable anyway".
+- Data disimpan di `~/Library/Application Support/DOT Launcher/`:
+  - `launcher.sqlite` untuk frekuensi pemakaian
+  - `clipboard.sqlite` untuk riwayat clipboard (FTS5 trigram)
 
-## Rekomendasi
-- Jangan mengejar kompatibilitas extension Raycast karena terlalu kompleks. Gantinya, buat **script commands**: launcher menjalankan shell script milik pengguna.
-- Jangan memakai nama, logo, atau kode Raycast.
-- Kalau app akan dibagikan, notarisasi butuh Apple Developer Program ($99/tahun). Tanpa itu, pengguna akan kena peringatan Gatekeeper.
+## Cara kerja
+```
+make test     # 74 test Core (Swift Testing)
+make run      # build, tanda tangani, pasang ke ~/Applications, buka
+make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
+make reset-tcc
+```
+- Jangan pakai `swift run`. Tanpa bundle `.app`, TCC dan privasi pasteboard tidak berfungsi benar.
+- Struktur kode:
+  - `Sources/DOTLauncherCore`: logika murni yang dites (fuzzy, ranker, kalkulator, SQLite, clipboard store, geometri window, KeyCombo).
+  - `Sources/DOTLauncher`: app AppKit + SwiftUI.
+- Rencana lengkap: `~/.claude/plans/baca-handoff-md-lalu-lanjutkan-cached-barto.md`.
 
-## Rencana bertahap (usulan, belum dikonfirmasi)
-1. MVP: launcher, kalkulator, clipboard history, window snapping
-2. Snippets, notes, AI chat, translate
-3. Sync, tema, script commands
+## Jebakan yang sudah ditemukan
+- **Swift Testing di CLT:** plugin macro `TestingMacros` tidak dimuat otomatis. `Package.swift` menambahkan `-plugin-path` ke folder `.../host/plugins/testing`.
+- **Tanda tangan:** setiap build ditandatangani dengan sertifikat Apple Development (SHA1 `96BC64B9…`), sehingga izin Accessibility tetap berlaku setelah rebuild (sudah terbukti). Sertifikat ini **kedaluwarsa 2027-02-04**. Setelah diperpanjang, kalau izin bermasalah, jalankan `make reset-tcc`.
+- **`make install`:** script menunggu proses lama berhenti sebelum `open`. Tanpa jeda ini, app kadang tidak terbuka.
+- **Hotkey Carbon:** konflik tidak terdeteksi. `RegisterEventHotKey` tetap sukses walaupun Rectangle berjalan, karena itulah shortcut dibuat bergantung pada app yang berjalan.
+- **Shortcut ⌃⌥← di Rectangle:** di Mac ini tampaknya sudah tidak aktif, karena Rectangle tidak bereaksi.
+- **zsh:** `log` adalah builtin zsh, jadi pakai `/usr/bin/log`.
+- **Path `/private/var`:** `FileManager` mengubah `/var` menjadi `/private/var`. `AppScanner` menyusun path anak dari path root supaya hasilnya konsisten.
 
-## Belum diputuskan
-- Target minimal versi macOS. Ini menentukan API yang bisa dipakai.
-- Nama aplikasi.
-- Apakah akan open source / dibagikan publik.
+## Belum diuji / batasan yang diketahui
+- Snapping app Chromium/Electron dan multi-monitor belum diuji manual. Chrome yang sedang berjalan saat uji berada dalam mode fullscreen, dan memang sengaja dilewati. Konversi koordinat antar-monitor sudah tercakup unit test.
+- Paste mengirim ⌘V memakai `kVK_ANSI_V`, jadi bisa meleset di layout keyboard non-QWERTY.
+- Clipboard belum menyimpan gambar (rencana M4b: disimpan sebagai file, bukan blob) dan belum punya panel preview.
+- Shortcut belum bisa diubah lewat UI. Default ada di `WindowAction.defaultHotKey` dan `AppDelegate`.
+- Kalkulator belum mendukung konversi unit atau kurs.
 
-## Langkah berikutnya
-Konfirmasi target macOS dengan Pace, lalu buat skeleton proyek untuk MVP tahap 1.
+## Langkah berikutnya (tahap 2, usulan)
+1. Clipboard: gambar (M4b), panel preview, hapus/pin dari panel (⌘⌫, ⌘P).
+2. Snippets dan notes.
+3. AI chat. Di macOS 27, **Foundation Models** (on-device, gratis) bisa dipakai tanpa API key. Ollama atau API key sendiri bisa jadi opsi tambahan.
+4. Translator memakai framework Translation Apple (on-device).
+5. Pengaturan: ubah shortcut, tema.
+6. Tahap 3: sync (folder iCloud Drive), script commands.

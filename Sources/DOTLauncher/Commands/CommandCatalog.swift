@@ -1,3 +1,4 @@
+import AppKit
 import DOTLauncherCore
 
 /// A built-in launcher command, ranked alongside apps.
@@ -14,6 +15,43 @@ struct LauncherCommand {
 }
 
 enum CommandCatalog {
+    /// App-level commands, so everything in the menu bar menu is still
+    /// reachable when the menu bar icon is hidden.
+    static func appCommands(toggleIcon: @escaping () -> Void, iconVisible: @escaping () -> Bool) -> [LauncherCommand] {
+        [
+            LauncherCommand(
+                id: "toggle-menu-bar-icon",
+                title: "Toggle Menu Bar Icon",
+                subtitle: iconVisible() ? "The icon is shown; run to hide it" : "The icon is hidden; run to show it",
+                aliases: ["show menu bar icon", "hide menu bar icon"],
+                symbol: "menubar.rectangle",
+                actionTitle: "Toggle",
+                action: .run(toggleIcon)
+            ),
+            LauncherCommand(
+                id: "accessibility-settings",
+                title: "Accessibility Settings",
+                subtitle: AccessibilityPermission.isGranted ? "Accessibility: granted" : "Accessibility: not granted",
+                aliases: ["permissions"],
+                symbol: "hand.raised",
+                actionTitle: "Open",
+                action: .run {
+                    if !AccessibilityPermission.isGranted { AccessibilityPermission.prompt() }
+                    AccessibilityPermission.openSettings()
+                }
+            ),
+            LauncherCommand(
+                id: "quit",
+                title: "Quit DOT Launcher",
+                subtitle: "",
+                aliases: ["exit"],
+                symbol: "power",
+                actionTitle: "Quit",
+                action: .run { NSApp.terminate(nil) }
+            ),
+        ]
+    }
+
     static func windowCommands(perform: @escaping (WindowAction) -> Void) -> [LauncherCommand] {
         WindowAction.allCases.map { action in
             let shortcut = action.defaultHotKey.flatMap(KeyCombo.init)?.displayString

@@ -11,12 +11,13 @@ final class LauncherSearch {
     private let indexer: AppIndexer
     private let usage: UsageStore?
     private let icons: IconCache
-    private let commands: [LauncherCommand]
+    /// Evaluated on every rebuild, so subtitles that show state stay fresh.
+    private let commands: () -> [LauncherCommand]
 
     private var candidates: [SearchCandidate<String>] = []
     private var items: [String: Item] = [:]
 
-    init(indexer: AppIndexer, usage: UsageStore?, icons: IconCache, commands: [LauncherCommand]) {
+    init(indexer: AppIndexer, usage: UsageStore?, icons: IconCache, commands: @escaping () -> [LauncherCommand]) {
         self.indexer = indexer
         self.usage = usage
         self.icons = icons
@@ -24,11 +25,12 @@ final class LauncherSearch {
         rebuild()
     }
 
-    /// Rebuilds the prepared candidates after the app index changes.
+    /// Rebuilds the prepared candidates (after the app index changes, and
+    /// on every panel open so command subtitles reflect current state).
     func rebuild() {
         var candidates: [SearchCandidate<String>] = []
         var items: [String: Item] = [:]
-        for command in commands {
+        for command in commands() {
             candidates.append(SearchCandidate(id: command.usageID, title: command.title, aliases: command.aliases))
             items[command.usageID] = .command(command)
         }

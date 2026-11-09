@@ -10,19 +10,22 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let clipboardAccess: () -> PasteboardMonitor.Access?
     private let openLauncher: () -> Void
     private let enableAnyway: (GatedHotKey.Blocker) -> Void
+    private let hideIcon: () -> Void
 
     init(
         hotKeys: HotKeyCenter,
         blockedGroups: @escaping () -> [GatedHotKey.Blocker],
         clipboardAccess: @escaping () -> PasteboardMonitor.Access?,
         openLauncher: @escaping () -> Void,
-        enableAnyway: @escaping (GatedHotKey.Blocker) -> Void
+        enableAnyway: @escaping (GatedHotKey.Blocker) -> Void,
+        hideIcon: @escaping () -> Void
     ) {
         self.hotKeys = hotKeys
         self.blockedGroups = blockedGroups
         self.clipboardAccess = clipboardAccess
         self.openLauncher = openLauncher
         self.enableAnyway = enableAnyway
+        self.hideIcon = hideIcon
         super.init()
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "command.square", accessibilityDescription: "DOT Launcher")
@@ -71,7 +74,17 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         } else {
             addInfo("Launch at Login: run `make run` to install first")
         }
+        addItem("Hide Menu Bar Icon", action: #selector(hideMenuBarIcon))
         addItem("Quit DOT Launcher", action: #selector(quit), key: "q")
+    }
+
+    /// Hiding keeps everything reachable through launcher commands.
+    func setIconVisible(_ visible: Bool) {
+        statusItem.isVisible = visible
+    }
+
+    @objc private func hideMenuBarIcon() {
+        hideIcon()
     }
 
     @objc private func toggleLoginItem() {

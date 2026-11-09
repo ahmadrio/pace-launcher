@@ -51,7 +51,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let search = LauncherSearch(
             indexer: indexer, usage: Self.openUsageStore(), icons: icons,
-            commands: [CommandCatalog.clipboardHistory()] + windowCommands
+            commands: { [weak self] in
+                [CommandCatalog.clipboardHistory()] + windowCommands
+                    + CommandCatalog.appCommands(
+                        toggleIcon: { self?.toggleMenuBarIcon() },
+                        iconVisible: { AppSettings.showMenuBarIcon }
+                    )
+            }
         )
         let clipboard = Self.openClipboardStore().map { ClipboardController(store: $0, icons: icons) }
 
@@ -63,7 +69,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             search.rebuild()
             if panelController.isVisible { model.refresh() }
         }
-        panelController.onShow = { indexer.refreshIfStale() }
+        panelController.onShow = {
+            indexer.refreshIfStale()
+            search.rebuild()
+        }
         indexer.refreshIfStale()
         clipboard?.start()
 
@@ -101,8 +110,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             enableAnyway: { [weak self] blocker in
                 self?.overriddenBlockers.insert(blocker)
                 self?.applyGatedHotKeys()
-            }
+            },
+            hideIcon: { [weak self] in self?.toggleMenuBarIcon() }
         )
+        statusMenu?.setIconVisible(AppSettings.showMenuBarIcon)
+    }
+
+    /// Opening the app again while it runs (Finder, Spotlight, `open`)
+    /// shows the launcher, so a hidden menu bar icon never strands it.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        panelController?.show()
+        return false
+    }
+
+    private func toggleMenuBarIcon() {
+        AppSettings.showMenuBarIcon.toggle()
+        statusMenu?.setIconVisible(AppSettings.showMenuBarIcon)
+        search?.rebuild()
+        Log.app.notice("menu bar icon \(AppSettings.showMenuBarIcon ? "shown" : "hidden", privacy: .public)")
     }
 
     private func isRunning(_ blocker: GatedHotKey.Blocker) -> Bool {

@@ -70,6 +70,11 @@ final class PanelController: NSObject, NSWindowDelegate {
     func hide() {
         guard panel.isVisible else { return }
         panel.orderOut(nil)
+        // Reopening the app (Finder, `open`) activates DOT; hand focus back
+        // to the previous app, as if DOT had never been activated.
+        if NSApp.isActive {
+            NSApp.hide(nil)
+        }
         Log.panel.info("hidden")
     }
 

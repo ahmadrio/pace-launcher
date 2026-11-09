@@ -1,6 +1,7 @@
 import AppKit
 import DOTLauncherCore
 import Observation
+import SwiftUI
 
 /// One row in the launcher list.
 struct LauncherResult: Identifiable {
@@ -99,6 +100,8 @@ final class LauncherModel {
     /// Root-mode results. Set by the composition root.
     @ObservationIgnored var search: (String) -> [LauncherResult] = { _ in [] }
     @ObservationIgnored var handlers: [Mode: ModeHandler] = [:]
+    /// Views that replace the result list in custom modes (translate, AI).
+    @ObservationIgnored var customContent: [Mode: () -> AnyView] = [:]
     /// Hides the panel. Set by PanelController.
     @ObservationIgnored var close: () -> Void = {}
     /// The search field, so the panel can give it focus on every show.

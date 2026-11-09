@@ -84,6 +84,18 @@ enum CommandCatalog {
         }
     }
 
+    static func translate() -> LauncherCommand {
+        LauncherCommand(
+            id: "translate",
+            title: "Translate",
+            subtitle: "Indonesian ↔ English, on-device",
+            aliases: ["translate", "terjemah", "tr"],
+            symbol: "character.book.closed",
+            actionTitle: "Open",
+            action: .enter(.translate)
+        )
+    }
+
     static func clipboardHistory() -> LauncherCommand {
         LauncherCommand(
             id: "clipboard-history",

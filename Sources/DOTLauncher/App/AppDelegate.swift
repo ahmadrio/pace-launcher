@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import DOTLauncherCore
 
 /// A shortcut that copies another app's habit (Maccy, Rectangle) and is
@@ -26,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var search: LauncherSearch?
     private var clipboard: ClipboardController?
     private var windows: WindowManager?
+    private var translator: Translator?
 
     private var gatedHotKeys: [GatedHotKey] = []
     /// Blockers the user chose to ignore ("Enable anyway").
@@ -52,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let search = LauncherSearch(
             indexer: indexer, usage: Self.openUsageStore(), icons: icons,
             commands: { [weak self] in
-                [CommandCatalog.clipboardHistory()] + windowCommands
+                [CommandCatalog.clipboardHistory(), CommandCatalog.translate()] + windowCommands
                     + CommandCatalog.appCommands(
                         toggleIcon: { self?.toggleMenuBarIcon() },
                         iconVisible: { AppSettings.showMenuBarIcon }
@@ -65,6 +67,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.handlers[.clipboard] = LauncherModel.ModeHandler(
             results: { query in await clipboard?.results(for: query) ?? [] }
         )
+
+        let translator = Translator()
+        let translate = TranslateController(translator: translator)
+        model.customContent[.translate] = { AnyView(TranslateView(controller: translate)) }
+        model.handlers[.translate] = LauncherModel.ModeHandler(
+            submit: {
+                guard !translate.output.isEmpty else { return }
+                TextPaster.copy(translate.output)
+                model.close()
+            },
+            submitTitle: "Copy",
+            actions: {
+                [
+                    SecondaryAction(title: "Paste", shortcut: .command("\r"), action: .run {
+                        TextPaster.paste(translate.output, monitor: clipboard?.monitor)
+                    }),
+                    SecondaryAction(title: "Swap", shortcut: .command("l"), action: .stay { translate.swap() }),
+                ]
+            },
+            queryChanged: { translate.update($0) },
+            entered: { translate.reset() }
+        )
+        self.translator = translator
         indexer.onUpdate = {
             search.rebuild()
             if panelController.isVisible { model.refresh() }

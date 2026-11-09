@@ -23,7 +23,11 @@ struct LauncherView: View {
 
             Divider().opacity(0.5)
 
-            ResultList(model: model)
+            if let content = model.customContent[model.mode] {
+                content()
+            } else {
+                ResultList(model: model)
+            }
 
             Divider().opacity(0.5)
 

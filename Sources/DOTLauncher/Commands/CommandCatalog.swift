@@ -107,6 +107,23 @@ enum CommandCatalog {
         ]
     }
 
+    static func noteCommands(open: @escaping () -> Void, create: @escaping () -> Void) -> [LauncherCommand] {
+        [
+            LauncherCommand(
+                id: "open-notes", title: "Open Notes", subtitle: "Floating Markdown notes",
+                aliases: [], symbol: "note.text", actionTitle: "Open", action: .run(open)
+            ),
+            LauncherCommand(
+                id: "create-note", title: "Create Note", subtitle: "Start a new note",
+                aliases: ["new note"], symbol: "square.and.pencil", actionTitle: "Create", action: .run(create)
+            ),
+            LauncherCommand(
+                id: "search-notes", title: "Search Notes", subtitle: "Find and open a note",
+                aliases: ["notes", "note"], symbol: "magnifyingglass", actionTitle: "Open", action: .enter(.notes)
+            ),
+        ]
+    }
+
     static func aiChat() -> LauncherCommand {
         LauncherCommand(
             id: "ai-chat",

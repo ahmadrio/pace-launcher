@@ -31,6 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var chat: AIChatController?
     private var snippets: SnippetLibrary?
     private var snippetEditor: SnippetEditorController?
+    private var notesWindow: NotesWindowController?
+
+    func applicationWillTerminate(_ notification: Notification) {
+        notesWindow?.model.flush()
+    }
 
     private var gatedHotKeys: [GatedHotKey] = []
     /// Blockers the user chose to ignore ("Enable anyway").
@@ -59,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             commands: { [weak self] in
                 [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat()] + windowCommands
                     + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
+                    + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
                     + CommandCatalog.appCommands(
                         toggleIcon: { self?.toggleMenuBarIcon() },
                         iconVisible: { AppSettings.showMenuBarIcon }
@@ -97,6 +103,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.snippets = snippets
         snippetEditor = SnippetEditorController(library: snippets)
+
+        let notes = NotesModel(store: NoteStore(directory: AppPaths.notesDirectory) { url in
+            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+        })
+        let notesWindow = NotesWindowController(model: notes)
+        let relative = RelativeDateTimeFormatter()
+        relative.unitsStyle = .abbreviated
+        model.handlers[.notes] = LauncherModel.ModeHandler(
+            results: { query in
+                notes.reloadList()
+                let query = query.trimmingCharacters(in: .whitespaces)
+                let matches = query.isEmpty ? notes.summaries : notes.summaries.filter {
+                    FuzzyMatcher.score(query, in: $0.title) != nil
+                        || notes.body(of: $0.id).localizedCaseInsensitiveContains(query)
+                }
+                return matches.map { note in
+                    LauncherResult(
+                        id: "note:" + note.id.uuidString,
+                        title: note.title,
+                        subtitle: [note.preview, relative.localizedString(for: note.modifiedAt, relativeTo: .now)]
+                            .filter { !$0.isEmpty }.joined(separator: " · "),
+                        icon: .symbol("note.text"),
+                        accessory: "Note",
+                        actionTitle: "Open",
+                        action: .run { notesWindow.show(note: note.id) },
+                        secondaryActions: [
+                            SecondaryAction(title: "Delete", shortcut: .delete, confirm: true, action: .stay { notes.trash(note.id) }),
+                        ]
+                    )
+                }
+            }
+        )
+        self.notesWindow = notesWindow
 
         model.search = { query in search.results(for: query) }
         model.handlers[.clipboard] = LauncherModel.ModeHandler(

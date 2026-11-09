@@ -29,7 +29,3 @@ public struct SettingsData: Codable, Sendable, Equatable {
     }
 }
 
-/// Placeholder until the theme model lands (Task 3).
-public struct ThemeSettings: Codable, Sendable, Equatable {
-    public init() {}
-}

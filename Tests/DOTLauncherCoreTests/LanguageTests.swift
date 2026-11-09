@@ -10,6 +10,13 @@ struct LanguageTests {
         #expect(LanguageDetector.dominantLanguage(of: "Good morning, how are you today? I would like to order coffee.") == "en")
     }
 
+    @Test func `Malay is reported as Indonesian`() {
+        // Detectors confuse the two; for this app's user Malay means Indonesian,
+        // and the translator and the AI bridge must agree on it.
+        #expect(LanguageDetector.normalized("ms") == "id")
+        #expect(LanguageDetector.normalized("en") == "en")
+    }
+
     @Test func `too short is undetermined`() {
         #expect(LanguageDetector.dominantLanguage(of: "ok") == nil)
         #expect(LanguageDetector.dominantLanguage(of: "   ") == nil)

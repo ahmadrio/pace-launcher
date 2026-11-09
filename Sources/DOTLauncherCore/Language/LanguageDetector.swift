@@ -12,6 +12,12 @@ public enum LanguageDetector {
         guard let language = recognizer.dominantLanguage, language != .undetermined else { return nil }
 
         // NLLanguage raw values can carry a script or region ("zh-Hans").
-        return Locale.Language(identifier: language.rawValue).languageCode?.identifier
+        return Locale.Language(identifier: language.rawValue).languageCode.map { normalized($0.identifier) }
+    }
+
+    /// Detectors confuse Malay with Indonesian; for this app Malay text is
+    /// treated as Indonesian so every feature routes it the same way.
+    public static func normalized(_ code: String) -> String {
+        code == "ms" ? "id" : code
     }
 }

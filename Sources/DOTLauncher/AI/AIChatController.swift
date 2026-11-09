@@ -118,7 +118,14 @@ final class AIChatController {
         if case .bridge(let language) = route {
             let toEnglish = TranslationDirection(source: language, target: "en")
             let back = TranslationDirection(source: "en", target: language)
-            guard await translator.availability(toEnglish) == .ready, await translator.availability(back) == .ready else {
+            let availability = [await translator.availability(toEnglish), await translator.availability(back)]
+            if availability.contains(.unsupported) {
+                // No download would help: say so instead of pointing at Settings.
+                let name = Locale(identifier: "en").localizedString(forLanguageCode: language) ?? language
+                update(answerID) { $0.phase = .failed("On-device translation does not support \(name). Ask in English.") }
+                return
+            }
+            if availability.contains(.notInstalled) {
                 update(answerID) { $0.phase = .failed(toEnglish.installHint + " Or ask in English.") }
                 return
             }

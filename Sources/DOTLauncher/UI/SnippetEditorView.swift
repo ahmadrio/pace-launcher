@@ -11,6 +11,23 @@ final class SnippetDraft {
     var content: String
     /// Set after the first click on Delete.
     var deleteArmed = false
+    /// Keywords of the other snippets, for the clash warning.
+    var otherKeywords: [String] = []
+
+    /// Immediate auto-expand means a keyword that starts another one
+    /// shadows it; say so while editing.
+    var keywordClash: String? {
+        let keyword = keyword.trimmingCharacters(in: .whitespaces)
+        guard !keyword.isEmpty else { return nil }
+        if otherKeywords.contains(keyword) { return "Another snippet already uses “\(keyword)”." }
+        if let longer = otherKeywords.first(where: { $0.hasPrefix(keyword) }) {
+            return "“\(keyword)” will expand before “\(longer)” can be typed."
+        }
+        if let shorter = otherKeywords.first(where: { keyword.hasPrefix($0) }) {
+            return "“\(shorter)” will expand before “\(keyword)” can be typed."
+        }
+        return nil
+    }
 
     init(_ snippet: Snippet?) {
         original = snippet
@@ -57,6 +74,11 @@ struct SnippetEditorView: View {
             LabeledContent("Keyword") {
                 TextField(";addr (optional)", text: $draft.keyword)
                     .focused($focus, equals: .keyword)
+            }
+            if let clash = draft.keywordClash {
+                Label(clash, systemImage: "exclamationmark.triangle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Content").foregroundStyle(.secondary)

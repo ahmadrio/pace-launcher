@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hud: HUDController?
     private var startScript: ((ScriptCommand, [String]) -> Void)?
     private var scriptActions: ScriptActions?
+    private var autoExpand: AutoExpandController?
 
     func applicationWillTerminate(_ notification: Notification) {
         notesWindow?.model.flush()
@@ -105,7 +106,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         search.snippets = { snippets.snippets }
         search.snippetRow = snippetRow
-        snippets.onChange = { search.rebuild() }
+        snippets.onChange = { [weak self] in
+            search.rebuild()
+            self?.autoExpand?.reloadKeywords()
+        }
         search.rebuild()
         model.handlers[.snippets] = LauncherModel.ModeHandler(
             results: { query in snippets.search(query).map(snippetRow) },
@@ -115,6 +119,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.snippets = snippets
         snippetEditor = SnippetEditorController(library: snippets, theme: theme)
+        let autoExpand = AutoExpandController(library: snippets, settings: settings, pasteMonitor: { clipboard?.monitor })
+        self.autoExpand = autoExpand
+        autoExpand.refresh()
 
         let notes = NotesModel(store: NoteStore(directory: AppPaths.notesDirectory) { url in
             try FileManager.default.trashItem(at: url, resultingItemURL: nil)
@@ -346,11 +353,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
 
-        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary)
+        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand)
         self.settingsWindow = settingsWindow
         panelController.canHideApp = { !settingsWindow.isVisible }
         settings.onChange = { [weak self] old, new in
             guard let self else { return }
+            if old.autoExpandEnabled != new.autoExpandEnabled {
+                self.autoExpand?.refresh()
+            }
             if old.theme != new.theme {
                 self.theme?.update(new.theme)
             }

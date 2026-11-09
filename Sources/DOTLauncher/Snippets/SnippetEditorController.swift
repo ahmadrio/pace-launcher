@@ -20,6 +20,7 @@ final class SnippetEditorController: NSObject, NSWindowDelegate {
     func open(_ snippet: Snippet?) {
         close()
         let draft = SnippetDraft(snippet)
+        draft.otherKeywords = library.snippets.filter { $0.id != snippet?.id }.compactMap(\.keyword)
         let view = SnippetEditorView(
             draft: draft,
             save: { [weak self] in self?.save(draft) },

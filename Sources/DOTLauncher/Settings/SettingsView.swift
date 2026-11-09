@@ -38,6 +38,7 @@ struct SettingsView: View {
     let model: SettingsWindowModel
     let settings: SettingsStore
     let scripts: ScriptLibrary
+    let autoExpand: AutoExpandController
 
     var body: some View {
         HStack(spacing: 0) {
@@ -87,6 +88,8 @@ struct SettingsView: View {
             AppearanceSettings(settings: settings)
         case .scripts:
             ScriptsSettings(scripts: scripts)
+        case .snippets:
+            SnippetSettings(settings: settings, autoExpand: autoExpand)
         default:
             Text("Coming in a later step.").foregroundStyle(.secondary)
         }
@@ -232,5 +235,71 @@ private struct ScriptsSettings: View {
         panel.prompt = "Add Folder"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         scripts.setExtraFolders(scripts.extraFolders + [url])
+    }
+}
+
+private struct SnippetSettings: View {
+    let settings: SettingsStore
+    let autoExpand: AutoExpandController
+
+    var body: some View {
+        @Bindable var settings = settings
+        VStack(alignment: .leading, spacing: 14) {
+            Toggle("Expand snippet keywords as I type, in any app", isOn: $settings.data.autoExpandEnabled)
+            Text("Type a snippet’s keyword (like ;addr) and it is replaced right away. Never in password fields or in DOT itself.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Text("Input Monitoring")
+                Spacer()
+                if KeystrokeMonitor.hasPermission {
+                    Text("Granted").foregroundStyle(.green)
+                } else {
+                    Text("Needed").foregroundStyle(.orange)
+                    Button("Grant…") {
+                        KeystrokeMonitor.requestPermission()
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Don’t expand in these apps")
+                ForEach(settings.data.autoExpandExcludedBundleIDs, id: \.self) { bundleID in
+                    HStack {
+                        Text(Self.name(of: bundleID))
+                        Spacer()
+                        Button("Remove") {
+                            settings.data.autoExpandExcludedBundleIDs.removeAll { $0 == bundleID }
+                        }
+                    }
+                    .padding(6)
+                    .background(.quaternary, in: .rect(cornerRadius: 6))
+                }
+                Menu("Add App") {
+                    ForEach(Self.runningApps(excluding: settings.data.autoExpandExcludedBundleIDs), id: \.bundleID) { app in
+                        Button(app.name) { settings.data.autoExpandExcludedBundleIDs.append(app.bundleID) }
+                    }
+                }
+                .fixedSize()
+            }
+        }
+    }
+
+    private static func name(of bundleID: String) -> String {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)?.deletingPathExtension().lastPathComponent ?? bundleID
+    }
+
+    private static func runningApps(excluding: [String]) -> [(name: String, bundleID: String)] {
+        NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular }
+            .compactMap { app in
+                guard let id = app.bundleIdentifier, !excluding.contains(id), id != Bundle.main.bundleIdentifier else { return nil }
+                return (app.localizedName ?? id, id)
+            }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 }

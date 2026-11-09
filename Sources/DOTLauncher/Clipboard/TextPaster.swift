@@ -12,7 +12,10 @@ enum TextPaster {
     /// Temporary: pastes into the frontmost app, then puts the previous
     /// clipboard back. Neither write is recorded in history. Without the
     /// Accessibility grant it falls back to a permanent copy.
-    static func paste(_ text: String, monitor: PasteboardMonitor?) {
+    ///
+    /// `delay` lets the launcher panel order out first. Auto-expand passes
+    /// zero: ⌘V is posted right away, so keys typed next land after it.
+    static func paste(_ text: String, monitor: PasteboardMonitor?, delay: Duration = .milliseconds(80)) {
         guard KeyboardPaste.canPost else {
             Log.clipboard.notice("copied only: Accessibility is not granted, so ⌘V cannot be sent")
             copy(text)
@@ -27,10 +30,13 @@ enum TextPaster {
         monitor?.ignoreOwnWrite()
         let ourChange = pasteboard.changeCount
 
+        if delay == .zero { KeyboardPaste.send() }
         Task {
-            // Let the panel order out so the target window is key again.
-            try? await Task.sleep(for: .milliseconds(80))
-            KeyboardPaste.send()
+            if delay > .zero {
+                // Let the panel order out so the target window is key again.
+                try? await Task.sleep(for: delay)
+                KeyboardPaste.send()
+            }
             // The target app reads the pasteboard asynchronously; give it time.
             try? await Task.sleep(for: .milliseconds(500))
             // If the user copied something new meanwhile, keep that instead.

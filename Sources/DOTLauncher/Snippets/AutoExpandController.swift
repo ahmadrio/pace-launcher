@@ -80,10 +80,10 @@ final class AutoExpandController {
             down?.post(tap: .cghidEventTap)
             up?.post(tap: .cghidEventTap)
         }
+        // ⌘V goes out right behind the backspaces: the app handles events in
+        // order, and anything typed next queues up after the paste.
+        TextPaster.paste(text, monitor: pasteMonitor(), delay: .zero)
         Task {
-            // Let the target app apply the backspaces before pasting.
-            try? await Task.sleep(for: .milliseconds(60))
-            TextPaster.paste(text, monitor: pasteMonitor())
             try? await Task.sleep(for: .milliseconds(700))
             expander.reset()
             isExpanding = false

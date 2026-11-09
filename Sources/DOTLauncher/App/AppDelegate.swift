@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var translator: Translator?
     private var chat: AIChatController?
     private var snippets: SnippetLibrary?
+    private var snippetEditor: SnippetEditorController?
 
     private var gatedHotKeys: [GatedHotKey] = []
     /// Blockers the user chose to ignore ("Enable anyway").
@@ -95,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         self.snippets = snippets
+        snippetEditor = SnippetEditorController(library: snippets)
 
         model.search = { query in search.results(for: query) }
         model.handlers[.clipboard] = LauncherModel.ModeHandler(
@@ -226,9 +228,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    /// TEMPORARY (Task 10): replaced by the snippet editor in Task 11.
+    /// Opens the snippet editor (nil = new snippet), hiding the launcher.
     private func editSnippet(_ snippet: Snippet?) {
-        Log.app.notice("snippet editor not available yet")
+        panelController?.hide()
+        snippetEditor?.open(snippet)
     }
 
     private func toggleMenuBarIcon() {

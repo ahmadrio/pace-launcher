@@ -31,7 +31,8 @@ struct KeywordExpanderTests {
 
     @Test func `case-sensitive`() {
         var expander = KeywordExpander(keywords: [";Addr"])
-        #expect(typeEach(";addr", into: &expander).last == nil)
+        // `.last` is String?? — unwrap the element before comparing with nil.
+        #expect(typeEach(";addr", into: &expander).last! == nil)
     }
 
     @Test func `backspace edits the buffer`() {
@@ -45,7 +46,7 @@ struct KeywordExpanderTests {
         var expander = KeywordExpander(keywords: [";addr"])
         _ = typeEach(";ad", into: &expander)
         expander.reset()
-        #expect(typeEach("dr", into: &expander).last == nil)
+        #expect(typeEach("dr", into: &expander).last! == nil)
     }
 
     @Test func `the buffer is cleared after a match`() {

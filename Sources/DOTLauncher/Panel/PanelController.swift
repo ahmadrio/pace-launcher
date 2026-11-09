@@ -13,6 +13,9 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// paste and window commands.
     private(set) var targetApp: NSRunningApplication?
 
+    /// False while another DOT window (Settings) needs the app to stay active.
+    var canHideApp: () -> Bool = { true }
+
     /// Called every time the panel opens, before results are computed.
     var onShow: (() -> Void)?
 
@@ -72,7 +75,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.orderOut(nil)
         // Reopening the app (Finder, `open`) activates DOT; hand focus back
         // to the previous app, as if DOT had never been activated.
-        if NSApp.isActive {
+        if NSApp.isActive, canHideApp() {
             NSApp.hide(nil)
         }
         Log.panel.info("hidden")

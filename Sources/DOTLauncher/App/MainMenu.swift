@@ -8,6 +8,8 @@ enum MainMenu {
         let main = NSMenu()
 
         let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Settings…", action: #selector(AppDelegate.showSettings(_:)), keyEquivalent: ",")
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit DOT Launcher", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         main.addItem(submenu: appMenu, title: "DOT Launcher")
 

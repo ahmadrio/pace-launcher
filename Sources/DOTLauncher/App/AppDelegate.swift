@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// settings.json in the active data folder.
     let settings = SettingsStore()
     private var statusMenu: StatusMenuController?
+    private var settingsWindow: SettingsWindowController?
     private var panelController: PanelController?
     private var hotKeys: HotKeyCenter?
     private var indexer: AppIndexer?
@@ -69,7 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
                     + CommandCatalog.appCommands(
                         toggleIcon: { self?.toggleMenuBarIcon() },
-                        iconVisible: { self?.settings.data.showMenuBarIcon ?? true }
+                        iconVisible: { self?.settings.data.showMenuBarIcon ?? true },
+                        openSettings: { self?.settingsWindow?.show() }
                     )
             }
         )
@@ -269,9 +271,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.overriddenBlockers.insert(blocker)
                 self?.applyGatedHotKeys()
             },
-            hideIcon: { [weak self] in self?.toggleMenuBarIcon() }
+            hideIcon: { [weak self] in self?.toggleMenuBarIcon() },
+            openSettings: { [weak self] in self?.settingsWindow?.show() }
         )
         statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
+
+        let settingsWindow = SettingsWindowController(settings: settings)
+        self.settingsWindow = settingsWindow
+        panelController.canHideApp = { !settingsWindow.isVisible }
+        settings.onChange = { [weak self] old, new in
+            guard let self else { return }
+            if old.showMenuBarIcon != new.showMenuBarIcon {
+                self.statusMenu?.setIconVisible(new.showMenuBarIcon)
+                self.search?.rebuild()
+            }
+        }
+    }
+
+    @objc func showSettings(_ sender: Any?) {
+        panelController?.hide()
+        settingsWindow?.show()
     }
 
     /// Opening the app again while it runs (Finder, Spotlight, `open`)
@@ -288,9 +307,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func toggleMenuBarIcon() {
+        // settings.onChange updates the status item and search.
         settings.data.showMenuBarIcon.toggle()
-        statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
-        search?.rebuild()
         Log.app.notice("menu bar icon \(self.settings.data.showMenuBarIcon ? "shown" : "hidden", privacy: .public)")
     }
 

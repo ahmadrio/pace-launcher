@@ -8,11 +8,14 @@ import Observation
 final class SettingsStore {
     var data: SettingsData {
         didSet {
-            guard data != oldValue, !isLoading else { return }
-            save()
+            guard data != oldValue else { return }
+            if !isLoading { save() }
+            onChange?(oldValue, data)
         }
     }
 
+    /// Called after every change (old, new), including reloads.
+    @ObservationIgnored var onChange: ((SettingsData, SettingsData) -> Void)?
     @ObservationIgnored private var file: SettingsFile
     @ObservationIgnored private var isLoading = false
 

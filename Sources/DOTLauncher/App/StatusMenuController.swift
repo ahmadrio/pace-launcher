@@ -11,6 +11,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let openLauncher: () -> Void
     private let enableAnyway: (GatedHotKey.Blocker) -> Void
     private let hideIcon: () -> Void
+    private let openSettings: () -> Void
 
     init(
         hotKeys: HotKeyCenter,
@@ -18,7 +19,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         clipboardAccess: @escaping () -> PasteboardMonitor.Access?,
         openLauncher: @escaping () -> Void,
         enableAnyway: @escaping (GatedHotKey.Blocker) -> Void,
-        hideIcon: @escaping () -> Void
+        hideIcon: @escaping () -> Void,
+        openSettings: @escaping () -> Void
     ) {
         self.hotKeys = hotKeys
         self.blockedGroups = blockedGroups
@@ -26,6 +28,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.openLauncher = openLauncher
         self.enableAnyway = enableAnyway
         self.hideIcon = hideIcon
+        self.openSettings = openSettings
         super.init()
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "command.square", accessibilityDescription: "DOT Launcher")
@@ -77,6 +80,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         } else {
             addInfo("Launch at Login: run `make run` to install first")
         }
+        addItem("Settings…", action: #selector(showSettings), key: ",")
         addItem("Hide Menu Bar Icon", action: #selector(hideMenuBarIcon))
         addItem("Quit DOT Launcher", action: #selector(quit), key: "q")
     }
@@ -84,6 +88,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// Hiding keeps everything reachable through launcher commands.
     func setIconVisible(_ visible: Bool) {
         statusItem.isVisible = visible
+    }
+
+    @objc private func showSettings() {
+        openSettings()
     }
 
     @objc private func hideMenuBarIcon() {

@@ -65,6 +65,19 @@ public struct NoteStore: Sendable {
         return String(data: data, encoding: .utf8)
     }
 
+    /// iCloud placeholders (`.<UUID>.md.icloud`) for items that are in
+    /// iCloud but not downloaded to this Mac yet.
+    public func placeholders() -> [URL] {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        return names
+            .filter { name in
+                guard let original = ICloudPlaceholder.originalName(of: name), original.hasSuffix(".md") else { return false }
+                return UUID(uuidString: String(original.dropLast(3))) != nil
+            }
+            .sorted()
+            .map { directory.appending(path: $0) }
+    }
+
     private func url(for id: UUID) -> URL {
         directory.appending(path: "\(id.uuidString).md")
     }

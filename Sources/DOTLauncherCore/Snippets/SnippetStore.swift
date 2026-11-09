@@ -42,6 +42,19 @@ public struct SnippetStore: Sendable {
         }
     }
 
+    /// iCloud placeholders (`.<UUID>.json.icloud`) for items that are in
+    /// iCloud but not downloaded to this Mac yet.
+    public func placeholders() -> [URL] {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        return names
+            .filter { name in
+                guard let original = ICloudPlaceholder.originalName(of: name), original.hasSuffix(".json") else { return false }
+                return UUID(uuidString: String(original.dropLast(5))) != nil
+            }
+            .sorted()
+            .map { directory.appending(path: $0) }
+    }
+
     private func url(for id: UUID) -> URL {
         directory.appending(path: "\(id.uuidString).json")
     }

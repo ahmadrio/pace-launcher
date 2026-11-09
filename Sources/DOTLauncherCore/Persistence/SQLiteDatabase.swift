@@ -55,8 +55,9 @@ public final class SQLiteDatabase {
     /// SQLITE_TRANSIENT is a C macro cast that does not import into Swift.
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-    public init(path: String) throws {
-        let flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
+    public init(path: String, readOnly: Bool = false) throws {
+        let access = readOnly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE
+        let flags = access | SQLITE_OPEN_FULLMUTEX
         let status = sqlite3_open_v2(path, &handle, flags, nil)
         guard status == SQLITE_OK else {
             let message = handle.map { String(cString: sqlite3_errmsg($0)) } ?? "cannot open \(path)"
@@ -137,7 +138,39 @@ public final class SQLiteDatabase {
         try execute("PRAGMA user_version = \(version)")
     }
 
+    /// Writes a consistent copy of this database to `path` (SQLite online
+    /// backup). The copy uses a rollback journal, so it is one self-contained
+    /// file with no -wal/-shm companions.
+    public func backup(to path: String) throws {
+        let destination = try SQLiteDatabase(path: path)
+        try Self.copy(from: self, to: destination)
+        try destination.execute("PRAGMA journal_mode = DELETE")
+    }
+
+    /// Replaces this database's contents with the database at `path`,
+    /// after checking that the file is intact.
+    public func restore(from path: String) throws {
+        let source = try SQLiteDatabase(path: path, readOnly: true)
+        let check = try source.query("PRAGMA quick_check").first?.string("quick_check")
+        guard check == "ok" else {
+            throw SQLiteError(code: SQLITE_CORRUPT, message: "backup failed its integrity check")
+        }
+        try Self.copy(from: source, to: self)
+    }
+
     // MARK: - Private
+
+    private static func copy(from source: SQLiteDatabase, to destination: SQLiteDatabase) throws {
+        guard let backup = sqlite3_backup_init(destination.handle, "main", source.handle, "main") else {
+            throw destination.lastError(sqlite3_errcode(destination.handle))
+        }
+        let status = sqlite3_backup_step(backup, -1)
+        let finish = sqlite3_backup_finish(backup)
+        guard status == SQLITE_DONE else {
+            throw SQLiteError(code: status, message: String(cString: sqlite3_errstr(status)))
+        }
+        guard finish == SQLITE_OK else { throw destination.lastError(finish) }
+    }
 
     private func prepare(_ sql: String, _ bindings: [SQLValue]) throws -> OpaquePointer? {
         var statement: OpaquePointer?

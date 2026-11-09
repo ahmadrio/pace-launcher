@@ -120,6 +120,18 @@ public actor ClipboardStore {
         try db.run("DELETE FROM clips WHERE id = ?", [.integer(id)])
     }
 
+    /// Writes a consistent copy of the history to `path`.
+    public func backup(to path: String) throws {
+        try db.backup(to: path)
+    }
+
+    /// Replaces the history with a backup, then upgrades its schema if the
+    /// backup came from an older version.
+    public func restore(from path: String) throws {
+        try db.restore(from: path)
+        try Migrator.migrate(db, steps: Self.migrations)
+    }
+
     public func count() throws -> Int {
         Int(try db.query("SELECT COUNT(*) AS n FROM clips").first?.int("n") ?? 0)
     }

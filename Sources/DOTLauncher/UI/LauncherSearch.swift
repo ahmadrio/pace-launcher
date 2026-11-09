@@ -110,6 +110,11 @@ final class LauncherSearch {
                 self?.recordUse(id)
                 work()
             }
+        case .stay(let work):
+            .stay { [weak self] in
+                self?.recordUse(id)
+                work()
+            }
         case .enter:
             // Mode switches are cheap to reach again; usage is recorded
             // only for commands that do something.

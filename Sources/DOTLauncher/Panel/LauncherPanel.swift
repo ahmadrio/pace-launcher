@@ -26,7 +26,23 @@ final class LauncherPanel: NSPanel {
         isReleasedWhenClosed = false
     }
 
+    /// Gets ⌘ and ⌃ key-downs before the text field does. Returns true when
+    /// it handled the event. Menu key equivalents (⌘C, ⌘V…) never reach
+    /// here: AppKit offers those to the main menu first.
+    var onKeyEquivalent: ((NSEvent) -> Bool)?
+
     // Borderless windows refuse key status by default.
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    // sendEvent rather than performKeyEquivalent: Control-only shortcuts
+    // such as ⌃X are not always offered as key equivalents.
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown,
+           !event.modifierFlags.intersection([.command, .control]).isEmpty,
+           onKeyEquivalent?(event) == true {
+            return
+        }
+        super.sendEvent(event)
+    }
 }

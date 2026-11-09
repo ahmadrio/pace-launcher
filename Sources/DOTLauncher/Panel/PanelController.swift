@@ -36,6 +36,10 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.delegate = self
 
         model.close = { [weak self] in self?.hide() }
+        panel.onKeyEquivalent = { [weak model] event in
+            guard let model, let shortcut = KeyShortcut(event: event) else { return false }
+            return model.handle(shortcut)
+        }
     }
 
     var isVisible: Bool { panel.isVisible }

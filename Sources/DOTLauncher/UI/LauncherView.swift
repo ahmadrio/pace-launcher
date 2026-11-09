@@ -9,8 +9,8 @@ struct LauncherView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(.secondary)
-                if model.mode == .clipboard {
-                    Text("Clipboard")
+                if model.mode != .root {
+                    Text(model.mode.title)
                         .font(.system(size: 12, weight: .medium))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -39,6 +39,9 @@ private struct ResultList: View {
         switch (model.mode, model.query.isEmpty) {
         case (.root, true): "Start typing to search"
         case (.clipboard, true): "Nothing copied yet"
+        case (.snippets, true): "No snippets yet. Press ⌘N to create one."
+        case (.notes, true): "No notes yet"
+        case (.translate, true), (.ai, true): ""
         case (_, false): "No results for “\(model.query)”"
         }
     }
@@ -84,12 +87,22 @@ private struct Footer: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Text(model.mode == .clipboard ? "Clipboard History" : "DOT Launcher").foregroundStyle(.tertiary)
-            Spacer()
-            if let selected = model.selected {
-                KeyHint(key: "↩", label: selected.actionTitle)
+            if let notice = model.notice {
+                Label(notice, systemImage: "exclamationmark.circle")
+                    .foregroundStyle(.orange)
+            } else {
+                Text(model.mode.title).foregroundStyle(.tertiary)
             }
-            KeyHint(key: "↑↓", label: "Navigate")
+            Spacer()
+            if let submitTitle = model.submitTitle, !submitTitle.isEmpty {
+                KeyHint(key: "↩", label: submitTitle)
+            }
+            ForEach(Array(model.availableActions.prefix(2).enumerated()), id: \.offset) { _, action in
+                KeyHint(key: action.shortcut.display, label: action.title)
+            }
+            if !model.results.isEmpty {
+                KeyHint(key: "↑↓", label: "Navigate")
+            }
             KeyHint(key: "esc", label: model.mode == .root ? "Close" : "Back")
         }
         .font(.system(size: 12))

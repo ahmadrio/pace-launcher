@@ -56,7 +56,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let clipboard = Self.openClipboardStore().map { ClipboardController(store: $0, icons: icons) }
 
         model.search = { query in search.results(for: query) }
-        model.clipboardSearch = { query in await clipboard?.results(for: query) ?? [] }
+        model.handlers[.clipboard] = LauncherModel.ModeHandler(
+            results: { query in await clipboard?.results(for: query) ?? [] }
+        )
         indexer.onUpdate = {
             search.rebuild()
             if panelController.isVisible { model.refresh() }

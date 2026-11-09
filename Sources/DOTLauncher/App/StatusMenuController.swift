@@ -6,17 +6,20 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
     private let hotKeys: HotKeyCenter
+    private let blockedGroups: () -> [GatedHotKey.Blocker]
     private let clipboardAccess: () -> PasteboardMonitor.Access?
     private let openLauncher: () -> Void
-    private let enableAnyway: (String) -> Void
+    private let enableAnyway: (GatedHotKey.Blocker) -> Void
 
     init(
         hotKeys: HotKeyCenter,
+        blockedGroups: @escaping () -> [GatedHotKey.Blocker],
         clipboardAccess: @escaping () -> PasteboardMonitor.Access?,
         openLauncher: @escaping () -> Void,
-        enableAnyway: @escaping (String) -> Void
+        enableAnyway: @escaping (GatedHotKey.Blocker) -> Void
     ) {
         self.hotKeys = hotKeys
+        self.blockedGroups = blockedGroups
         self.clipboardAccess = clipboardAccess
         self.openLauncher = openLauncher
         self.enableAnyway = enableAnyway
@@ -35,18 +38,13 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         menu.addItem(.sectionHeader(title: "Shortcuts"))
-        for entry in hotKeys.entries {
-            let title = "\(entry.combo.displayString)  \(entry.name)"
-            switch entry.status {
-            case .registered:
-                addInfo(title)
-            case .unavailable(let code):
-                addInfo("\(title) — in use by another app (\(code))")
-            case .disabled(let reason):
-                let item = addItem("\(title) — \(reason). Enable anyway", action: #selector(enable(_:)))
-                item.representedObject = entry.name
-            }
+        for blocker in blockedGroups() {
+            let item = addItem("\(blocker.group) are off while \(blocker.appName) runs — Enable anyway", action: #selector(enable(_:)))
+            item.representedObject = blocker
         }
+        let all = NSMenuItem(title: "All Shortcuts", action: nil, keyEquivalent: "")
+        all.submenu = shortcutsSubmenu()
+        menu.addItem(all)
 
         menu.addItem(.separator())
         menu.addItem(.sectionHeader(title: "Permissions"))
@@ -70,6 +68,21 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         addItem("Quit DOT Launcher", action: #selector(quit), key: "q")
     }
 
+    private func shortcutsSubmenu() -> NSMenu {
+        let submenu = NSMenu()
+        for entry in hotKeys.entries {
+            let state = switch entry.status {
+            case .registered: ""
+            case .unavailable(let code): " — in use by another app (\(code))"
+            case .disabled(let reason): " — \(reason)"
+            }
+            let item = NSMenuItem(title: "\(entry.combo.displayString)\t\(entry.name)\(state)", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            submenu.addItem(item)
+        }
+        return submenu
+    }
+
     @discardableResult
     private func addItem(_ title: String, action: Selector, key: String = "") -> NSMenuItem {
         let item = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
@@ -88,8 +101,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func enable(_ sender: NSMenuItem) {
-        guard let name = sender.representedObject as? String else { return }
-        enableAnyway(name)
+        guard let blocker = sender.representedObject as? GatedHotKey.Blocker else { return }
+        enableAnyway(blocker)
     }
 
     @objc private func openAccessibility() {

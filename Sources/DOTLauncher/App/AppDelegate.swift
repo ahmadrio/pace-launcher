@@ -6,9 +6,15 @@ import DOTLauncherCore
 struct GatedHotKey {
     let name: String
     let combo: KeyCombo
-    let blockingBundleID: String
-    let blockingAppName: String
+    let blocker: Blocker
     let action: () -> Void
+
+    struct Blocker: Hashable {
+        let bundleID: String
+        let appName: String
+        /// How the menu names the shortcuts this app blocks.
+        let group: String
+    }
 }
 
 /// Composition root: creates the services and wires them together.
@@ -19,12 +25,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var indexer: AppIndexer?
     private var search: LauncherSearch?
     private var clipboard: ClipboardController?
+    private var windows: WindowManager?
 
     private var gatedHotKeys: [GatedHotKey] = []
-    /// Gated shortcuts the user chose to enable even though the other app runs.
-    private var forcedHotKeys: Set<String> = []
+    /// Blockers the user chose to ignore ("Enable anyway").
+    private var overriddenBlockers: Set<GatedHotKey.Blocker> = []
 
     static let launcherHotKey = KeyCombo("opt+space")!
+    private static let maccy = GatedHotKey.Blocker(bundleID: "org.p0deje.Maccy", appName: "Maccy", group: "Clipboard shortcut")
+    private static let rectangle = GatedHotKey.Blocker(bundleID: "com.knollsoft.Rectangle", appName: "Rectangle", group: "Window shortcuts")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
@@ -32,14 +41,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let icons = IconCache()
         let indexer = AppIndexer()
-        let search = LauncherSearch(
-            indexer: indexer, usage: Self.openUsageStore(), icons: icons,
-            commands: [CommandCatalog.clipboardHistory()]
-        )
-        let clipboard = Self.openClipboardStore().map { ClipboardController(store: $0, icons: icons) }
+        let windows = WindowManager()
         let model = LauncherModel()
         let panelController = PanelController(model: model)
         let hotKeys = HotKeyCenter()
+
+        let windowCommands = CommandCatalog.windowCommands { action in
+            windows.perform(action, on: panelController.targetApp)
+        }
+        let search = LauncherSearch(
+            indexer: indexer, usage: Self.openUsageStore(), icons: icons,
+            commands: [CommandCatalog.clipboardHistory()] + windowCommands
+        )
+        let clipboard = Self.openClipboardStore().map { ClipboardController(store: $0, icons: icons) }
 
         model.search = { query in search.results(for: query) }
         model.clipboardSearch = { query in await clipboard?.results(for: query) ?? [] }
@@ -55,16 +69,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panelController.toggle()
         }
         gatedHotKeys = [
-            GatedHotKey(
-                name: "Clipboard History", combo: KeyCombo("shift+opt+c")!,
-                blockingBundleID: "org.p0deje.Maccy", blockingAppName: "Maccy",
-                action: { panelController.toggle(mode: .clipboard) }
-            ),
+            GatedHotKey(name: "Clipboard History", combo: KeyCombo("shift+opt+c")!, blocker: Self.maccy) {
+                panelController.toggle(mode: .clipboard)
+            },
         ]
+        for action in WindowAction.allCases {
+            guard let combo = action.defaultHotKey.flatMap(KeyCombo.init) else { continue }
+            gatedHotKeys.append(GatedHotKey(name: action.title, combo: combo, blocker: Self.rectangle) {
+                // Hotkeys act on whatever app is frontmost right now.
+                windows.perform(action, on: nil)
+            })
+        }
 
         self.indexer = indexer
         self.search = search
         self.clipboard = clipboard
+        self.windows = windows
         self.panelController = panelController
         self.hotKeys = hotKeys
 
@@ -73,22 +93,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusMenu = StatusMenuController(
             hotKeys: hotKeys,
+            blockedGroups: { [weak self] in self?.blockedBlockers() ?? [] },
             clipboardAccess: { clipboard?.monitor.access },
             openLauncher: { panelController.show() },
-            enableAnyway: { [weak self] name in
-                self?.forcedHotKeys.insert(name)
+            enableAnyway: { [weak self] blocker in
+                self?.overriddenBlockers.insert(blocker)
                 self?.applyGatedHotKeys()
             }
         )
+    }
+
+    private func isRunning(_ blocker: GatedHotKey.Blocker) -> Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: blocker.bundleID).isEmpty
+    }
+
+    /// Blockers currently switching shortcuts off.
+    private func blockedBlockers() -> [GatedHotKey.Blocker] {
+        var seen: Set<GatedHotKey.Blocker> = []
+        return gatedHotKeys.map(\.blocker).filter { blocker in
+            guard !seen.contains(blocker) else { return false }
+            seen.insert(blocker)
+            return isRunning(blocker) && !overriddenBlockers.contains(blocker)
+        }
     }
 
     /// Registers each gated shortcut unless its look-alike app is running.
     private func applyGatedHotKeys() {
         guard let hotKeys else { return }
         for gated in gatedHotKeys {
-            let blocked = !NSRunningApplication.runningApplications(withBundleIdentifier: gated.blockingBundleID).isEmpty
-            if blocked && !forcedHotKeys.contains(gated.name) {
-                hotKeys.markDisabled(gated.combo, name: gated.name, reason: "off while \(gated.blockingAppName) runs")
+            if isRunning(gated.blocker) && !overriddenBlockers.contains(gated.blocker) {
+                hotKeys.markDisabled(gated.combo, name: gated.name, reason: "off while \(gated.blocker.appName) runs")
             } else if hotKeys.status(of: gated.name) != .registered {
                 hotKeys.register(gated.combo, name: gated.name, action: gated.action)
             }
@@ -103,7 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 for await notification in center.notifications(named: name) {
                     let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
                     guard let self, let bundleID = app?.bundleIdentifier,
-                          self.gatedHotKeys.contains(where: { $0.blockingBundleID == bundleID })
+                          self.gatedHotKeys.contains(where: { $0.blocker.bundleID == bundleID })
                     else { continue }
                     self.applyGatedHotKeys()
                 }

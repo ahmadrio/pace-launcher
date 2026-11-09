@@ -1,28 +1,37 @@
 import AppKit
 import DOTLauncherCore
 
-/// Turns a query into launcher rows by ranking every searchable item.
+/// Turns a root-mode query into launcher rows by ranking apps and commands.
 final class LauncherSearch {
     private enum Item {
         case app(AppEntry)
+        case command(LauncherCommand)
     }
 
     private let indexer: AppIndexer
     private let usage: UsageStore?
-    private let icons = IconCache()
+    private let icons: IconCache
+    private let commands: [LauncherCommand]
 
     private var candidates: [SearchCandidate<String>] = []
     private var items: [String: Item] = [:]
 
-    init(indexer: AppIndexer, usage: UsageStore?) {
+    init(indexer: AppIndexer, usage: UsageStore?, icons: IconCache, commands: [LauncherCommand]) {
         self.indexer = indexer
         self.usage = usage
+        self.icons = icons
+        self.commands = commands
+        rebuild()
     }
 
     /// Rebuilds the prepared candidates after the app index changes.
     func rebuild() {
         var candidates: [SearchCandidate<String>] = []
         var items: [String: Item] = [:]
+        for command in commands {
+            candidates.append(SearchCandidate(id: command.usageID, title: command.title, aliases: command.aliases))
+            items[command.usageID] = .command(command)
+        }
         for app in indexer.apps {
             let id = app.usageID
             candidates.append(SearchCandidate(id: id, title: app.name, aliases: app.aliases))
@@ -56,7 +65,7 @@ final class LauncherSearch {
             icon: .symbol("equal"),
             accessory: "Calculator",
             actionTitle: "Copy",
-            perform: {
+            action: .run {
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(formatted, forType: .string)
@@ -75,11 +84,36 @@ final class LauncherSearch {
                 icon: .image(icons.icon(forPath: app.path)),
                 accessory: "Application",
                 actionTitle: "Open",
-                perform: { [weak self] in
+                action: .run { [weak self] in
                     self?.recordUse(id)
                     AppLauncher.open(app)
                 }
             )
+        case .command(let command):
+            LauncherResult(
+                id: id,
+                title: command.title,
+                subtitle: command.subtitle,
+                icon: .symbol(command.symbol),
+                accessory: "Command",
+                actionTitle: command.actionTitle,
+                action: recordingUse(of: id, command.action)
+            )
+        }
+    }
+
+    /// Records usage before running, so commands learn frecency too.
+    private func recordingUse(of id: String, _ action: LauncherResult.Action) -> LauncherResult.Action {
+        switch action {
+        case .run(let work):
+            .run { [weak self] in
+                self?.recordUse(id)
+                work()
+            }
+        case .enter:
+            // Mode switches are cheap to reach again; usage is recorded
+            // only for commands that do something.
+            action
         }
     }
 

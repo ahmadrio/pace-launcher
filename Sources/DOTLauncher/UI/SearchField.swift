@@ -30,6 +30,9 @@ struct SearchField: NSViewRepresentable {
         if field.stringValue != model.query {
             field.stringValue = model.query
         }
+        if field.placeholderString != placeholder {
+            field.placeholderString = placeholder
+        }
     }
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
@@ -53,7 +56,7 @@ struct SearchField: NSViewRepresentable {
             case #selector(NSResponder.insertNewline(_:)):
                 model.performSelected()
             case #selector(NSResponder.cancelOperation(_:)):
-                model.close()
+                model.escape()
             default:
                 return false
             }

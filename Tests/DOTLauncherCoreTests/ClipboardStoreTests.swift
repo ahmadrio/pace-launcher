@@ -1,0 +1,153 @@
+import Foundation
+import Testing
+@testable import DOTLauncherCore
+
+private let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+
+private func draft(_ text: String, kind: ClipKind = .text, at date: Date = t0, source: String? = "com.apple.Safari") -> ClipDraft {
+    ClipDraft(
+        text: text,
+        kind: kind,
+        representations: [ClipRepresentation(type: "public.utf8-plain-text", data: Data(text.utf8))],
+        sourceBundleID: source,
+        date: date
+    )
+}
+
+struct ClipboardStoreTests {
+    @Test func `saves a clip and lists it as recent`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+
+        try await store.save(draft("hello world"))
+        let recent = try await store.recent()
+
+        #expect(recent.map(\.text) == ["hello world"])
+        #expect(recent.first?.sourceBundleID == "com.apple.Safari")
+        #expect(recent.first?.useCount == 1)
+    }
+
+    @Test func `copying the same text again bumps it instead of adding a row`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+
+        try await store.save(draft("same", at: t0))
+        try await store.save(draft("other", at: t0.addingTimeInterval(10)))
+        try await store.save(draft("same", at: t0.addingTimeInterval(20)))
+
+        let recent = try await store.recent()
+        #expect(recent.map(\.text) == ["same", "other"])
+        #expect(recent.first?.useCount == 2)
+        #expect(try await store.count() == 2)
+    }
+
+    @Test func `keeps representations for pasting`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+        let rich = ClipDraft(
+            text: "bold",
+            kind: .richText,
+            representations: [
+                ClipRepresentation(type: "public.rtf", data: Data("{\\rtf1 bold}".utf8)),
+                ClipRepresentation(type: "public.utf8-plain-text", data: Data("bold".utf8)),
+            ],
+            sourceBundleID: nil,
+            date: t0
+        )
+
+        let item = try await store.save(rich)
+        let representations = try await store.representations(of: item.id)
+
+        #expect(Set(representations.map(\.type)) == ["public.rtf", "public.utf8-plain-text"])
+        #expect(item.kind == .richText)
+    }
+
+    @Test func `searches substrings with the trigram index`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+        try await store.save(draft("hello world"))
+        try await store.save(draft("goodbye"))
+
+        #expect(try await store.search("llo wo").map(\.text) == ["hello world"])
+        #expect(try await store.search("HELLO").map(\.text) == ["hello world"])
+    }
+
+    @Test func `short queries fall back to LIKE`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+        try await store.save(draft("ab12"))
+        try await store.save(draft("zz"))
+
+        #expect(try await store.search("b1").map(\.text) == ["ab12"])
+    }
+
+    @Test func `LIKE wildcards in the query are literal`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+        try await store.save(draft("100%"))
+        try await store.save(draft("1000"))
+
+        #expect(try await store.search("0%").map(\.text) == ["100%"])
+    }
+
+    @Test func `deleting a clip removes it from search`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+        let item = try await store.save(draft("secret-ish note"))
+
+        try await store.delete(item.id)
+
+        #expect(try await store.search("secret").isEmpty)
+        #expect(try await store.representations(of: item.id).isEmpty)
+    }
+
+    @Test func `pinned clips come first`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+        let old = try await store.save(draft("old", at: t0))
+        try await store.save(draft("new", at: t0.addingTimeInterval(60)))
+
+        try await store.setPinned(old.id, true)
+
+        #expect(try await store.recent().map(\.text) == ["old", "new"])
+    }
+
+    @Test func `marking a clip used moves it to the top`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+        let first = try await store.save(draft("first", at: t0))
+        try await store.save(draft("second", at: t0.addingTimeInterval(10)))
+
+        try await store.markUsed(first.id, at: t0.addingTimeInterval(20))
+
+        #expect(try await store.recent().map(\.text) == ["first", "second"])
+    }
+
+    @Test func `search stays fast with ten thousand clips`() async throws {
+        let store = try ClipboardStore(path: ":memory:")
+        let drafts = (0..<10_000).map { draft("clip number \($0) lorem ipsum dolor", at: t0.addingTimeInterval(Double($0))) }
+        try await store.save(drafts)
+
+        let started = ContinuousClock.now
+        let results = try await store.search("number 9999")
+        let elapsed = started.duration(to: .now)
+
+        #expect(results.map(\.text) == ["clip number 9999 lorem ipsum dolor"])
+        #expect(elapsed < .milliseconds(50))
+    }
+}
+
+struct ClipboardFilterTests {
+    @Test(arguments: [
+        "org.nspasteboard.ConcealedType",
+        "org.nspasteboard.TransientType",
+        "org.nspasteboard.AutoGeneratedType",
+        "com.agilebits.onepassword",
+    ])
+    func `ignores clips marked as secret or temporary`(marker: String) {
+        #expect(ClipboardFilter.shouldIgnore(types: ["public.utf8-plain-text", marker], text: "hunter2", hasFiles: false))
+    }
+
+    @Test func `ignores whitespace-only text`() {
+        #expect(ClipboardFilter.shouldIgnore(types: ["public.utf8-plain-text"], text: " \n\t ", hasFiles: false))
+    }
+
+    @Test func `keeps ordinary text`() {
+        #expect(!ClipboardFilter.shouldIgnore(types: ["public.utf8-plain-text"], text: "hello", hasFiles: false))
+    }
+
+    @Test func `keeps files even without text`() {
+        #expect(!ClipboardFilter.shouldIgnore(types: ["public.file-url"], text: nil, hasFiles: true))
+    }
+}

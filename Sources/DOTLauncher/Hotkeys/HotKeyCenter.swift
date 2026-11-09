@@ -83,6 +83,10 @@ final class HotKeyCenter {
         record(Entry(name: name, combo: combo, status: .disabled(reason)))
     }
 
+    func status(of name: String) -> Status? {
+        entries.first { $0.name == name }?.status
+    }
+
     func unregister(name: String) {
         if let id = idsByName.removeValue(forKey: name), let registration = registrations.removeValue(forKey: id) {
             UnregisterEventHotKey(registration.ref)

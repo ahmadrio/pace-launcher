@@ -40,17 +40,21 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { panel.isVisible }
 
-    func toggle() {
-        isVisible ? hide() : show()
+    func toggle(mode: LauncherModel.Mode = .root) {
+        if isVisible, model.mode == mode {
+            hide()
+        } else {
+            show(mode: mode)
+        }
     }
 
-    func show() {
+    func show(mode: LauncherModel.Mode = .root) {
         let front = NSWorkspace.shared.frontmostApplication
         if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
             targetApp = front
         }
         onShow?()
-        model.reset()
+        model.reset(to: mode)
         position()
         panel.makeKeyAndOrderFront(nil)
         if let field = model.searchField {

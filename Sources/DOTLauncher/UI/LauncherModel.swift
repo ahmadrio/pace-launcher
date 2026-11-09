@@ -8,6 +8,13 @@ struct LauncherResult: Identifiable {
         case symbol(String)
     }
 
+    enum Action {
+        /// Hide the panel, then run.
+        case run(() -> Void)
+        /// Keep the panel open and switch to another mode.
+        case enter(LauncherModel.Mode)
+    }
+
     let id: String
     let title: String
     let subtitle: String
@@ -15,12 +22,24 @@ struct LauncherResult: Identifiable {
     let accessory: String
     /// Footer label for ⏎, such as "Open" or "Copy".
     let actionTitle: String
-    /// What ⏎ does. Runs after the panel has been hidden.
-    let perform: () -> Void
+    let action: Action
 }
 
 @Observable
 final class LauncherModel {
+    enum Mode: Equatable {
+        case root
+        case clipboard
+
+        var placeholder: String {
+            switch self {
+            case .root: "Search apps, calculate, or run a command…"
+            case .clipboard: "Search clipboard history…"
+            }
+        }
+    }
+
+    private(set) var mode = Mode.root
     var query = "" {
         didSet {
             guard query != oldValue else { return }
@@ -29,37 +48,50 @@ final class LauncherModel {
     }
     private(set) var results: [LauncherResult] = []
     private(set) var selectedIndex = 0
-    /// Short feedback shown in the footer, such as "Copied".
-    var toast: String?
 
-    /// Produces results for a query. Set by the composition root.
+    /// Root-mode results. Set by the composition root.
     @ObservationIgnored var search: (String) -> [LauncherResult] = { _ in [] }
+    /// Clipboard-mode results, read from the store off the main actor.
+    @ObservationIgnored var clipboardSearch: (String) async -> [LauncherResult] = { _ in [] }
     /// Hides the panel. Set by PanelController.
     @ObservationIgnored var close: () -> Void = {}
     /// The search field, so the panel can give it focus on every show.
     @ObservationIgnored weak var searchField: NSTextField?
+    @ObservationIgnored private var clipboardTask: Task<Void, Never>?
 
     var selected: LauncherResult? {
         results.indices.contains(selectedIndex) ? results[selectedIndex] : nil
     }
 
-    func reset() {
-        toast = nil
+    func reset(to mode: Mode = .root) {
+        self.mode = mode
+        searchField?.stringValue = ""
         if query.isEmpty {
             refresh()
         } else {
             query = ""
         }
-        searchField?.stringValue = ""
     }
 
     func refresh() {
-        let started = ContinuousClock.now
-        results = search(query)
-        selectedIndex = 0
-        let elapsed = started.duration(to: .now)
-        // Debug level is never persisted; visible only with `make logs`.
-        Log.panel.debug("query “\(self.query, privacy: .public)” → \(self.results.count) results, top: \(self.results.first?.title ?? "-", privacy: .public) in \(elapsed, privacy: .public)")
+        switch mode {
+        case .root:
+            let started = ContinuousClock.now
+            results = search(query)
+            selectedIndex = 0
+            let elapsed = started.duration(to: .now)
+            // Debug level is never persisted; visible only with `make logs`.
+            Log.panel.debug("query “\(self.query, privacy: .public)” → \(self.results.count) results, top: \(self.results.first?.title ?? "-", privacy: .public) in \(elapsed, privacy: .public)")
+        case .clipboard:
+            clipboardTask?.cancel()
+            let query = query
+            clipboardTask = Task {
+                let found = await clipboardSearch(query)
+                guard !Task.isCancelled, self.mode == .clipboard, self.query == query else { return }
+                results = found
+                selectedIndex = 0
+            }
+        }
     }
 
     func moveSelection(by delta: Int) {
@@ -74,7 +106,21 @@ final class LauncherModel {
 
     func performSelected() {
         guard let item = selected else { return }
-        close()
-        item.perform()
+        switch item.action {
+        case .run(let work):
+            close()
+            work()
+        case .enter(let mode):
+            reset(to: mode)
+        }
+    }
+
+    /// Esc leaves a sub-mode first, then closes the panel.
+    func escape() {
+        if mode == .root {
+            close()
+        } else {
+            reset(to: .root)
+        }
     }
 }

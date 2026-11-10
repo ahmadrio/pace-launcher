@@ -30,7 +30,7 @@ struct SystemCommandTests {
         }
         #expect(restart.contains("«event aevtrrst»") && restartTarget == "loginwindow")
         #expect(shutDown.contains("«event aevtrsdn»"))
-        #expect(trash == #"tell application "Finder" to empty trash"# && trashTarget == "Finder")
+        #expect(trash.contains("with timeout of 3600 seconds") && trash.contains(#"tell application "Finder" to empty trash"#) && trashTarget == "Finder")
         #expect(dark.contains("set dark mode to not dark mode") && darkTarget == "System Events")
         #expect(SystemCommand.lockScreen.aliases.contains("kunci"))
         #expect(SystemCommand.logOut.aliases.contains("keluar"))
@@ -38,6 +38,9 @@ struct SystemCommandTests {
         #expect(SystemCommand.shutDown.aliases.contains("matikan"))
         #expect(SystemCommand.emptyTrash.aliases.contains("kosongkan sampah"))
         #expect(SystemCommand.toggleDarkMode.aliases.contains("mode gelap"))
+        // DOT's own theme lives in Settings; these words must not flip the Mac.
+        #expect(!SystemCommand.toggleDarkMode.aliases.contains("tema"))
+        #expect(!SystemCommand.toggleDarkMode.aliases.contains("appearance"))
         #expect(SystemCommand.allCases.allSatisfy { !$0.subtitle.isEmpty && !$0.symbol.isEmpty })
     }
 
@@ -57,6 +60,9 @@ struct SystemCommandTests {
         #expect(AppleScriptEnd(status: 1, errorOutput: "execution error: Not authorized to send Apple events to System Events. (-1743)") == .notPermitted)
         #expect(AppleScriptEnd(status: 1, errorOutput: "35:52: execution error: User canceled. (-128)") == .canceled)
         #expect(AppleScriptEnd(status: 1, errorOutput: "0:12: syntax error: Expected end of line. (-2741)\n") == .failed("0:12: syntax error: Expected end of line. (-2741)"))
+        #expect(AppleScriptEnd(status: 1, errorOutput: "12:40: execution error: Finder got an error: AppleEvent timed out. (-1712)") == .timedOut)
+        #expect(AppleScriptEnd(status: 1, errorOutput: "35:52: execution error: Finder got an error: Something. (-10000)\n") == .failed("Finder got an error: Something. (-10000)"))
+        #expect(AppleScriptEnd(status: 9, errorOutput: "") == .failed("osascript exited with status 9"))
         let long = String(repeating: "x", count: 300)
         #expect(AppleScriptEnd(status: 1, errorOutput: long) == .failed(String(repeating: "x", count: 120)))
     }

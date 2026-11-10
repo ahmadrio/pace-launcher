@@ -148,6 +148,11 @@ struct SettingsFileTests {
         #expect(broken.emojiSkinTones.isEmpty)
         #expect(!broken.showMenuBarIcon)
         #expect(try decode("{}").emojiSkinTones.isEmpty)
+        // One bad entry drops only itself.
+        #expect(try decode(#"{"emojiSkinTones": {"👍": "dark", "👋": null, "👏": 3}}"#).emojiSkinTones == ["👍": .dark])
+        var counted = SettingsData()
+        counted.emojiSkinTones = ["👍": .dark, "👍🏽": .light, "❤️": .dark, "☝": .medium]
+        #expect(counted.ownSkinToneCount == 1)
         var data = SettingsData()
         data.emojiSkinTones = ["☝️": .mediumLight]
         let copy = try JSONDecoder().decode(SettingsData.self, from: JSONEncoder().encode(data))

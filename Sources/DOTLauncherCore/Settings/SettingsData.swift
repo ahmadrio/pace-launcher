@@ -22,6 +22,12 @@ public struct SettingsData: Codable, Sendable, Equatable {
 
     public init() {}
 
+    /// Emoji with a tone of their own that the picker can use: hand-written
+    /// keys that are not catalog emoji with skin tones do nothing.
+    public var ownSkinToneCount: Int {
+        emojiSkinTones.keys.count { key in EmojiCatalog.emoji(for: key).map(EmojiCatalog.canTone) ?? false }
+    }
+
     /// The tone to paste `emoji` in: its own, or the default one.
     public func skinTone(for emoji: Emoji) -> EmojiSkinTone {
         emojiSkinTones[emoji.character] ?? emojiSkinTone
@@ -47,9 +53,9 @@ public struct SettingsData: Codable, Sendable, Equatable {
         // of resetting every setting.
         clipboardRetention = (try? container.decodeIfPresent(ClipboardRetention.self, forKey: .clipboardRetention)) ?? defaults.clipboardRetention
         emojiSkinTone = (try? container.decodeIfPresent(EmojiSkinTone.self, forKey: .emojiSkinTone)) ?? defaults.emojiSkinTone
-        // Unknown tones are dropped; anything that is not a map gives none.
-        let tones = (try? container.decodeIfPresent([String: String].self, forKey: .emojiSkinTones)) ?? nil
-        emojiSkinTones = (tones ?? [:]).compactMapValues(EmojiSkinTone.init(rawValue:))
+        // A bad entry drops only itself; anything that is not a map gives none.
+        let tones = try? container.decodeIfPresent([String: Lossy<EmojiSkinTone>].self, forKey: .emojiSkinTones)
+        emojiSkinTones = (tones ?? [:]).compactMapValues(\.value)
         // A broken entry is skipped; an unreadable list or a missing key
         // gives the starter quicklinks. Either way the other settings load.
         let links = (try? container.decodeIfPresent([Lossy<Quicklink>].self, forKey: .quicklinks))

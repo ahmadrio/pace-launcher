@@ -724,6 +724,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if command == .emptyTrash { hud?.show("Emptied the Trash.", isError: false) }
         case .canceled:
             break
+        case .timedOut:
+            // Finder may still be emptying a large Trash: not an error.
+            guard case .appleScript(_, let target) = command.action else { return }
+            hud?.show("\(target) is still working on it.", isError: false)
         case .notPermitted:
             guard case .appleScript(_, let target) = command.action else { return }
             hud?.show("Allow DOT Launcher to control \(target) in Privacy & Security › Automation.", isError: true)

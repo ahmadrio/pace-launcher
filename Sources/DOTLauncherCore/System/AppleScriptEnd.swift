@@ -5,7 +5,12 @@ public enum AppleScriptEnd: Equatable, Sendable {
     case notPermitted
     /// The user pressed Cancel, e.g. in macOS's restart dialog (-128).
     case canceled
-    /// Anything else, with osascript's last error line (at most 120 characters).
+    /// The app took longer than the Apple Event timeout to answer (-1712);
+    /// it may still be working (Finder emptying a large Trash).
+    case timedOut
+    /// Anything else: osascript's last error line without its "12:40:
+    /// execution error:" prefix (at most 120 characters), or the exit
+    /// status when it printed nothing.
     case failed(String)
 
     public init(status: Int32, errorOutput: String) {
@@ -15,9 +20,13 @@ public enum AppleScriptEnd: Equatable, Sendable {
             self = .notPermitted
         } else if errorOutput.contains("(-128)") {
             self = .canceled
+        } else if errorOutput.contains("(-1712)") {
+            self = .timedOut
         } else {
-            let line = errorOutput.split(whereSeparator: \.isNewline).last.map(String.init) ?? ""
-            self = .failed(String(line.trimmingCharacters(in: .whitespaces).prefix(120)))
+            var line = errorOutput.split(whereSeparator: \.isNewline).last.map(String.init) ?? ""
+            if let range = line.range(of: "execution error: ") { line = String(line[range.upperBound...]) }
+            line = line.trimmingCharacters(in: .whitespaces)
+            self = .failed(line.isEmpty ? "osascript exited with status \(status)" : String(line.prefix(120)))
         }
     }
 }

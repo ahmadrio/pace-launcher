@@ -59,7 +59,7 @@ public enum SystemCommand: String, CaseIterable, Sendable {
         case .restart: ["reboot", "mulai ulang", "restart mac"]
         case .shutDown: ["shutdown", "power off", "matikan", "matikan mac"]
         case .emptyTrash: ["trash", "bin", "kosongkan sampah", "tempat sampah"]
-        case .toggleDarkMode: ["dark mode", "light mode", "mode gelap", "appearance", "tema"]
+        case .toggleDarkMode: ["dark mode", "light mode", "mode gelap"]
         }
     }
 
@@ -90,7 +90,12 @@ public enum SystemCommand: String, CaseIterable, Sendable {
         case .screenSaver: .openApp(path: "/System/Library/CoreServices/ScreenSaverEngine.app")
         case .restart: .appleScript(source: #"tell application "loginwindow" to «event aevtrrst»"#, target: "loginwindow")
         case .shutDown: .appleScript(source: #"tell application "loginwindow" to «event aevtrsdn»"#, target: "loginwindow")
-        case .emptyTrash: .appleScript(source: #"tell application "Finder" to empty trash"#, target: "Finder")
+        // A large Trash can take Finder longer than osascript's 2 minutes.
+        case .emptyTrash: .appleScript(source: """
+            with timeout of 3600 seconds
+                tell application "Finder" to empty trash
+            end timeout
+            """, target: "Finder")
         case .toggleDarkMode: .appleScript(
             source: #"tell application "System Events" to tell appearance preferences to set dark mode to not dark mode"#,
             target: "System Events"

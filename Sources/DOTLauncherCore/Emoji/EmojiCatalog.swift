@@ -49,6 +49,11 @@ public enum EmojiCatalog {
         return Emoji(character: String(base) + modifier, name: emoji.name, keywords: emoji.keywords)
     }
 
+    /// The catalog entry for a base character ("👍", "☝️"), if any.
+    public static func emoji(for character: String) -> Emoji? {
+        byCharacter[character]
+    }
+
     /// True for hand and person emoji that have skin-tone forms.
     public static func canTone(_ emoji: Emoji) -> Bool {
         toned(emoji, skinTone: .medium) != emoji

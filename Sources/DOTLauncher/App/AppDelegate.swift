@@ -310,6 +310,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Emoji picker: ⏎ pastes into the previous app (the clipboard is put
         // back), ⌘C copies. Use is learned per emoji.
         var emojiUsage: [String: Double] = [:]
+        let recordEmojiUse: (String) -> Void = { id in
+            do {
+                try usage?.recordUse(of: id)
+            } catch {
+                Log.apps.error("could not record usage: \(String(describing: error), privacy: .public)")
+            }
+        }
         model.handlers[.emoji] = LauncherModel.ModeHandler(
             results: { query in
                 EmojiCatalog.search(query, usage: emojiUsage, limit: 60).map { emoji in
@@ -318,11 +325,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         id: id, title: emoji.name, subtitle: emoji.keywords.joined(separator: ", "),
                         icon: .text(emoji.character), accessory: "Emoji", actionTitle: "Paste",
                         action: .run {
-                            try? usage?.recordUse(of: id)
+                            recordEmojiUse(id)
                             TextPaster.paste(emoji.character, monitor: clipboard?.monitor)
                         },
                         secondaryActions: [SecondaryAction(title: "Copy", shortcut: .command("c"), action: .run {
-                            try? usage?.recordUse(of: id)
+                            recordEmojiUse(id)
                             TextPaster.copy(emoji.character)
                         })]
                     )

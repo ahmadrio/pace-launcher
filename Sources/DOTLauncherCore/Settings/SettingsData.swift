@@ -46,9 +46,10 @@ public struct SettingsData: Codable, Sendable, Equatable {
         var seen = Set<UUID>()
         quicklinks = links.enumerated().map { index, link in
             var link = link
-            if !seen.insert(link.id).inserted {
-                link.id = Quicklink.derivedID(name: link.name, url: link.url + "#\(index)")
-                seen.insert(link.id)
+            var attempt = 0
+            while !seen.insert(link.id).inserted {
+                attempt += 1
+                link.id = Quicklink.derivedID(name: link.name, url: link.url + "#\(index)#\(attempt)")
             }
             return link
         }

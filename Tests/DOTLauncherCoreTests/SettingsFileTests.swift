@@ -138,4 +138,9 @@ struct SettingsFileTests {
         #expect(text.contains("https://www.google.com/search"))
         #expect(!text.contains("\\/"))
     }
+
+    @Test func `non-UUID ids load`() throws {
+        let data = try JSONDecoder().decode(SettingsData.self, from: Data(#"{"quicklinks": [{"id": "wiki", "name": "Wiki", "url": "https://w.test"}]}"#.utf8))
+        #expect(data.quicklinks.map(\.id) == [Quicklink.derivedID(name: "Wiki", url: "https://w.test")])
+    }
 }

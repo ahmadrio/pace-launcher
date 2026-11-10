@@ -37,7 +37,8 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
         name = try container.decode(String.self, forKey: .name)
         url = try container.decode(String.self, forKey: .url)
         keyword = try container.decodeIfPresent(String.self, forKey: .keyword)
-        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? Self.derivedID(name: name, url: url)
+        // A hand-written id that is not a UUID ("wiki") counts as no id.
+        id = (try? container.decodeIfPresent(UUID.self, forKey: .id)) ?? Self.derivedID(name: name, url: url)
     }
 
     /// Seeded when settings.json has no quicklinks yet. Fixed ids keep their
@@ -52,6 +53,15 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
         Quicklink(id: UUID(uuidString: "D07A0001-0000-4000-8000-000000000004")!, name: "Google Maps", keyword: "maps",
                   url: "https://www.google.com/maps/search/{query}"),
     ]
+
+    /// The host for showing ("bücher.de", not its encoded form).
+    public var displayHost: String? {
+        // From the template as typed: the built URL holds punycode (xn--…),
+        // while this keeps "bücher.de", only percent-encoded.
+        let marked = url.replacingOccurrences(of: Self.placeholder, with: Self.marker, options: .caseInsensitive)
+        guard let host = URL(string: marked)?.host(), !host.isEmpty else { return nil }
+        return host.removingPercentEncoding ?? host
+    }
 
     public var takesQuery: Bool { url.range(of: Self.placeholder, options: .caseInsensitive) != nil }
 

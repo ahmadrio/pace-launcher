@@ -230,7 +230,7 @@ final class LauncherSearch {
 
     /// "gh · github.com".
     static func quicklinkSubtitle(for link: Quicklink) -> String {
-        [link.keyword, link.url(for: "")?.host()].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+        [link.keyword, link.displayHost].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
     }
 
     private func result(for item: Item, id: String) -> LauncherResult? {

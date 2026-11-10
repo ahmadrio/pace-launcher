@@ -47,13 +47,14 @@ public enum EmojiCatalog {
         var result: [Emoji] = []
         // Faces first, then other pictures, then symbols: plain Unicode order
         // would open the picker on ™ and arrows.
-        let ranges = [0x1F600...0x1F64F, 0x1F900...0x1FAFF, 0x1F300...0x1F5FF, 0x1F680...0x1F8FF, 0x1F000...0x1F2FF, 0x2000...0x2BFF]
+        let ranges = [0x1F600...0x1F64F, 0x1F900...0x1FAFF, 0x1F300...0x1F5FF, 0x1F680...0x1F8FF, 0x1F000...0x1F2FF, 0x2000...0x2BFF, 0x3000...0x32FF]
         for range in ranges {
             for value in range {
                 guard let scalar = Unicode.Scalar(UInt32(value)) else { continue }
                 let properties = scalar.properties
+                // No category filter: ‼ ⁉ are punctuation and ℹ is a letter, yet emoji.
+                // The ranges start above ASCII, so # * 0–9 © ® never appear.
                 guard properties.isEmoji, !properties.isEmojiModifier,
-                      properties.generalCategory == .otherSymbol || properties.generalCategory == .mathSymbol,
                       !(0x1F1E6...0x1F1FF).contains(value),
                       let unicodeName = properties.name, !unicodeName.hasPrefix("EMOJI COMPONENT")
                 else { continue }
@@ -73,7 +74,7 @@ public enum EmojiCatalog {
         var result: [Emoji] = []
         for region in Locale.Region.isoRegions {
             let code = region.identifier.uppercased()
-            guard code.count == 2, code.allSatisfy({ $0.isASCII && $0.isLetter }),
+            guard code.count == 2, code.allSatisfy({ $0.isASCII && $0.isLetter }), !flaglessRegions.contains(code),
                   let name = english.localizedString(forRegionCode: code), name != code
             else { continue }
             let flag = String(String.UnicodeScalarView(code.unicodeScalars.compactMap { Unicode.Scalar(0x1F1E6 + $0.value - 65) }))
@@ -87,6 +88,9 @@ public enum EmojiCatalog {
         return result.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
+    /// Region codes Apple's emoji font has no flag for (they show as letters).
+    private static let flaglessRegions: Set<String> = ["EZ", "QO"]
+
     private static func sentenceCase(_ unicodeName: String) -> String {
         let lower = unicodeName.lowercased()
         return lower.prefix(1).uppercased() + lower.dropFirst()
@@ -97,12 +101,12 @@ public enum EmojiCatalog {
     private static let popularTable: [(emoji: String, name: String?, keywords: [String])] = [
         ("❤", "Red heart", ["love", "cinta", "heart", "sayang"]),
         ("😂", nil, ["lol", "laugh", "ketawa", "ngakak"]),
-        ("🙏", "Folded hands", ["thanks", "please", "terima kasih", "makasih", "tolong"]),
+        ("🙏", "Folded hands", ["thanks", "please", "terima kasih", "makasih", "tolong", "pray", "doa"]),
         ("👍", "Thumbs up", ["like", "ok", "setuju", "oke"]),
         ("😭", nil, ["cry", "nangis", "sedih"]),
         ("😊", nil, ["smile", "senyum", "happy", "senang"]),
         ("🔥", nil, ["fire", "lit", "api", "keren"]),
-        ("🎉", "Party popper", ["party", "selamat", "congrats", "yay"]),
+        ("🎉", "Party popper", ["party", "selamat", "congrats", "yay", "tada"]),
         ("✅", nil, ["done", "check", "selesai", "beres"]),
         ("🤔", nil, ["think", "hmm", "mikir"]),
         ("👀", nil, ["eyes", "look", "lihat"]),
@@ -110,7 +114,8 @@ public enum EmojiCatalog {
         ("😍", nil, ["love eyes", "suka"]),
         ("🥲", nil, ["terharu", "smile tear"]),
         ("😎", nil, ["cool", "keren"]),
-        ("💯", nil, ["hundred", "perfect", "mantap"]),
+        ("💯", nil, ["hundred", "perfect", "mantap", "100"]),
+        ("💩", "Pile of poo", ["poop", "tai", "poo"]),
         ("🚀", nil, ["launch", "rocket", "roket"]),
         ("👋", nil, ["hello", "halo", "wave", "dadah"]),
         ("😢", nil, ["sad", "sedih"]),

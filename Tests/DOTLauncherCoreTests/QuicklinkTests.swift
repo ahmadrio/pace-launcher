@@ -92,5 +92,9 @@ struct QuicklinkTests {
         #expect(Quicklink(name: "F", keyword: nil, url: "https://e.com/?q={query}&lang=français").url(for: "dot launcher")?.absoluteString
             == "https://e.com/?q=dot%20launcher&lang=fran%C3%A7ais")
     }
-}
 
+    @Test func `readable hosts`() {
+        #expect(Quicklink(name: "B", keyword: nil, url: "https://bücher.de/?q={query}").displayHost == "bücher.de")
+        #expect(Quicklink.defaults[2].displayHost == "github.com")
+    }
+}

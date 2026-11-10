@@ -43,4 +43,21 @@ struct EmojiCatalogTests {
         #expect(plain != nil && used != nil)
         #expect(used! < plain!)
     }
+
+    @Test func `missing emoji and flags are fixed`() {
+        for character in ["‼️", "⁉️", "ℹ️", "〰️", "〽️", "㊗️", "㊙️"] {
+            #expect(all.contains { $0.character == character }, "\(character)")
+        }
+        #expect(!all.contains { $0.character == "🇪🇿" || $0.character == "🇶🇴" })
+        #expect(!all.contains { ["0", "#", "©", "©️"].contains($0.character) })
+    }
+
+    @Test func `more everyday words find emoji`() {
+        func first(_ query: String) -> String? { EmojiCatalog.search(query, usage: [:], limit: 5).first?.character }
+        #expect(first("pray") == "🙏")
+        #expect(first("doa") == "🙏")
+        #expect(first("100") == "💯")
+        #expect(first("tada") == "🎉")
+        #expect(first("poop") == "💩")
+    }
 }

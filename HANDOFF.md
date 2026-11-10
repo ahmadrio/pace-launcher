@@ -4,7 +4,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Status (10 Nov 2026)
 - **Tahap 1 dan 2** selesai dan sudah di-merge ke `main`.
-- **Tahap 3** selesai di branch **`tahap-3`** dan belum di-merge ke `main`.
+- **Tahap 3** selesai dan sudah di-merge ke `main` (10 Nov 2026).
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-3-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-3.md`
   - Ledger (semua `Ruling:`): `docs/superpowers/plans/2026-11-10-tahap-3-ledger.md`
@@ -80,7 +80,8 @@ make reset-tcc
 - **zsh:** `log` adalah builtin zsh, jadi pakai `/usr/bin/log`. `FileManager` mengubah `/var` menjadi `/private/var`.
 
 ## Belum diuji / batasan yang diketahui
-- **Sync dengan iCloud Drive asli belum dicoba.** Semua uji sync memakai folder uji. Cek dengan iCloud asli hanya dilakukan dengan izin Pace dan setelah data di-backup.
+- **Sync dengan iCloud Drive asli sudah dicek sekali (10 Nov 2026, izin Pace, data di-backup dulu):** nyala → file pindah ke iCloud dan ter-upload (`ubiquitousItemIsUploaded`), backup clipboard utuh (21 clip, `integrity_check` ok), snippet/note tetap muncul, quit menulis backup, relaunch tanpa pertanyaan restore. Mati → file kembali identik, backup tetap di iCloud sampai "Delete iCloud Backups" ditekan. Setelahnya data dan iCloud dikembalikan seperti semula.
+- **Auto-expand juga aktif di kolom pencarian DOT sendiri.** Mengetik keyword snippet (`;addr`) di launcher langsung mengembangkannya, jadi snippet tidak bisa dicari lewat keyword-nya. Belum diperbaiki.
 - Placeholder dari "Optimize Mac Storage" yang asli dan edit dari iPhone/Files belum diuji. Perilakunya hanya disimulasikan dengan mengganti nama file.
 - Auto-expand berjalan tanpa izin Input Monitoring baru di Mac ini. Di Mac lain, izin itu mungkin perlu diberikan (Settings › Snippets menampilkan statusnya).
 - Paste memakai `kVK_ANSI_V`, jadi bisa meleset di layout keyboard non-QWERTY.
@@ -88,8 +89,7 @@ make reset-tcc
 - Clipboard belum mendukung gambar dan belum punya preview. Shortcut belum bisa diubah lewat UI. Kalkulator belum mendukung unit/kurs.
 
 ## Langkah berikutnya
-1. Review akhir branch `tahap-3`, lalu merge ke `main`.
-2. Cek sync dengan iCloud Drive asli (dengan izin Pace, setelah backup).
-3. Riwayat AI chat yang persisten.
-4. Clipboard: gambar, preview, pin/hapus dari panel.
-5. Ubah shortcut lewat Settings.
+1. Matikan auto-expand saat panel DOT sendiri yang aktif (lihat batasan di atas).
+2. Riwayat AI chat yang persisten.
+3. Clipboard: gambar, preview, pin/hapus dari panel.
+4. Ubah shortcut lewat Settings.

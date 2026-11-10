@@ -164,7 +164,7 @@ make reset-tcc
 - **Nama emoji Unicode kadang kuno** ("HEAVY BLACK HEART"): `EmojiCatalog` memakai tabel kecil nama + kata kunci populer untuk sekitar 40 emoji.
 - **Folder skrip dipantau FSEvents** (`ScriptFolderWatcher`, jeda 0,5 detik, `UseCFTypes | FileEvents`). Folder yang belum ada dipantau langsung (FSEvents melaporkan saat folder itu dibuat; induknya sengaja tidak dipantau karena untuk folder tambahan bisa berarti seluruh `~`); hanya path yang relevan (`ScriptFolderEvents.isRelevant`: tanpa komponen tersembunyi, maksimal kedalaman pemindai) memicu pembacaan ulang. Shortcut didaftarkan ulang hanya kalau kunci/judul skrip berubah (`ScriptShortcut.fingerprint`).
 - **Dokumen TextEdit uji:** `make new document with properties {name: …}` memunculkan dialog "You don't own the file" saat isinya diubah. Klik Cancel lalu tutup dengan `saving no`.
-- **Mengetik di uji:** cek fokus sebelum *setiap* tombol (alat `guardtype`/`gaprace` di scratchpad: AX focused element DOT + app terdepan bukan terminal), jangan AppleScript berisi beberapa tombol dengan jeda. CGEvent yang dikirim beruntun tanpa jeda bisa hilang (beri ~10 ms per tombol). Isian password mengaktifkan Secure Event Input, jadi tombol sintetis sebagian dibuang; uji nilainya lewat file penanda skrip, bukan AX.
+- **Mengetik di uji:** cek fokus sebelum *setiap* tombol (alat `guardtype`/`gaprace` di scratchpad: AX focused element DOT + app terdepan bukan terminal), jangan AppleScript berisi beberapa tombol dengan jeda. CGEvent yang dikirim beruntun tanpa jeda bisa hilang (beri ~10 ms per tombol); dengan jeda itu, ketikan ke isian password juga sampai utuh. Nilai isian password tidak bisa dibaca lewat AX, jadi uji lewat file penanda skrip.
 - **Menu bar di uji:** `exists menu 1 of menu bar item 1 of menu bar 2` tetap `true` setelah menu tertutup, dan mengklik ikon lagi lewat System Events tidak menutup menu. Tutup dengan Esc hanya setelah screenshot menunjukkan menu terbuka dan app terdepan bukan terminal.
 - **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
 
@@ -177,6 +177,7 @@ make reset-tcc
 - Kalkulator belum mendukung kripto dan singkatan huruf tunggal selain `k` (`M`, `B`, `T` sengaja ditolak). Kurs tanpa target hanya untuk simbol, nama, dan 21 kode umum; kode lain butuh target (`10 nok to idr`).
 - Di Mac Pace, ⌃⌥⌘M dipakai app lain sehingga tidak bisa direkam.
 - Gambar clipboard tidak dibatasi total ukurannya (riwayat tanpa batas, sama seperti teks).
+- **Form skrip dengan isian password pertama:** popup AutoFill macOS "Passwords…" muncul saat isian kosong itu mendapat fokus. Kalau teks masuk lewat ketikan awal (diketik tepat setelah ↩), ↩ pertama ditelan popup; Esc lalu ↩ menjalankannya. Mematikan AutoFill di `SecureField` belum diteliti.
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya

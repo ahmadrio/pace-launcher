@@ -32,6 +32,8 @@ Sama seperti tahap 15. Tidak ada izin baru.
 - **Settings › General › Emoji** menampilkan jumlah emoji yang punya warna sendiri, dengan tombol "Reset" untuk menghapus semuanya.
 - **Pemakaian** tetap dicatat per emoji dasar.
 
+- **Catatan implementasi (ruling di ledger):** aksi ini bernama "Own Tone" di footer, dan pesannya tanpa swatch di akhir (contoh "👍🏽 skin tone: Medium"), supaya footer muat. Selama ada pesan, petunjuk Navigate disembunyikan, dan pesan yang terlalu panjang boleh memakai dua baris.
+
 ## Fitur 2: Sisa minor tahap 15
 - Komentar `onFocused` di form skrip dibetulkan.
 - Pemindahan ketikan diuji pada form yang isian pertamanya password.

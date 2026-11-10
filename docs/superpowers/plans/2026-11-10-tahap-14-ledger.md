@@ -1,0 +1,30 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-11-10-tahap-14.md
+Spec: docs/superpowers/specs/2026-11-10-tahap-14-design.md
+Pre-flight: Task 1 produces PressConfirmation.window and the 0 <= elapsed rule; Task 2's ConfirmationPrompt consumes window, press(_:at:stillShown:) and isArmed(_:at:) — consistent.
+Task 1: complete (commits a78992b..4995fe2, tests: make test → ✔ Test run with 363 tests in 64 suites passed after 0.608 seconds.)
+Task 2: Ruling: the arguments form never took keyboard focus (typing went into the search field, so the form could not be filled without a click) — found by this task's form check; fixed in this task because Review Focus 3 cannot be checked otherwise: ScriptArgumentsView focuses its first field 100 ms after it appears (`.onAppear`/`.task` without the delay left the search field focused), and LauncherModel.reset hands the keyboard back to the search field for every mode except .scriptArguments (otherwise Esc from the form left the panel with no focus) — cost if wrong: on a slow Mac the form may open unfocused again (the old behaviour).
+Task 2: Ruling: a confirmed press also hides its prompt (ConfirmationPrompt) — so a script's own HUD or the closing panel never shows a stale "press again" — cost if wrong: none.
+Task 2: UI check (test folders + dry run; markers in the scratchpad):
+  Row "Confirm Test": ↩ → prompt; `x` ⌫ → gone; ↩ → prompt, no marker; 3.6 s → gone; ↩ ↩ → marker.
+  Shortcut ⌃⌥⌘4: HUD prompt at 0.5 s, still shown at 2.6 s, gone at ~4 s; press → prompt, no marker; quick second press → marker.
+  Form (temporary askconfirm.sh): RED first — typing landed in the search field, ↩ said "Value is required"; after the focus fix: `a` ↩ → prompt; ⌘A `b` ↩ → prompt again, no marker; ↩ → marker "b". Esc from the form → search field focused again (typing `calc` listed Calculator). ⌃⌥⌘5 (ask.sh) opened the form with the "Name" field focused.
+  Log Out: ↩ → notice; 3.6 s → gone; ↩ → no dry-run line; ↩ → one dry-run line.
+  Menu bar All Shortcuts: gone.sh moved away → "⌃⌥⌘6 gone.sh (not found)"; moved back → "⌃⌥⌘6 Gone Back". Note: `exists menu 1 of menu bar item 1` stays true after the menu closes, so it is a weak guard for Esc; the front app was TextEdit (empty document) and a screenshot confirmed the menu closed.
+  Cleanup: temporary script and markers removed, document closed (empty), flag removed, clipboard hash unchanged (empty), app back on real data.
+Task 2: complete (commits 4995fe2..35a0f9f, tests: make test → ✔ Test run with 363 tests in 64 suites passed after 0.635 seconds.)
+Task 3: smoke test on real data (no overrides, no dry-run key): the menu bar menu opened (Open DOT Launcher ⌘Space, Shortcuts, …); a second System Events click did not close it, and type.sh then refused to type (focus in the menu) — nothing typed; after a screenshot showed the menu open with DOT frontmost, a guarded Esc closed it (screenshot confirmed). Settings › Shortcuts listed 28 shortcut buttons and was closed via its close button. Nothing ran.
+Task 3: complete (commits 35a0f9f..6e4351e, tests: make test → ✔ Test run with 363 tests in 64 suites passed after 1.123 seconds.)
+Final review: Opus general-purpose reviewer (code-reviewer.md) — 1 Critical, 1 Important, 3 Minor; "Ready to merge: with fixes".
+Final: fixed held ↩ in the arguments form confirming a needsConfirmation script (submitArguments ignores NSApp.currentEvent.isARepeat) — app target, verified by UI repro with scratchpad/t12/holdreturn (keyDown, then an autorepeat keyDown 0.5 s later): RED on 6e4351e → marker "a" written; GREEN → no marker, and a normal second ↩ then ran it ("a"); suite 363/363.
+Final: fixed the form prompt lingering after an edit (ScriptArgumentForm.values didSet clears `message` when values change) — UI repro: RED on 6e4351e → after ↩ and editing to "b", "Press ↩ again to run Ask Confirm Test" still shown at +3.6 s; GREEN → the message disappears on the edit, ↩ shows it again without running, it is gone 3.6 s later, and ↩ ↩ runs with "b"; suite 363/363.
+Final: minor (deferred): the 100 ms form-focus delay can put the first typed-ahead letter(s) in the search field; the sleep's cancellation is swallowed.
+Final: minor (deferred): when the form is already open and a script shortcut with arguments fires, the form view may persist and not take focus again (unverified; `.task(id:)` on a prepare counter would fix it).
+Final: minor (deferred): ConfirmationPrompt has no unit tests (app target; covered by UI checks).
+Final: Ruling: ⌃X delete confirmations keep the old rule (no "while shown" check) — spec non-goal; a press after the notice is gone only arms again within the model's own reset rules — cost if wrong: a delete after the notice cleared within 3 s… (model resets its confirmation on typing/moving, so only the 3 s expiry differs) — stands.
+Final: Ruling: an async root refresh resets the selection to row 0 while a row prompt shows, so the next ↩ acts on row 0 (pre-existing) — the row-0 press only arms its own prompt (ids differ) unless row 0 is the same script — stands, candidate follow-up — cost if wrong: one extra ↩.
+Final: Ruling: double-clicking a needsConfirmation row confirms it (two taps while the prompt shows) — a deliberate double press — stands — cost if wrong: the script runs on a double-click.
+Final: Ruling: the prompt can stay visible 0.1–0.3 s after its arm ends (sleep + 200 ms polling) — a press in that gap only re-arms — stands — cost: negligible.
+Final: Ruling: an old prompt Task can hide a newer prompt early when two scripts share a title (and the form values match) — fails safe — stands — cost: negligible.
+Final: Ruling: Carbon hotkeys assumed not to auto-repeat, so a held ⌃⌥⌘4 cannot confirm itself — matches tahap-6 UI checks (one HUD per press) — stands — cost if wrong: a held global combo could confirm a script.
+Final: Ruling: a form whose first argument is a dropdown only takes focus with Full Keyboard Access — unchanged from before — stands — cost: one click.
+Final: Ruling: Swift 6 isolation — compiles clean under default MainActor — stands.

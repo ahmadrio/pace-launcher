@@ -116,13 +116,24 @@ struct ShortcutsSettings: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(ShortcutID.allCases, id: \.rawValue) { id in
-                    ShortcutRow(id: id, recorder: recorder)
+            ForEach([ShortcutID.Group.launcher, .commands, .window], id: \.self) { group in
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(Self.title(of: group)).font(.headline)
+                    ForEach(ShortcutID.allCases.filter { $0.group == group }, id: \.rawValue) { id in
+                        ShortcutRow(id: id, recorder: recorder)
+                    }
                 }
             }
         }
         .onDisappear { recorder.stop() }
+    }
+
+    private static func title(of group: ShortcutID.Group) -> String {
+        switch group {
+        case .launcher: "Launcher"
+        case .commands: "Commands"
+        case .window: "Window"
+        }
     }
 }
 

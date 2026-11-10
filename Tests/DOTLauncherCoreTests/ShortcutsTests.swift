@@ -25,10 +25,39 @@ struct ShortcutsTests {
         for id in ShortcutID.allCases {
             #expect(ShortcutID(rawValue: id.rawValue) == id)
         }
-        #expect(ShortcutID.allCases.count == 2 + WindowAction.allCases.count)
+        #expect(ShortcutID.allCases.count == 2 + CommandShortcut.allCases.count + WindowAction.allCases.count)
         #expect(ShortcutID.window(.leftHalf).rawValue == "window.leftHalf")
         #expect(ShortcutID(rawValue: "window.nope") == nil)
         #expect(ShortcutID(rawValue: "nope") == nil)
+    }
+
+    @Test func `command shortcuts round-trip and have no default`() {
+        #expect(ShortcutID.command(.translate).rawValue == "command.translate")
+        #expect(ShortcutID(rawValue: "command.ai-chat") == .command(.aiChat))
+        #expect(ShortcutID(rawValue: "command.nope") == nil)
+        #expect(ShortcutID.command(.translate).defaultCombo == nil)
+        #expect(ShortcutID.command(.translate).title == "Translate")
+        #expect(ShortcutID.command(.aiChatHistory).title == "AI Chat History")
+        #expect(CommandShortcut.allCases.map(\.title) == [
+            "Translate", "AI Chat", "AI Chat History", "Open Notes", "Create Note",
+            "Search Notes", "Search Snippets", "Create Snippet", "Settings",
+        ])
+    }
+
+    @Test func `commands are listed between the launcher group and windows`() {
+        let groups = ShortcutID.allCases.map(\.group)
+        let expected: [ShortcutID.Group] = [.launcher, .launcher]
+            + Array(repeating: .commands, count: CommandShortcut.allCases.count)
+            + Array(repeating: .window, count: WindowAction.allCases.count)
+        #expect(groups == expected)
+        #expect(ShortcutID.allCases[2] == .command(.translate))
+    }
+
+    @Test func `a command shortcut can be saved and resolved`() {
+        let saved = Shortcuts.saved(combo("ctrl+opt+cmd+t"), for: .command(.translate), in: [:])
+        #expect(saved == ["command.translate": "ctrl+opt+cmd+t"])
+        #expect(Shortcuts.resolve(saved)[.command(.translate)] == combo("ctrl+opt+cmd+t"))
+        #expect(Shortcuts.resolve([:])[.command(.translate)] == nil)
     }
 
     @Test func `resolve uses defaults, saved combos, and empty means none`() {

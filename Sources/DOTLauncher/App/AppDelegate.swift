@@ -90,19 +90,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let windowCommands = CommandCatalog.windowCommands { action in
             windows.perform(action, on: panelController.targetApp)
         }
+        // Every built-in command, rebuilt on each call so subtitles that
+        // show state stay fresh. Search and command shortcuts share it.
+        let commandList: () -> [LauncherCommand] = { [weak self] in
+            [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat(), CommandCatalog.aiChatHistory()] + windowCommands
+                + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
+                + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
+                + CommandCatalog.scriptCommands(create: { self?.scriptLibrary.createTemplate() }, openFolder: { self?.scriptLibrary.openFolder() })
+                + CommandCatalog.appCommands(
+                    toggleIcon: { self?.toggleMenuBarIcon() },
+                    iconVisible: { self?.settings.data.showMenuBarIcon ?? true },
+                    openSettings: { self?.settingsWindow?.show() }
+                )
+        }
         let search = LauncherSearch(
             indexer: indexer, usage: Self.openUsageStore(), icons: icons,
-            commands: { [weak self] in
-                [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat(), CommandCatalog.aiChatHistory()] + windowCommands
-                    + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
-                    + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
-                    + CommandCatalog.scriptCommands(create: { self?.scriptLibrary.createTemplate() }, openFolder: { self?.scriptLibrary.openFolder() })
-                    + CommandCatalog.appCommands(
-                        toggleIcon: { self?.toggleMenuBarIcon() },
-                        iconVisible: { self?.settings.data.showMenuBarIcon ?? true },
-                        openSettings: { self?.settingsWindow?.show() }
-                    )
-            }
+            commands: commandList
         )
         let clipboardStore = Self.openClipboardStore()
         let clipboard = clipboardStore.map { ClipboardController(store: $0, icons: icons) }
@@ -414,6 +417,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Hotkeys act on whatever app is frontmost right now.
             shortcutActions[.window(action)] = { windows.perform(action, on: nil) }
         }
+        for command in CommandShortcut.allCases {
+            // The same as choosing the command in the launcher: modes open
+            // the panel in that mode, the rest run right away.
+            shortcutActions[.command(command)] = {
+                guard let found = commandList().first(where: { $0.id == command.rawValue }) else {
+                    Log.hotkeys.error("no launcher command \(command.rawValue, privacy: .public)")
+                    return
+                }
+                switch found.action {
+                case .enter(let mode): panelController.toggle(mode: mode)
+                case .run(let work), .stay(let work): work()
+                }
+            }
+        }
 
         self.indexer = indexer
         self.search = search
@@ -516,7 +533,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private static func blocker(for id: ShortcutID) -> GatedHotKey.Blocker? {
         switch id {
-        case .launcher: nil
+        case .launcher, .command: nil
         case .clipboardHistory: maccy
         case .window: rectangle
         }

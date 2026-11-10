@@ -2,11 +2,23 @@
 public enum ShortcutID: Hashable, Sendable {
     case launcher
     case clipboardHistory
+    case command(CommandShortcut)
     case window(WindowAction)
+
+    /// How Settings › Shortcuts groups the rows.
+    public enum Group: Sendable, Hashable { case launcher, commands, window }
+
+    public var group: Group {
+        switch self {
+        case .launcher, .clipboardHistory: .launcher
+        case .command: .commands
+        case .window: .window
+        }
+    }
 
     /// In the order Settings lists them.
     public static var allCases: [ShortcutID] {
-        [.launcher, .clipboardHistory] + WindowAction.allCases.map { .window($0) }
+        [.launcher, .clipboardHistory] + CommandShortcut.allCases.map { .command($0) } + WindowAction.allCases.map { .window($0) }
     }
 
     /// "launcher", "clipboardHistory", "window.leftHalf".
@@ -15,6 +27,7 @@ public enum ShortcutID: Hashable, Sendable {
         case .launcher: "launcher"
         case .clipboardHistory: "clipboardHistory"
         case .window(let action): "window." + action.rawValue
+        case .command(let command): "command." + command.rawValue
         }
     }
 
@@ -23,6 +36,11 @@ public enum ShortcutID: Hashable, Sendable {
         case "launcher": self = .launcher
         case "clipboardHistory": self = .clipboardHistory
         default:
+            if rawValue.hasPrefix("command.") {
+                guard let command = CommandShortcut(rawValue: String(rawValue.dropFirst("command.".count))) else { return nil }
+                self = .command(command)
+                return
+            }
             guard rawValue.hasPrefix("window."),
                   let action = WindowAction(rawValue: String(rawValue.dropFirst("window.".count)))
             else { return nil }
@@ -35,6 +53,7 @@ public enum ShortcutID: Hashable, Sendable {
         case .launcher: "Open DOT Launcher"
         case .clipboardHistory: "Clipboard History"
         case .window(let action): action.title
+        case .command(let command): command.title
         }
     }
 
@@ -44,6 +63,7 @@ public enum ShortcutID: Hashable, Sendable {
         case .launcher: KeyCombo("opt+space")
         case .clipboardHistory: KeyCombo("shift+opt+c")
         case .window(let action): action.defaultHotKey.flatMap(KeyCombo.init)
+        case .command: nil
         }
     }
 

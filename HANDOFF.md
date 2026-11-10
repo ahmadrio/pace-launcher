@@ -253,7 +253,7 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
 - **Minor skrip yang ditunda** ada di ledger tahap 22. Layak dibereskan sebelum rilis pertama:
   - `grep -q` dengan `pipefail`
   - DMG gagal-cek tetap bernama final
-  - paket `PACE_ALLOW_DIRTY` tanpa akhiran `-dirty'
+  - paket `PACE_ALLOW_DIRTY` tanpa akhiran `-dirty`
 - **Belum diuji:** alur Gatekeeper sungguhan (unduhan ber-quarantine → "Open Anyway") di macOS 27. Teks di `INSTALL.md` mengikuti perilaku macOS 15+, dan Pace akan mengujinya saat memasang dari GitHub.
 
 ## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)

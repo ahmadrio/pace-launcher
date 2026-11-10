@@ -13,6 +13,16 @@ public enum Calculator {
         return value.isFinite ? value : nil
     }
 
+    /// A bare number or an arithmetic expression, such as the amount in a
+    /// conversion ("2*5 km"). Nil for anything else.
+    public static func amount(_ input: String) -> Double? {
+        guard let tokens = CalcLexer.tokenize(input), !tokens.isEmpty,
+              let expression = CalcParser.parse(tokens)
+        else { return nil }
+        let value = evaluate(expression)
+        return value.isFinite ? value : nil
+    }
+
     /// Up to 10 decimals with trailing zeros trimmed; scientific notation
     /// for very large or very small magnitudes.
     public static func format(_ value: Double, decimalSeparator: String) -> String {

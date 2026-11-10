@@ -676,9 +676,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // The second ↩ counts only while its notice is shown:
                     // typing, moving or reopening the panel clears the
                     // notice, and with it the first press.
-                    if model.notice != Self.logOutNotice { self.logOutConfirmation.reset() }
-                    guard self.logOutConfirmation.press(command.rawValue, at: .now) else {
+                    let stillShown = model.notice == Self.logOutNotice
+                    guard self.logOutConfirmation.press(command.rawValue, at: .now, stillShown: stillShown) else {
                         model.notice = Self.logOutNotice
+                        // The notice goes when the first press stops counting.
+                        Task { [weak self] in
+                            try? await Task.sleep(for: .milliseconds(3100))
+                            guard let self, !self.logOutConfirmation.isArmed(command.rawValue, at: .now),
+                                  model.notice == Self.logOutNotice
+                            else { return }
+                            model.notice = nil
+                        }
                         return
                     }
                     model.close()
@@ -754,7 +762,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         var desired: [ShortcutID: KeyCombo] = [:]
         var gated: [(id: ShortcutID, combo: KeyCombo, blocker: GatedHotKey.Blocker)] = []
         for id in Shortcuts.ordered(resolved.keys) {
-            // A script that is not found keeps its saved shortcut but holds no combo.
             guard let combo = resolved[id], shortcut(for: id) != nil else { continue }
             if let blocker = activeBlocker(for: id, combo: combo) {
                 gated.append((id, combo, blocker))
@@ -780,12 +787,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// What a shortcut is called and does; nil for a script that is not
-    /// found (its shortcut stays saved, but nothing is registered).
+    /// What a shortcut is called and does. A script that is not found keeps
+    /// its combo: pressing it says "Script not found" instead of nothing,
+    /// and runs the script again once the file is back.
     private func shortcut(for id: ShortcutID) -> (title: String, action: () -> Void)? {
         if case .script(let key) = id {
-            guard let script = ScriptShortcut.script(forKey: key, in: scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory) else { return nil }
-            return (script.metadata.title, { [weak self] in self?.runScriptShortcut(key) })
+            let title = ScriptShortcut.script(forKey: key, in: scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory)?.metadata.title ?? id.title
+            return (title, { [weak self] in self?.runScriptShortcut(key) })
         }
         guard let action = shortcutActions[id] else { return nil }
         return (id.title, action)

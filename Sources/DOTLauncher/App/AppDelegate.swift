@@ -67,6 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcutActions: [ShortcutID: () -> Void] = [:]
     /// True while Settings records a shortcut: hotkeys stay released.
     private var shortcutsPaused = false
+    /// Log Out runs on the second ↩ within 3 s.
+    private var logOutConfirmation = PressConfirmation()
     /// Script keys and titles at the last shortcut apply; a reload that
     /// leaves them alone does not re-register anything.
     private var scriptFingerprint: [String: String] = [:]
@@ -100,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat(), CommandCatalog.aiChatHistory(), CommandCatalog.searchEmoji()] + windowCommands
                 + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
                 + CommandCatalog.quicklinkCommands(create: { self?.settingsWindow?.show(addQuicklink: true) })
+                + (self?.systemCommands(model: model) ?? [])
                 + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
                 + CommandCatalog.scriptCommands(create: { self?.scriptLibrary.createTemplate() }, openFolder: { self?.scriptLibrary.openFolder() })
                 + CommandCatalog.appCommands(
@@ -637,6 +640,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func editSnippet(_ snippet: Snippet?) {
         panelController?.hide()
         snippetEditor?.open(snippet)
+    }
+
+    /// Lock, sleep, screen saver and log out. Log Out asks for a second ↩.
+    private func systemCommands(model: LauncherModel) -> [LauncherCommand] {
+        SystemCommand.allCases.map { command in
+            let run = { [weak self] in
+                if !SystemCommandRunner.run(command) {
+                    self?.hud?.show("Allow Accessibility to lock or log out.", isError: true)
+                }
+            }
+            let action: LauncherResult.Action = command.needsConfirmation
+                ? .stay { [weak self] in
+                    guard let self else { return }
+                    guard self.logOutConfirmation.press(command.rawValue, at: .now) else {
+                        model.notice = "Press ↩ again to log out"
+                        return
+                    }
+                    model.close()
+                    run()
+                }
+                : .run(run)
+            return LauncherCommand(
+                id: command.rawValue, title: command.title, subtitle: command.subtitle, aliases: command.aliases,
+                symbol: command.symbol, actionTitle: command.needsConfirmation ? "Log Out" : "Run", action: action
+            )
+        }
     }
 
     private func toggleMenuBarIcon() {

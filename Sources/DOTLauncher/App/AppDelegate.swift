@@ -564,17 +564,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyShortcuts() {
         guard let hotKeys, !shortcutsPaused else { return }
         let resolved = Shortcuts.resolve(settings.data.shortcuts)
-        for id in ShortcutID.allCases {
-            guard let action = shortcutActions[id] else { continue }
-            guard let combo = resolved[id] else {
-                hotKeys.unregister(name: id.title)
-                continue
+        var desired: [ShortcutID: KeyCombo] = [:]
+        var gated: [(id: ShortcutID, combo: KeyCombo, blocker: GatedHotKey.Blocker)] = []
+        var registered: [ShortcutID: KeyCombo] = [:]
+        for id in ShortcutID.allCases where shortcutActions[id] != nil {
+            if hotKeys.status(of: id.title) == .registered, let combo = hotKeys.combo(of: id.title) {
+                registered[id] = combo
             }
+            guard let combo = resolved[id] else { continue }
             if let blocker = activeBlocker(for: id, combo: combo) {
-                hotKeys.markDisabled(combo, name: id.title, reason: "off while \(blocker.appName) runs")
-            } else if hotKeys.status(of: id.title) != .registered || hotKeys.combo(of: id.title) != combo {
-                hotKeys.register(combo, name: id.title, action: action)
+                gated.append((id, combo, blocker))
+            } else {
+                desired[id] = combo
             }
+        }
+
+        // Release every changed combo before registering new ones, so a
+        // swap (A↔B) never tries to take a combo that is still held.
+        let plan = Shortcuts.registrationPlan(registered: registered, desired: desired)
+        for id in plan.release { hotKeys.unregister(name: id.title) }
+        for id in ShortcutID.allCases where shortcutActions[id] != nil && resolved[id] == nil {
+            hotKeys.unregister(name: id.title)
+        }
+        for entry in gated {
+            hotKeys.markDisabled(entry.combo, name: entry.id.title, reason: "off while \(entry.blocker.appName) runs")
+        }
+        for id in plan.register {
+            guard let combo = desired[id], let action = shortcutActions[id] else { continue }
+            hotKeys.register(combo, name: id.title, action: action)
         }
     }
 

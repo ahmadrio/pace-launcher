@@ -9,6 +9,8 @@ import SwiftUI
 @Observable
 final class ShortcutRecorder {
     private(set) var recording: ShortcutID?
+    /// Modifiers held down while recording ("⌃⌥"), shown on the button.
+    private(set) var heldModifiers = ""
     /// The last refusal per shortcut, shown under its row.
     private(set) var problems: [ShortcutID: String] = [:]
 
@@ -52,10 +54,15 @@ final class ShortcutRecorder {
             Log.hotkeys.notice("shortcut recording cancelled: Settings did not get keyboard focus")
             self.stop()
         }
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
             // Keys typed in other DOT windows (Notes, the snippet editor)
             // pass through untouched.
             guard let self, self.recording != nil, event.window === self.window else { return event }
+            if event.type == .flagsChanged {
+                self.heldModifiers = Self.symbols(for: event.modifierFlags)
+                return event
+            }
+            self.heldModifiers = ""
             self.handle(event)
             return nil
         }
@@ -65,6 +72,7 @@ final class ShortcutRecorder {
     func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
+        heldModifiers = ""
         guard recording != nil else { return }
         recording = nil
         pause(false)
@@ -91,6 +99,16 @@ final class ShortcutRecorder {
             if flags.contains(.control) { modifiers |= KeyCombo.control }
             if choose(KeyCombo(keyCode: UInt32(event.keyCode), carbonModifiers: modifiers), for: id) { stop() }
         }
+    }
+
+    /// "⌃⌥⇧⌘" in macOS order.
+    private static func symbols(for flags: NSEvent.ModifierFlags) -> String {
+        var text = ""
+        if flags.contains(.control) { text += "⌃" }
+        if flags.contains(.option) { text += "⌥" }
+        if flags.contains(.shift) { text += "⇧" }
+        if flags.contains(.command) { text += "⌘" }
+        return text
     }
 
     /// Saves `combo` for `id` unless it is refused. Returns true when saved.
@@ -145,7 +163,7 @@ private struct ShortcutRow: View {
     private var isRecording: Bool { recorder.recording == id }
 
     private var label: String {
-        if isRecording { return "Press a shortcut…" }
+        if isRecording { return recorder.heldModifiers.isEmpty ? "Press a shortcut…" : recorder.heldModifiers + "…" }
         return combo?.displayString ?? "None"
     }
 

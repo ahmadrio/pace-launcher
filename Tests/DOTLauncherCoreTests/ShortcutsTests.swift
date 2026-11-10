@@ -108,9 +108,37 @@ struct ShortcutsTests {
     }
 
     @Test func `a combo used by macOS is refused`() {
-        let problem = Shortcuts.validate(combo("cmd+space"), for: .launcher, current: Shortcuts.resolve([:]), system: [combo("cmd+space")])
+        let problem = Shortcuts.validate(combo("ctrl+space"), for: .launcher, current: Shortcuts.resolve([:]), system: [combo("ctrl+space")])
         #expect(problem == .usedByMacOS)
         #expect(problem?.message == "Used by macOS.")
+    }
+
+    @Test func `standard app shortcuts are refused`() {
+        let current = Shortcuts.resolve([:])
+        for string in ["cmd+c", "cmd+v", "cmd+shift+z", "cmd+q", "cmd+w", "cmd+tab", "cmd+space", "cmd+comma", "cmd+shift+s"] {
+            #expect(Shortcuts.validate(combo(string), for: .command(.translate), current: current, system: []) == .reservedByApps, "\(string)")
+        }
+        for string in ["cmd+shift+c", "cmd+opt+v", "ctrl+opt+v", "ctrl+cmd+c"] {
+            #expect(Shortcuts.validate(combo(string), for: .command(.translate), current: current, system: []) == nil, "\(string)")
+        }
+        #expect(ShortcutProblem.reservedByApps.message == "Apps use this shortcut (copy, paste, …).")
+    }
+
+    @Test func `swapping two combos releases both before registering`() {
+        let a = combo("ctrl+opt+cmd+a"), b = combo("ctrl+opt+cmd+b")
+        let plan = Shortcuts.registrationPlan(registered: [.launcher: a, .clipboardHistory: b], desired: [.launcher: b, .clipboardHistory: a])
+        #expect(Set(plan.release) == [.launcher, .clipboardHistory])
+        #expect(plan.register == [.launcher, .clipboardHistory])
+    }
+
+    @Test func `unchanged shortcuts are left alone`() {
+        let a = combo("ctrl+opt+cmd+a"), b = combo("ctrl+opt+cmd+b"), c = combo("ctrl+opt+cmd+c")
+        let plan = Shortcuts.registrationPlan(
+            registered: [.launcher: a, .clipboardHistory: b, .window(.leftHalf): c],
+            desired: [.launcher: a, .window(.rightHalf): c]
+        )
+        #expect(Set(plan.release) == [.clipboardHistory, .window(.leftHalf)])
+        #expect(plan.register == [.window(.rightHalf)])
     }
 
     @Test func `only default combos are gated by Maccy and Rectangle`() {

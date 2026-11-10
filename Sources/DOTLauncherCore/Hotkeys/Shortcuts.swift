@@ -5,6 +5,7 @@ public enum ShortcutProblem: Equatable, Sendable {
     case unknownKey
     case usedBy(ShortcutID)
     case usedByMacOS
+    case reservedByApps
 
     public var message: String {
         switch self {
@@ -13,6 +14,7 @@ public enum ShortcutProblem: Equatable, Sendable {
         case .unknownKey: "This key can't be used."
         case .usedBy(let other): "Already used by \(other.title)."
         case .usedByMacOS: "Used by macOS."
+        case .reservedByApps: "Apps use this shortcut (copy, paste, …)."
         }
     }
 }
@@ -43,9 +45,37 @@ public enum Shortcuts {
         if !combo.isKnownKey { return .unknownKey }
         let strong = KeyCombo.command | KeyCombo.control | KeyCombo.option
         if combo.carbonModifiers & strong == 0, !combo.isFunctionKey { return .needsModifier }
+        if isReservedByApps(combo) { return .reservedByApps }
         if let other = ShortcutID.allCases.first(where: { $0 != id && current[$0] == combo }) { return .usedBy(other) }
         if combo.conflicts(with: system) { return .usedByMacOS }
         return nil
+    }
+
+    /// Standard shortcuts every app relies on. A global hotkey wins over
+    /// app menus, so taking ⌘V would break paste everywhere.
+    private static let reservedCommandKeys: Set<String> = [
+        "cmd+c", "cmd+v", "cmd+x", "cmd+z", "cmd+a", "cmd+s", "cmd+q", "cmd+w", "cmd+n", "cmd+t", "cmd+o",
+        "cmd+p", "cmd+f", "cmd+h", "cmd+m", "cmd+tab", "cmd+space", "cmd+comma",
+        "shift+cmd+z", "shift+cmd+s",
+    ]
+
+    public static func isReservedByApps(_ combo: KeyCombo) -> Bool {
+        reservedCommandKeys.contains(combo.stringValue)
+    }
+
+    /// How to move from the registered hotkeys to the desired ones: every
+    /// changed or removed id is released first, so swapping two combos never
+    /// collides with a combo that is still held.
+    public static func registrationPlan(registered: [ShortcutID: KeyCombo], desired: [ShortcutID: KeyCombo]) -> (release: [ShortcutID], register: [ShortcutID]) {
+        let release = ShortcutID.allCases.filter { id in
+            guard let held = registered[id] else { return false }
+            return desired[id] != held
+        }
+        let register = ShortcutID.allCases.filter { id in
+            guard let wanted = desired[id] else { return false }
+            return registered[id] != wanted
+        }
+        return (release, register)
     }
 
     /// Default combos copy Maccy's and Rectangle's shortcuts, so they step

@@ -24,6 +24,10 @@ echo "==> assembling $APP"
 rm -rf "${APP:?}"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$EXEC"
+# Debug symbols name every object file by its absolute path on this Mac.
+if [[ "$CONFIG" == "release" ]]; then
+  strip -S "$APP/Contents/MacOS/$EXEC"
+fi
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 plutil -replace CFBundleVersion -string "$(date +%Y%m%d%H%M%S)" "$APP/Contents/Info.plist"
 plutil -lint -s "$APP/Contents/Info.plist"
@@ -35,11 +39,13 @@ echo "==> signing"
 xattr -cr "$APP"
 # Read the list first: `grep -q` in a pipe under pipefail can turn an early
 # exit into a false "not found".
-IDENTITIES="$(security find-identity -p codesigning)"
+# A failing `security` means "not found" here (debug falls back to ad-hoc).
+IDENTITIES="$(security find-identity -p codesigning 2>/dev/null || true)"
 if [[ "$IDENTITY" != "-" ]] && grep -qiF -- "$IDENTITY" <<<"$IDENTITIES"; then
   codesign --force --sign "$IDENTITY" --timestamp=none "$APP"
   codesign --verify --strict --verbose=1 "$APP"
-  if ! codesign -d -r- "$APP" 2>&1 | grep -Eq 'certificate (leaf|root)'; then
+  REQUIREMENT="$(codesign -d -r- "$APP" 2>&1)"
+  if ! grep -Eq 'certificate (leaf|root)' <<<"$REQUIREMENT"; then
     echo "designated requirement is not certificate based; TCC grants will not survive rebuilds" >&2
     exit 1
   fi

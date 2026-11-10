@@ -16,10 +16,13 @@ let testingPluginFlags: [SwiftSetting] =
         ? [.unsafeFlags(["-plugin-path", testingPluginDir])]
         : []
 
-// Builds record source paths (for example in Swift's "unimplemented
-// initializer" traps). Map the checkout folder to "." so a release never
-// carries the builder's home folder.
-let prefixMap: [SwiftSetting] = [.unsafeFlags(["-file-prefix-map", "\(Context.packageDirectory)=."])]
+// Release builds record source paths (for example in Swift's "unimplemented
+// initializer" traps). Map the checkout folder to "." there; debug builds
+// keep real paths so the debugger finds the sources. (scripts/build-app.sh
+// strips the debug symbols, which hold more paths, from release builds.)
+let prefixMap: [SwiftSetting] = [
+    .unsafeFlags(["-file-prefix-map", "\(Context.packageDirectory)=."], .when(configuration: .release)),
+]
 
 let package = Package(
     name: "PACELauncher",

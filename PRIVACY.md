@@ -18,7 +18,7 @@ Everything lives on your Mac unless you turn on iCloud sync.
 - Copies that password managers mark as concealed or temporary are skipped, so passwords copied from them are not saved.
 - Everything else you copy is saved until you delete it, or until it is older than the period you set in **Settings › General › Clipboard History**. That can include sensitive text. Pinned clips are never deleted automatically.
 - If macOS asks before each paste from other apps, PACE pauses the history instead of asking on every copy.
-- Deleting a clip or a chat overwrites it in the database file.
+- Deleting a clip or a chat overwrites it in the database file. Image clips are files, and they are deleted. With iCloud sync on, a deleted clip stays in the clipboard backups until newer backups replace them (the 5 newest are kept).
 
 ### iCloud sync (off by default)
 When you turn on **Settings › Sync › Store data in iCloud Drive**:
@@ -30,8 +30,8 @@ The clipboard, usage and chat databases themselves never go to iCloud. Files in 
 ## Internet connections
 PACE connects to the internet for two things only:
 
-1. **Exchange rates:** `GET https://open.er-api.com/v6/latest/USD`, only when a currency conversion is on screen and the saved rates are older than 12 hours. The request names no currency or amount.
-2. **Update check:** `GET https://api.github.com/repos/ahmadrio/pace-launcher/releases/latest`, at most once a day, and never while **Check for updates automatically** is off. **Check for Updates** asks right away when you choose it.
+1. **Exchange rates:** `GET https://open.er-api.com/v6/latest/USD`, only when a currency conversion is on screen and the saved rates are missing or older than 12 hours, or when you choose Retry. The request names no currency or amount.
+2. **Update check:** `GET https://api.github.com/repos/ahmadrio/pace-launcher/releases/latest`, about once a day (a day after GitHub last answered; a check that fails is tried again an hour later), and never while **Check for updates automatically** is off. **Check for Updates** asks right away when you choose it.
 
 Both requests carry no cookies, no information about you, no app version and no system language; they say `PACELauncher` as the client. As with any web request, the server sees your IP address. PACE never downloads or installs updates by itself.
 
@@ -47,7 +47,7 @@ PACE asks for these in **System Settings › Privacy & Security**. Each one is u
 | Permission | Used for |
 |---|---|
 | Accessibility | Pasting into the app you were using, moving and resizing windows, Lock Screen and Log Out. |
-| Input Monitoring | Expanding snippet keywords as you type. PACE only looks for your keywords and keeps no record of keystrokes. |
+| Input Monitoring | Expanding snippet keywords as you type. PACE keeps only the last few typed characters in memory to spot your keywords; it never saves, logs or sends them. |
 | Paste from Other Apps | Clipboard history. |
 | Automation | Restart, Shut Down, Empty Trash and Toggle Dark Mode (System Events, Finder and the login window). |
 

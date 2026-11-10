@@ -45,7 +45,7 @@ PACE Launcher asks for these when a feature first needs them, and the Welcome wi
 | Permission | Used for |
 |---|---|
 | Accessibility | Pasting into the app you were using, moving and resizing windows, Lock Screen and Log Out. |
-| Input Monitoring | Expanding snippets as you type (some Macs only). |
+| Input Monitoring | Expanding snippet keywords as you type. |
 | Paste from Other Apps | Clipboard history. If macOS is set to ask each time, PACE pauses the history instead of asking on every copy. |
 | Automation | Restart, Shut Down, Empty Trash and Toggle Dark Mode. It controls System Events, Finder and the login window. macOS asks the first time you use one of these. |
 

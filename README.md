@@ -60,7 +60,7 @@ make test     # unit tests for the core logic
 make run      # build, install into ~/Applications and open
 ```
 
-Without the maintainer's signing certificate, builds are signed ad-hoc and macOS asks for permissions again after every build. [docs/INSTALL.md](docs/INSTALL.md#building-from-source) shows how to create your own certificate once. Releases are made as described in [docs/RELEASING.md](docs/RELEASING.md).
+`make run` installs the same app (same bundle ID) as a release; don't keep both installed. Without the maintainer's signing certificate, builds are signed ad-hoc and macOS asks for permissions again after every build. [docs/INSTALL.md](docs/INSTALL.md#building-from-source) shows how to create your own certificate once. Releases are made as described in [docs/RELEASING.md](docs/RELEASING.md).
 
 The code is split into `Sources/PACELauncherCore` (logic without AppKit, covered by the tests in `Tests/`) and `Sources/PACELauncher` (the AppKit and SwiftUI app). `HANDOFF.md` and `docs/superpowers/` are the project's working notes, in Indonesian.
 

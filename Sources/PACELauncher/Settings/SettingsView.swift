@@ -222,7 +222,7 @@ private struct UpdateSettings: View {
             Text("Updates").font(.headline)
             Toggle("Check for updates automatically", isOn: $settings.data.checkForUpdates)
                 .accessibilityIdentifier("check-updates-automatically")
-            Text(UpdateSettings.caption)
+            Text(UpdateChecker.explanation)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             HStack {
@@ -248,8 +248,6 @@ private struct UpdateSettings: View {
             }
         }
     }
-
-    static let caption = "Once a day PACE asks GitHub for the latest release. Nothing about you or your data is sent, and nothing is installed by itself."
 
     private var statusLine: String {
         let version = updates.current.map { "Version \($0)" } ?? "Version unknown"

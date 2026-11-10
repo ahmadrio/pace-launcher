@@ -38,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var autoExpand: AutoExpandController?
     private var sync: SyncController?
     private var updates: UpdateChecker?
+    private var welcome: WelcomeWindowController?
 
     /// With sync on, quitting writes one last clipboard backup first
     /// (at most 10 s, so quitting never hangs).
@@ -118,7 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     openSettings: { self?.settingsWindow?.show() },
                     openAppearance: { self?.settingsWindow?.show(section: .appearance) }
                 )
-                + [CommandCatalog.checkForUpdates(updates)]
+                + [CommandCatalog.checkForUpdates(updates), CommandCatalog.welcome(open: { self?.welcome?.show() })]
         }
         let search = LauncherSearch(
             indexer: indexer, usage: usage, icons: icons,
@@ -618,7 +619,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hideIcon: { [weak self] in self?.toggleMenuBarIcon() },
             openSettings: { [weak self] in self?.settingsWindow?.show() },
             autoExpandStatus: { autoExpand.status },
-            updates: updates
+            updates: updates,
+            openWelcome: { [weak self] in self?.welcome?.show() }
         )
         statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
 
@@ -636,6 +638,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.clipboardMaintenance = maintenance
         let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand, sync: sync, shortcuts: recorder, clipboard: maintenance, updates: updates)
         self.settingsWindow = settingsWindow
+        let welcome = WelcomeWindowController(
+            settings: settings, hotKeys: hotKeys, autoExpand: autoExpand,
+            clipboardAccess: { clipboard?.monitor.access }, updates: updates,
+            openLauncher: { panelController.show() },
+            openShortcuts: { settingsWindow.show(section: .shortcuts) }
+        )
+        self.welcome = welcome
+        // The first check waits until the welcome window, which shows the
+        // setting, has been closed.
+        updates.isPaused = { [weak welcome] in welcome?.isVisible ?? false }
         panelController.canHideApp = { !settingsWindow.isVisible }
         settings.onChange = { [weak self] old, new in
             guard let self else { return }
@@ -667,6 +679,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         sync.start()
         updates.start()
+        welcome.showIfFirstLaunch()
     }
 
     /// Notes in the active data folder; deleted notes go to the Trash.

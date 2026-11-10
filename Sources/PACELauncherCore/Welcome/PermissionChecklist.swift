@@ -112,8 +112,10 @@ public enum PermissionChecklist {
             return facts.accessibility ? .granted : .missing
         case .inputMonitoring:
             guard facts.autoExpandEnabled else { return .notNeeded }
-            guard facts.inputMonitoring else { return .missing }
-            return facts.autoExpandRunning ? .granted : .needsRelaunch
+            // A running keyboard tap is what counts: it can run although
+            // the preflight check says the permission is missing.
+            if facts.autoExpandRunning { return .granted }
+            return facts.inputMonitoring ? .needsRelaunch : .missing
         case .clipboard:
             switch facts.clipboard {
             case .allowed?: return .granted

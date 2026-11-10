@@ -15,6 +15,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let openSettings: () -> Void
     private let autoExpandStatus: () -> AutoExpandController.Status
     private let updates: UpdateChecker
+    private let openWelcome: () -> Void
 
     init(
         hotKeys: HotKeyCenter,
@@ -25,7 +26,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         hideIcon: @escaping () -> Void,
         openSettings: @escaping () -> Void,
         autoExpandStatus: @escaping () -> AutoExpandController.Status,
-        updates: UpdateChecker
+        updates: UpdateChecker,
+        openWelcome: @escaping () -> Void
     ) {
         self.hotKeys = hotKeys
         self.blockedGroups = blockedGroups
@@ -36,6 +38,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.openSettings = openSettings
         self.autoExpandStatus = autoExpandStatus
         self.updates = updates
+        self.openWelcome = openWelcome
         super.init()
         if let button = statusItem.button {
             button.image = MenuBarIcon.image()
@@ -92,6 +95,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         case nil:
             addInfo("Clipboard history: unavailable")
         }
+        addItem("Welcome & Permissions…", action: #selector(showWelcome))
 
         menu.addItem(.separator())
         if LoginItem.isInstalled {
@@ -116,6 +120,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    @objc private func showWelcome() {
+        openWelcome()
     }
 
     @objc private func downloadUpdate() {

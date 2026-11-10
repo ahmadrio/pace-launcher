@@ -7,6 +7,9 @@ import PACELauncherCore
 /// opens the release page; it never downloads or installs anything.
 @Observable
 final class UpdateChecker {
+    /// Shown next to the setting (Settings and the welcome window).
+    static let explanation = "Once a day PACE asks GitHub for the latest release. Nothing about you or your data is sent, and nothing is installed by itself."
+
     /// A newer release found by the last successful check.
     private(set) var available: GitHubRelease?
     /// When GitHub last answered (a release or "none").

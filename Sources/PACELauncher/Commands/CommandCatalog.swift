@@ -56,7 +56,7 @@ enum CommandCatalog {
                 id: "accessibility-settings",
                 title: "Accessibility Settings",
                 subtitle: AccessibilityPermission.isGranted ? "Accessibility: granted" : "Accessibility: not granted",
-                aliases: ["permissions"],
+                aliases: [],
                 symbol: "hand.raised",
                 actionTitle: "Open",
                 action: .run {
@@ -74,6 +74,19 @@ enum CommandCatalog {
                 action: .run { NSApp.terminate(nil) }
             ),
         ]
+    }
+
+    /// Reopens the first-launch window (shortcut, permissions, updates).
+    static func welcome(open: @escaping () -> Void) -> LauncherCommand {
+        LauncherCommand(
+            id: "welcome",
+            title: "Welcome & Permissions",
+            subtitle: "Shortcut, permissions and updates",
+            aliases: ["welcome", "permissions", "izin", "setup", "onboarding"],
+            symbol: "hand.wave",
+            actionTitle: "Open",
+            action: .run(open)
+        )
     }
 
     /// "Check for Updates": downloads a release already found, otherwise

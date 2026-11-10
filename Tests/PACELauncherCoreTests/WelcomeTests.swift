@@ -30,6 +30,9 @@ struct WelcomeTests {
         #expect(state(.inputMonitoring, facts(inputMonitoring: false, autoExpandEnabled: false, autoExpandRunning: false)) == .notNeeded)
         #expect(state(.inputMonitoring, facts(inputMonitoring: true, autoExpandEnabled: false, autoExpandRunning: false)) == .notNeeded)
         #expect(state(.inputMonitoring, facts(inputMonitoring: true, autoExpandRunning: false)) == .needsRelaunch)
+        // The keyboard tap can run although the preflight says no (seen on
+        // Pace's Mac): a running auto-expand is what counts.
+        #expect(state(.inputMonitoring, facts(inputMonitoring: false, autoExpandRunning: true)) == .granted)
 
         #expect(state(.clipboard, facts(clipboard: .allowed)) == .granted)
         #expect(state(.clipboard, facts(clipboard: .asksEachTime)) == .asksEachTime)

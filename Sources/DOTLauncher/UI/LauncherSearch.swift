@@ -162,10 +162,11 @@ final class LauncherSearch {
     private func calculation(for query: String) -> LauncherResult? {
         guard let value = Calculator.evaluate(query) else { return nil }
         let separator = Locale.current.decimalSeparator ?? "."
+        // Grouped for reading; copied without grouping so it pastes as a number.
         let formatted = Calculator.format(value, decimalSeparator: separator)
         return LauncherResult(
             id: "calc",
-            title: formatted,
+            title: Calculator.display(value, locale: .current),
             subtitle: query.trimmingCharacters(in: .whitespaces),
             icon: .symbol("equal"),
             accessory: "Calculator",

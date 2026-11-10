@@ -23,6 +23,26 @@ public enum Calculator {
         return value.isFinite ? value : nil
     }
 
+    /// `format` grouped the locale's way for reading: "1.500.000" in en_ID.
+    /// Scientific results are not grouped.
+    public static func display(_ value: Double, locale: Locale) -> String {
+        let decimal = locale.decimalSeparator ?? "."
+        let plain = format(value, decimalSeparator: ".")
+        guard !plain.contains("e"), let group = locale.groupingSeparator, !group.isEmpty else {
+            return plain.replacingOccurrences(of: ".", with: decimal)
+        }
+        let sign = plain.hasPrefix("-") ? "-" : ""
+        let parts = plain.dropFirst(sign.count).split(separator: ".", maxSplits: 1)
+        var digits = Array(parts[0])
+        var grouped = ""
+        while digits.count > 3 {
+            grouped = group + String(digits.suffix(3)) + grouped
+            digits.removeLast(3)
+        }
+        grouped = String(digits) + grouped
+        return sign + grouped + (parts.count > 1 ? decimal + parts[1] : "")
+    }
+
     /// Up to 10 decimals with trailing zeros trimmed; scientific notation
     /// for very large or very small magnitudes.
     public static func format(_ value: Double, decimalSeparator: String) -> String {

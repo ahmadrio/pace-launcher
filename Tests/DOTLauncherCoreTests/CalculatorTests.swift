@@ -84,3 +84,23 @@ struct NumberShorthandTests {
         #expect(Calculator.evaluate("10 kb + 1") == nil)
     }
 }
+
+struct CalculatorDisplayTests {
+    private let enID = Locale(identifier: "en_ID"), enUS = Locale(identifier: "en_US")
+
+    @Test func `results are grouped the locale's way`() {
+        #expect(Calculator.display(1_500_000, locale: enID) == "1.500.000")
+        #expect(Calculator.display(1234.5678, locale: enID) == "1.234,5678")
+        #expect(Calculator.display(-1234, locale: enID) == "-1.234")
+        #expect(Calculator.display(0.3, locale: enID) == "0,3")
+        #expect(Calculator.display(999, locale: enID) == "999")
+        #expect(Calculator.display(1e20, locale: enID) == "1e+20")
+        #expect(Calculator.display(1_500_000, locale: enUS) == "1,500,000")
+        #expect(Calculator.display(1234.5, locale: enUS) == "1,234.5")
+    }
+
+    @Test func `copied results keep no grouping`() {
+        #expect(Calculator.format(1_500_000, decimalSeparator: ",") == "1500000")
+        #expect(Calculator.format(1234.5, decimalSeparator: ",") == "1234,5")
+    }
+}

@@ -19,6 +19,8 @@ public struct SettingsData: Codable, Sendable, Equatable {
     public var emojiSkinTone = EmojiSkinTone.default
     /// Emoji with a tone of their own, by the catalog's base character.
     public var emojiSkinTones: [String: EmojiSkinTone] = [:]
+    /// Ask GitHub once a day whether a newer release exists.
+    public var checkForUpdates = true
 
     public init() {}
 
@@ -34,7 +36,7 @@ public struct SettingsData: Codable, Sendable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts, clipboardRetention, quicklinks, emojiSkinTone, emojiSkinTones
+        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts, clipboardRetention, quicklinks, emojiSkinTone, emojiSkinTones, checkForUpdates
     }
 
     /// Missing keys keep their defaults, so older or newer files still load.
@@ -56,6 +58,7 @@ public struct SettingsData: Codable, Sendable, Equatable {
         // A bad entry drops only itself; anything that is not a map gives none.
         let tones = try? container.decodeIfPresent([String: Lossy<EmojiSkinTone>].self, forKey: .emojiSkinTones)
         emojiSkinTones = (tones ?? [:]).compactMapValues(\.value)
+        checkForUpdates = try container.decodeIfPresent(Bool.self, forKey: .checkForUpdates) ?? defaults.checkForUpdates
         // A broken entry is skipped; an unreadable list or a missing key
         // gives the starter quicklinks. Either way the other settings load.
         let links = (try? container.decodeIfPresent([Lossy<Quicklink>].self, forKey: .quicklinks))

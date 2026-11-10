@@ -42,6 +42,19 @@ struct SettingsFileTests {
         #expect(file.load().clipboardRetention == .month)
     }
 
+    @Test func `check for updates defaults to on and round-trips`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        try folder.write("settings.json", #"{"showMenuBarIcon": false}"#)
+        let file = SettingsFile(url: folder.url.appending(path: "settings.json"))
+        #expect(file.load().checkForUpdates)
+
+        var data = file.load()
+        data.checkForUpdates = false
+        try file.save(data)
+        #expect(!file.load().checkForUpdates)
+    }
+
     @Test func `shortcuts round-trip`() throws {
         let folder = TemporaryFolder()
         defer { folder.remove() }

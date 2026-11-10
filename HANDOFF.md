@@ -17,13 +17,13 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-5.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-5-ledger.md`
 - **Tahap 6** selesai dan sudah di-merge ke `main` (10 Nov 2026).
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-6-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-6.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-6-ledger.md`
 - **Tahap 7** selesai di branch `tahap-7` (10 Nov 2026), belum di-merge.
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-7-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-7.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-7-ledger.md`
-  - Desain: `docs/superpowers/specs/2026-11-10-tahap-6-design.md`
-  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-6.md`
-  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-6-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -37,8 +37,8 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 | Snippets | Ketik nama atau keyword di root, lalu ⏎ untuk paste. Placeholder: `{date}`, `{time}`, `{datetime}`, `{clipboard}`. |
 | Notes | "Open Notes", "Create Note", "Search Notes". Jendela floating Markdown dengan autosave. |
 | **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, **Quicklinks**, Scripts, Sync. |
-| **Quicklinks** | URL tersimpan dengan `{query}` (Settings › Quicklinks atau perintah "Create Quicklink"). Ketik `gh dot launcher` untuk langsung mencari di GitHub; memilih quicklink lewat namanya meminta teksnya dulu; quicklink tanpa `{query}` langsung dibuka. Teks di-percent-encode. Bawaan: Google (`g`), YouTube (`yt`), GitHub (`gh`), Google Maps (`maps`). Disimpan di `settings.json` (ikut sync). |
-| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi setelah file kembali dan daftar skrip dibaca ulang (saat launcher atau Settings dibuka; belum ada pemantauan folder). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
+| **Quicklinks** | URL tersimpan dengan `{query}` (Settings › Quicklinks atau perintah "Create Quicklink"). Ketik `gh dot launcher` untuk langsung mencari di GitHub; keyword saja (`g`) tidak mengangkat quicklink di atas app, karena quicklink diranking dari namanya; memilih quicklink lewat namanya meminta teksnya dulu; quicklink tanpa `{query}` langsung dibuka. Teks di-percent-encode. Bawaan: Google (`g`), YouTube (`yt`), GitHub (`gh`), Google Maps (`maps`). Disimpan di `settings.json` (ikut sync). |
+| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi begitu file kembali (folder skrip dipantau; folder Scripts utama yang baru muncul setelah DOT berjalan baru terpantau saat launcher atau Settings dibuka). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
 | **Tema** | Settings › Appearance: preset (Default, Midnight, Paper, Sunset, Graphite), warna aksen, kepadatan kaca, dan mode System/Light/Dark. Perubahan langsung terlihat. |
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
 | **Script commands** | Skrip apa pun dengan header `# @dot.title` atau `# @raycast.title` di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown) dan `needsConfirmation`. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
@@ -66,7 +66,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 313 test Core (Swift Testing)
+make test     # 315 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc

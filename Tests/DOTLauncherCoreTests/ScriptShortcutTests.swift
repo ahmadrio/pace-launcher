@@ -84,4 +84,11 @@ struct ScriptShortcutTests {
         #expect(ScriptShortcut.fingerprint(of: [script("/tmp/main/a.sh", title: "B")], mainFolder: main) != before)
         #expect(ScriptShortcut.fingerprint(of: [script("/tmp/main/b.sh", title: "A")], mainFolder: main) != before)
     }
+
+    @Test func `shortcuts are retried while one could not be registered`() {
+        let same = ["a.sh": "A"]
+        #expect(!ScriptShortcut.shouldReapply(previous: same, current: same, anyUnavailable: false))
+        #expect(ScriptShortcut.shouldReapply(previous: same, current: same, anyUnavailable: true))
+        #expect(ScriptShortcut.shouldReapply(previous: same, current: ["a.sh": "B"], anyUnavailable: false))
+    }
 }

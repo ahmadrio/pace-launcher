@@ -64,7 +64,7 @@ final class LauncherSearch {
         }
         for link in quicklinks() {
             let id = Self.usageID(of: link)
-            candidates.append(SearchCandidate(id: id, title: link.name, aliases: [link.keyword].compactMap { $0 }))
+            candidates.append(Quicklinks.searchCandidate(for: link, id: id))
             items[id] = .quicklink(link)
         }
         for snippet in snippets() {

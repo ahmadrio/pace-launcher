@@ -20,6 +20,13 @@ public enum ScriptShortcut {
         Dictionary(scripts.map { (key(for: $0, mainFolder: mainFolder), $0.metadata.title) }) { first, _ in first }
     }
 
+    /// After a script reload: re-apply shortcuts when the scripts' keys or
+    /// titles changed, or when a shortcut could not be registered (macOS may
+    /// have freed its combo since, e.g. Spotlight's ⌘Space turned off).
+    public static func shouldReapply(previous: [String: String], current: [String: String], anyUnavailable: Bool) -> Bool {
+        previous != current || anyUnavailable
+    }
+
     /// Where a script lives, for telling same-titled scripts apart:
     /// "Scripts", "Scripts/sub", or "~/bin" for an extra folder.
     static func folderLabel(for script: ScriptCommand, mainFolder: URL) -> String {

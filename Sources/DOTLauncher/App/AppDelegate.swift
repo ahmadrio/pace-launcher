@@ -260,7 +260,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Extra folders, sync moves and new folders change what to watch.
             scriptWatcher.watch(self.scriptLibrary.folders)
             let fingerprint = ScriptShortcut.fingerprint(of: self.scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory)
-            if fingerprint != self.scriptFingerprint {
+            let anyUnavailable = self.hotKeys?.entries.contains { if case .unavailable = $0.status { true } else { false } } ?? false
+            if ScriptShortcut.shouldReapply(previous: self.scriptFingerprint, current: fingerprint, anyUnavailable: anyUnavailable) {
                 self.scriptFingerprint = fingerprint
                 self.applyShortcuts()
             }

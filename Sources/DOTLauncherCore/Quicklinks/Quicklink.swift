@@ -68,6 +68,13 @@ public enum Quicklinks {
         return (link, text)
     }
 
+    /// How a quicklink ranks in root search: by its name only. The keyword
+    /// acts through "<keyword> <text>", so typing "g" alone still finds the
+    /// app it usually finds.
+    public static func searchCandidate(for link: Quicklink, id: String) -> SearchCandidate<String> {
+        SearchCandidate(id: id, title: link.name)
+    }
+
     /// The first problem with saving `draft` among `existing`, or nil.
     public static func problem(with draft: Quicklink, existing: [Quicklink]) -> String? {
         if draft.name.trimmingCharacters(in: .whitespaces).isEmpty { return "Add a name." }

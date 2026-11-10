@@ -64,4 +64,15 @@ struct QuicklinkTests {
         #expect(Quicklinks.problem(with: edited, existing: defaults) == nil)
         #expect(Quicklinks.problem(with: Quicklink(name: "W", keyword: "  ", url: "https://w.test"), existing: defaults) == nil)
     }
+
+    @Test func `a bare keyword does not lift a quicklink above a used app`() {
+        var chrome = SearchCandidate(id: "app:chrome", title: "Google Chrome")
+        chrome.frecency = 1
+        var github = SearchCandidate(id: "app:github", title: "GitHub Desktop")
+        github.frecency = 1
+        let links = defaults.map { Quicklinks.searchCandidate(for: $0, id: "quicklink:" + $0.name) }
+        #expect(ResultRanker.rank("g", links + [chrome], limit: 5).first == "app:chrome")
+        #expect(ResultRanker.rank("gh", links + [github], limit: 5).first == "app:github")
+        #expect(ResultRanker.rank("goo", links, limit: 5).first == "quicklink:Google")
+    }
 }

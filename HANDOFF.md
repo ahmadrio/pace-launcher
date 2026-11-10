@@ -16,20 +16,24 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-5-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-5.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-5-ledger.md`
+- **Tahap 6** selesai di branch `tahap-6` (10 Nov 2026), belum di-merge.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-6-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-6.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-6-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
 | Launcher | ⌥Space membuka panel. App yang sedang aktif tetap di depan. ⌘C, ⌘V, ⌘A, dan ⌘Z berfungsi di kolom pencarian. |
 | Cari & buka aplikasi | Pencarian fuzzy (`vsc` → Visual Studio Code). Urutan hasil belajar dari pemakaian. |
-| Kalkulator | Ketik `(2+3)*4/3`, lalu ⏎ untuk menyalin. Titik dan koma sama-sama diterima sebagai desimal. **Konversi unit**: `10 km to mi`, `100 f in c`, `1 GiB to MB`, `3 meters ke feet` (panjang, massa, suhu, volume, luas, kecepatan, waktu, data). **Kurs**: `100 usd to idr`, `€50 in usd`, `$25` (ke mata uang locale), kurs dari ExchangeRate-API. ⏎ menyalin angka tanpa pemisah ribuan. |
-| Clipboard history | Ketik "clip" atau ⇧⌥C, lalu ⏎ untuk paste. Isi password manager tidak disimpan. **Gambar** ikut tercatat (PNG di `Clipboard Images/`, maks. 20 MB / 50 megapiksel). Preview clip terpilih di kanan. ⌘P pin/unpin, ⌃X hapus (dua kali). Settings › General › Clipboard History: **Keep history** (Forever … 1 day; clip yang di-pin tidak pernah dihapus) dan **Clear History…** (dua kali tekan). |
+| Kalkulator | Ketik `(2+3)*4/3`, lalu ⏎ untuk menyalin. Titik dan koma sama-sama diterima sebagai desimal. **Konversi unit**: `10 km to mi`, `100 f in c`, `1 GiB to MB`, `3 meters ke feet` (panjang, massa, suhu, volume, luas, kecepatan, waktu, data). **Kurs**: `100 usd to idr`, `€50 in usd`, `$25` (ke mata uang locale), kurs dari ExchangeRate-API; hasil di bawah 1 memakai 3 digit signifikan (`1 idr to usd` = 0,0000553 USD). **Singkatan angka**: `1jt + 500rb`, `10k usd to idr`, `Rp 50rb`, `1 juta rupiah to usd` (k/rb/ribu, jt/juta, miliar, triliun, thousand/million/billion/trillion). `Mb`/`Gb` = bit, `mb`/`MB` = byte. ⏎ menyalin angka tanpa pemisah ribuan. |
+| Clipboard history | Ketik "clip" atau ⇧⌥C, lalu ⏎ untuk paste. Isi password manager tidak disimpan. **Gambar** ikut tercatat (PNG di `Clipboard Images/`, maks. 20 MB / 50 megapiksel). Preview clip terpilih di kanan. ⌘P pin/unpin, ⌃X hapus (dua kali). Settings › General › Clipboard History: **Keep history** (Forever … 1 day; clip yang di-pin tidak pernah dihapus; mempersingkat meminta konfirmasi dengan jumlah clip) dan **Clear History…** (dua kali tekan). |
 | Window snapping | "Left Half", "Maximize", "Restore", dan lainnya. Shortcut ⌃⌥ mengikuti Rectangle. |
 | Translator | Ketik "tr", ⏎, lalu tulis teks. Arah Indonesia ↔ Inggris dipilih otomatis, ⌘L membalik arah. Semuanya on-device. |
 | AI chat | Ketik pertanyaan di root, lalu **Tab**. Model on-device, dengan jembatan terjemahan untuk bahasa Indonesia. **Tersimpan otomatis**: "AI Chat History" (atau ⌘Y di mode AI) untuk mencari, membuka, dan melanjutkan chat lama. ⌃X hapus satu, ⌘⇧⌫ hapus semua. |
 | Snippets | Ketik nama atau keyword di root, lalu ⏎ untuk paste. Placeholder: `{date}`, `{time}`, `{datetime}`, `{clipboard}`. |
 | Notes | "Open Notes", "Create Note", "Search Notes". Jendela floating Markdown dengan autosave. |
 | **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, Scripts, Sync. |
-| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Shortcut standar app (⌘C, ⌘V, ⌘Q, …) ditolak. |
+| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi saat file kembali. Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
 | **Tema** | Settings › Appearance: preset (Default, Midnight, Paper, Sunset, Graphite), warna aksen, kepadatan kaca, dan mode System/Light/Dark. Perubahan langsung terlihat. |
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
 | **Script commands** | Skrip apa pun dengan header `# @dot.title` atau `# @raycast.title` di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown) dan `needsConfirmation`. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
@@ -57,7 +61,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 269 test Core (Swift Testing)
+make test     # 297 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -99,6 +103,12 @@ make reset-tcc
 - **System Events `frontmost`** tidak bisa dipercaya untuk app tanpa Dock seperti DOT (selalu terbaca "Finder"). Cek fokus lewat `AXMain`/`AXFocusedWindow` atau efeknya.
 - **Uji UI Settings:** Settings yang dibuka dari launcher tidak membuat DOT jadi app aktif, dan klik AX juga tidak. Sebelum mengirim tombol keyboard, jalankan `tell application id "com.pace.DOTLauncher" to activate`. Tombol di Settings › Shortcuts punya `AXIdentifier` (`shortcut-<id>`, `reset-<id>`).
 - **Jangan tekan ⌥Space di atas Finder saat launcher dipindah ke kombinasi lain:** Finder membuka Quick Look layar penuh.
+- **Registry hotkey memakai id, bukan judul:** `HotKeyCenter` dikunci dengan `ShortcutID.rawValue` (`script.tools/deploy.sh`), karena dua skrip bisa berjudul sama. Menu bar dan log memakai `title`.
+- **Singkatan angka vs unit:** unit selalu dicek lebih dulu, jadi `10k to c` adalah kelvin dan `1 m to ft` meter. Singkatan hanya dipakai kalau sisanya bukan unit (`10k usd`, `1k km`). `M`/`B`/`T` sengaja tidak didukung.
+- **Translation framework tidak berhenti saat dibatalkan:** Esc saat "Translating…" membiarkan terjemahan jawaban selesai (tanpa error). Jalur yang melempar error (batal/gagal) ditangani `ChatRunEnd` dan dites di Core.
+- **Ketikan uji UI harus dijaga:** panel DOT bisa tertutup di antara langkah, dan ketikan berikutnya jatuh ke app terdepan (Warp: ⌘N membuka jendela baru). Kirim tombol hanya setelah memastikan `AXFocusedUIElement` DOT adalah kolom teks. Jangan kirim Esc/⌘W tanpa penjaga: Esc di terminal tempat Claude Code berjalan menghentikan sesi. Tutup Settings lewat tombol close AX.
+- **Menunggu "Translating…" di uji UI:** pakai OCR Vision (`VNRecognizeTextRequest`) pada screenshot panel, lalu kirim Esc dari alat yang sama.
+- **Dokumen TextEdit uji:** `make new document with properties {name: …}` memunculkan dialog "You don't own the file" saat isinya diubah. Klik Cancel lalu tutup dengan `saving no`.
 - **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
 
 ## Belum diuji / batasan yang diketahui
@@ -113,6 +123,7 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Shortcut untuk script command.
-2. Singkatan angka di kalkulator (`1jt`, `10rb`, `10k`).
-3. Minor yang ditunda di ledger tahap 5 (terutama jawaban berbahasa Indonesia yang hilang saat dibatalkan ketika diterjemahkan balik, dan `1 idr to usd` = 0) serta tahap 4 (TIFF lazy saat paste, batas cache thumbnail).
+1. Merge `tahap-6` ke `main` (keputusan Pace).
+2. Hasil kalkulator dikelompokkan sesuai locale (`1.500.000`), seperti hasil konversi.
+3. Minor yang ditunda di ledger tahap 6 dan sisa tahap 5 (daftar ISO statis, gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap).
+4. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): quicklinks (URL dengan parameter), emoji picker, paste clip sebagai teks polos.

@@ -331,9 +331,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     ))
                 }
                 actions.append(SecondaryAction(title: "History", shortcut: .command("y"), action: .stay {
-                    // Esc in the history then returns to this chat.
-                    chatHistoryFromAI = true
+                    // Esc in the history then returns to this chat. Set after
+                    // the reset: entering the mode clears it.
                     model.reset(to: .chatHistory)
+                    chatHistoryFromAI = true
                 }))
                 return actions
             },
@@ -389,7 +390,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 chatHistoryFromAI = false
                 model.reset(to: .ai)
                 return true
-            }
+            },
+            // Any other way in (the AI Chats command) goes back to the root.
+            entered: { chatHistoryFromAI = false }
         )
         self.chat = chat
         indexer.onUpdate = {

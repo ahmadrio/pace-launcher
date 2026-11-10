@@ -120,6 +120,13 @@ final class AIChatController {
     /// Shows a saved chat and continues it with the same context.
     func open(_ id: UUID) async {
         guard let store else { return }
+        // A run still answering saves its partial exchange when cancelled;
+        // wait for that, so a chat opened mid-answer shows it. `generation`
+        // stays set meanwhile, which keeps `send` blocked.
+        if let running = generation {
+            running.cancel()
+            await running.value
+        }
         let saved: [SavedChatMessage]
         do {
             saved = try await store.messages(of: id)
@@ -194,12 +201,14 @@ final class AIChatController {
     /// opening another chat counts). The text comes from the answering task,
     /// not from `messages`, which may already show another chat.
     private func save(question: String, questionEnglish: String?, answer: String, answerEnglish: String?, chat: UUID) async {
-        guard let store,
-              let exchange = SavedChatMessage.exchange(
-                  question: question, questionEnglish: questionEnglish,
-                  answer: answer, answerEnglish: answerEnglish
-              )
-        else { return }
+        await save(SavedChatMessage.exchange(
+            question: question, questionEnglish: questionEnglish,
+            answer: answer, answerEnglish: answerEnglish
+        ), chat: chat)
+    }
+
+    private func save(_ exchange: [SavedChatMessage]?, chat: UUID) async {
+        guard let store, let exchange else { return }
         do {
             try await store.append(exchange, to: chat, at: .now)
         } catch {
@@ -236,7 +245,11 @@ final class AIChatController {
             do {
                 modelPrompt = try await translator.translate(prompt, toEnglish)
             } catch {
-                update(answerID) { $0.phase = .failed("Could not translate the question: \(error.localizedDescription)") }
+                // Esc or another chat while translating: stop quietly.
+                await finish(answerID, ChatRunEnd.resolve(
+                    stage: .translatingQuestion, cancelled: Task.isCancelled || error is CancellationError,
+                    error: error.localizedDescription, question: prompt, questionEnglish: nil, english: ""
+                ), chat: chat)
                 return
             }
             // Stopped while translating: send nothing to the model.
@@ -285,8 +298,26 @@ final class AIChatController {
             }
             await save(question: prompt, questionEnglish: modelPrompt, answer: translated, answerEnglish: english, chat: chat)
         } catch {
-            update(answerID) { $0.phase = .failed("Could not translate the answer: \(error.localizedDescription)") }
+            // The English answer is kept, and a stop shows no error.
+            await finish(answerID, ChatRunEnd.resolve(
+                stage: .translatingAnswer, cancelled: Task.isCancelled || error is CancellationError,
+                error: error.localizedDescription, question: prompt, questionEnglish: modelPrompt, english: english
+            ), chat: chat)
         }
+    }
+
+    /// Shows how a stopped or failed run ended and saves what it kept.
+    private func finish(_ answerID: UUID, _ end: ChatRunEnd, chat: UUID) async {
+        update(answerID) {
+            switch end.display {
+            case .done:
+                $0.phase = .done
+                $0.isBridged = false
+            case .failed(let message):
+                $0.phase = .failed(message)
+            }
+        }
+        await save(end.saved, chat: chat)
     }
 
     /// Translates prose back to `language`; code is left as written.

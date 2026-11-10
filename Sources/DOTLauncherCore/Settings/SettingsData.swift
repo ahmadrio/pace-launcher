@@ -39,8 +39,19 @@ public struct SettingsData: Codable, Sendable, Equatable {
         clipboardRetention = (try? container.decodeIfPresent(ClipboardRetention.self, forKey: .clipboardRetention)) ?? defaults.clipboardRetention
         // A broken entry is skipped; an unreadable list or a missing key
         // gives the starter quicklinks. Either way the other settings load.
-        quicklinks = (try? container.decodeIfPresent([Lossy<Quicklink>].self, forKey: .quicklinks))
+        let links = (try? container.decodeIfPresent([Lossy<Quicklink>].self, forKey: .quicklinks))
             .map { $0.compactMap(\.value) } ?? defaults.quicklinks
+        // A copied entry repeats an id: give the copy its own, so Delete and
+        // the launcher treat them as two.
+        var seen = Set<UUID>()
+        quicklinks = links.enumerated().map { index, link in
+            var link = link
+            if !seen.insert(link.id).inserted {
+                link.id = Quicklink.derivedID(name: link.name, url: link.url + "#\(index)")
+                seen.insert(link.id)
+            }
+            return link
+        }
     }
 }
 

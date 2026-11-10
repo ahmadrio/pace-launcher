@@ -28,7 +28,8 @@ public struct SettingsFile: Sendable {
         }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        // Unescaped slashes keep URLs (quicklinks) readable when edited by hand.
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         try encoder.encode(settings).write(to: url, options: .atomic)
     }
 }

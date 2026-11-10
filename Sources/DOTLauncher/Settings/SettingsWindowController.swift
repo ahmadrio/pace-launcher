@@ -39,6 +39,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        // A form left open would come back days later and could overwrite newer data.
+        quicklinks.cancel()
         shortcuts.stop()
         NSApp.deactivate()
     }

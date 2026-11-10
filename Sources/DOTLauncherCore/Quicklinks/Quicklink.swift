@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// A saved URL opened from the launcher. `{query}` in the URL is replaced
@@ -15,6 +16,28 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
         self.name = name
         self.keyword = keyword
         self.url = url
+    }
+
+    /// A stable id for an entry written without one (settings.json by hand):
+    /// the same name and URL always give the same id.
+    public static func derivedID(name: String, url: String) -> UUID {
+        var bytes = Array(SHA256.hash(data: Data((name + "\n" + url).utf8)).prefix(16))
+        bytes[6] = (bytes[6] & 0x0F) | 0x50  // version 5 (name-based)
+        bytes[8] = (bytes[8] & 0x3F) | 0x80  // RFC 4122 variant
+        return UUID(uuid: (bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+                           bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, name, keyword, url }
+
+    /// A missing id (an entry written by hand) gets `derivedID`, so the entry
+    /// is kept and keeps the same id every time it is read.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        url = try container.decode(String.self, forKey: .url)
+        keyword = try container.decodeIfPresent(String.self, forKey: .keyword)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? Self.derivedID(name: name, url: url)
     }
 
     /// Seeded when settings.json has no quicklinks yet. Fixed ids keep their
@@ -41,13 +64,12 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
     /// Every {query} replaced by `query`, percent-encoded; nil when the
     /// result does not parse as a URL with a scheme.
     public func url(for query: String) -> URL? {
+        // Spaces mean a typo ("https://exa mple.com"); anything else Foundation
+        // can make valid: "bücher.de" becomes punycode, "ø" and "|" are encoded.
+        guard !url.contains(where: \.isWhitespace) else { return nil }
         let encoded = query.addingPercentEncoding(withAllowedCharacters: Self.unreserved) ?? ""
         let filled = url.replacingOccurrences(of: Self.placeholder, with: encoded, options: .caseInsensitive)
-        // Strict parsing: the lenient default would quietly encode
-        // "https://exa mple.com" into something that opens.
-        guard let result = URL(string: filled, encodingInvalidCharacters: false),
-              let scheme = result.scheme, !scheme.isEmpty
-        else { return nil }
+        guard let result = URL(string: filled), let scheme = result.scheme, !scheme.isEmpty else { return nil }
         return result
     }
 

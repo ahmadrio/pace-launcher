@@ -109,4 +109,33 @@ struct SettingsFileTests {
         let copy = try JSONDecoder().decode(SettingsData.self, from: JSONEncoder().encode(data))
         #expect(copy.quicklinks == data.quicklinks)
     }
+
+    @Test func `quicklinks without or with duplicate ids load`() throws {
+        func decode(_ json: String) throws -> SettingsData {
+            try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8))
+        }
+        let handWritten = #"{"quicklinks": [{"name": "Wiki", "url": "https://w.test/{query}"}]}"#
+        let first = try decode(handWritten).quicklinks
+        #expect(first.map(\.name) == ["Wiki"])
+        #expect(try decode(handWritten).quicklinks.first?.id == first.first?.id)
+
+        let id = "6F1C2A3B-0000-4000-8000-000000000009"
+        let twins = try decode(#"{"quicklinks": [{"id": "\#(id)", "name": "A", "url": "https://a.test"}, {"id": "\#(id)", "name": "B", "url": "https://b.test"}]}"#).quicklinks
+        #expect(twins.map(\.name) == ["A", "B"])
+        #expect(twins[0].id.uuidString == id)
+        #expect(twins[0].id != twins[1].id)
+
+        let copy = try JSONDecoder().decode(SettingsData.self, from: JSONEncoder().encode(try decode(handWritten)))
+        #expect(copy.quicklinks == first)
+    }
+
+    @Test func `settings are written without escaped slashes`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        let url = folder.url.appending(path: "settings.json")
+        try SettingsFile(url: url).save(SettingsData())
+        let text = try String(contentsOf: url, encoding: .utf8)
+        #expect(text.contains("https://www.google.com/search"))
+        #expect(!text.contains("\\/"))
+    }
 }

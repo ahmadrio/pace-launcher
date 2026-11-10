@@ -75,4 +75,12 @@ struct QuicklinkTests {
         #expect(ResultRanker.rank("gh", links + [github], limit: 5).first == "app:github")
         #expect(ResultRanker.rank("goo", links, limit: 5).first == "quicklink:Google")
     }
+
+    @Test func `urls with non-ASCII letters or bars are accepted`() {
+        #expect(Quicklink(name: "B", keyword: nil, url: "https://bücher.de/?q={query}").url(for: "a")?.absoluteString == "https://xn--bcher-kva.de/?q=a")
+        #expect(Quicklinks.problem(with: Quicklink(name: "S", keyword: nil, url: "https://example.com/søk?q={query}"), existing: []) == nil)
+        #expect(Quicklinks.problem(with: Quicklink(name: "P", keyword: nil, url: "https://e.com/?a=b|c&q={query}"), existing: []) == nil)
+        #expect(Quicklinks.problem(with: Quicklink(name: "X", keyword: nil, url: "https://exa mple.com"), existing: []) == urlMessage)
+        #expect(Quicklinks.problem(with: Quicklink(name: "X", keyword: nil, url: "https://e.com/a b?q={query}"), existing: []) == urlMessage)
+    }
 }

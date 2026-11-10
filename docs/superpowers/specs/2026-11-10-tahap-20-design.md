@@ -33,7 +33,9 @@ Baris "finished" yang hasilnya bukan `done` (izin ditolak, timeout, gagal, dibat
 - **Dropdown di isian pertama:** fokus pindah ke isian teks atau password pertama, dan ketikan awal masuk ke sana. Form yang hanya berisi dropdown tetap seperti sekarang.
 
 ## Keputusan yang diambil Claude (bisa dikoreksi Pace)
-- **"One-time code" dipakai untuk mematikan AutoFill password.** Akibatnya macOS bisa menawarkan kode dari Messages kalau ada kode baru. Itu jarang terjadi dan tidak berbahaya.
+- **"One-time code" dipakai untuk mematikan AutoFill password.** Akibatnya:
+  - AutoFill dari Keychain/Passwords tidak lagi ditawarkan di isian password skrip.
+  - Kalau ada kode verifikasi baru dari Messages atau Mail, macOS bisa menawarkannya selama beberapa menit, dan ↩ pertama bisa tertelan lagi. Kasus ini belum diuji dengan kode sungguhan (catatan review akhir).
 - **Minor lama yang tetap ditunda:**
   - Gambar clipboard dibaca di main thread.
   - Konflik event tap.

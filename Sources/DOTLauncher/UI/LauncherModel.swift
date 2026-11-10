@@ -178,8 +178,9 @@ final class LauncherModel {
 
     /// Text typed into the search field while the arguments form was still
     /// taking the keyboard goes into the form's focused field, as if typed
-    /// there. Waits up to 0.1 s for the field to take the keyboard; a form
-    /// that cannot take it (a dropdown first) leaves the text where it is.
+    /// there. Waits up to 0.1 s for the field to take the keyboard. Not
+    /// called when the form has no text or password field; the text then
+    /// stays in the search field.
     func moveTypedAhead() async {
         for _ in 0..<10 {
             if let editor = searchField?.window?.firstResponder as? NSTextView, editor.isFieldEditor,

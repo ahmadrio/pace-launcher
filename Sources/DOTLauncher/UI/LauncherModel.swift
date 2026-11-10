@@ -187,7 +187,11 @@ final class LauncherModel {
                 let typed = query
                 guard !typed.isEmpty else { return }
                 query = ""
+                // The field starts empty, so anything already in it was typed
+                // after the search text: put that text first, carry on at the end.
+                editor.setSelectedRange(NSRange(location: 0, length: 0))
                 editor.insertText(typed, replacementRange: NSRange(location: NSNotFound, length: 0))
+                editor.moveToEndOfDocument(nil)
                 return
             }
             guard (try? await Task.sleep(for: .milliseconds(10))) != nil else { return }

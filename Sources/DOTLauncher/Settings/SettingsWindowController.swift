@@ -9,13 +9,15 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let scripts: ScriptLibrary
     private let autoExpand: AutoExpandController
     private let sync: SyncController
+    private let shortcuts: ShortcutRecorder
     private var window: NSWindow?
 
-    init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController, sync: SyncController) {
+    init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController, sync: SyncController, shortcuts: ShortcutRecorder) {
         self.settings = settings
         self.scripts = scripts
         self.autoExpand = autoExpand
         self.sync = sync
+        self.shortcuts = shortcuts
     }
 
     var isVisible: Bool { window?.isVisible ?? false }
@@ -29,6 +31,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        shortcuts.stop()
         NSApp.deactivate()
     }
 
@@ -42,7 +45,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.title = "DOT Launcher Settings"
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync, shortcuts: shortcuts))
         if !window.setFrameUsingName("DOTSettingsWindow") {
             window.center()
         }

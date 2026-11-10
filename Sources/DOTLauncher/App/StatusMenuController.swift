@@ -1,4 +1,5 @@
 import AppKit
+import DOTLauncherCore
 
 /// The menu bar icon and its menu. The menu is rebuilt each time it opens,
 /// so status lines are always current.
@@ -46,7 +47,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         if AppPaths.isUsingTestFolders {
             addInfo("⚠︎ Test data folders in use")
         }
-        addItem("Open DOT Launcher   \(AppDelegate.launcherHotKey.displayString)", action: #selector(open))
+        let launcherCombo = hotKeys.combo(of: ShortcutID.launcher.title)?.displayString ?? ""
+        addItem("Open DOT Launcher   \(launcherCombo)", action: #selector(open))
         menu.addItem(.separator())
 
         menu.addItem(.sectionHeader(title: "Shortcuts"))

@@ -2,14 +2,9 @@ import AppKit
 import SwiftUI
 import DOTLauncherCore
 
-/// A shortcut that copies another app's habit (Maccy, Rectangle) and is
+/// Default shortcuts copy another app's habit (Maccy, Rectangle) and are
 /// therefore only active while that app is not running.
-struct GatedHotKey {
-    let name: String
-    let combo: KeyCombo
-    let blocker: Blocker
-    let action: () -> Void
-
+enum GatedHotKey {
     struct Blocker: Hashable {
         let bundleID: String
         let appName: String
@@ -68,11 +63,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notesWindow?.model.flush()
     }
 
-    private var gatedHotKeys: [GatedHotKey] = []
+    /// What each global shortcut does (set once at launch).
+    private var shortcutActions: [ShortcutID: () -> Void] = [:]
+    /// True while Settings records a shortcut: hotkeys stay released.
+    private var shortcutsPaused = false
     /// Blockers the user chose to ignore ("Enable anyway").
     private var overriddenBlockers: Set<GatedHotKey.Blocker> = []
 
-    static let launcherHotKey = KeyCombo("opt+space")!
     private static let maccy = GatedHotKey.Blocker(bundleID: "org.p0deje.Maccy", appName: "Maccy", group: "Clipboard shortcut")
     private static let rectangle = GatedHotKey.Blocker(bundleID: "com.knollsoft.Rectangle", appName: "Rectangle", group: "Window shortcuts")
 
@@ -405,20 +402,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         indexer.refreshIfStale()
         clipboard?.start()
 
-        hotKeys.register(Self.launcherHotKey, name: "Open DOT Launcher") {
-            panelController.toggle()
-        }
-        gatedHotKeys = [
-            GatedHotKey(name: "Clipboard History", combo: KeyCombo("shift+opt+c")!, blocker: Self.maccy) {
-                panelController.toggle(mode: .clipboard)
-            },
-        ]
+        shortcutActions[.launcher] = { panelController.toggle() }
+        shortcutActions[.clipboardHistory] = { panelController.toggle(mode: .clipboard) }
         for action in WindowAction.allCases {
-            guard let combo = action.defaultHotKey.flatMap(KeyCombo.init) else { continue }
-            gatedHotKeys.append(GatedHotKey(name: action.title, combo: combo, blocker: Self.rectangle) {
-                // Hotkeys act on whatever app is frontmost right now.
-                windows.perform(action, on: nil)
-            })
+            // Hotkeys act on whatever app is frontmost right now.
+            shortcutActions[.window(action)] = { windows.perform(action, on: nil) }
         }
 
         self.indexer = indexer
@@ -428,7 +416,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.panelController = panelController
         self.hotKeys = hotKeys
 
-        applyGatedHotKeys()
+        applyShortcuts()
         watchBlockingApps()
 
         statusMenu = StatusMenuController(
@@ -438,7 +426,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             openLauncher: { panelController.show() },
             enableAnyway: { [weak self] blocker in
                 self?.overriddenBlockers.insert(blocker)
-                self?.applyGatedHotKeys()
+                self?.applyShortcuts()
             },
             hideIcon: { [weak self] in self?.toggleMenuBarIcon() },
             openSettings: { [weak self] in self?.settingsWindow?.show() },
@@ -446,7 +434,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
 
-        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand, sync: sync)
+        let recorder = ShortcutRecorder(settings: settings, hotKeys: hotKeys) { [weak self] paused in
+            guard let self else { return }
+            self.shortcutsPaused = paused
+            if paused { hotKeys.unregisterAll() } else { self.applyShortcuts() }
+        }
+        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand, sync: sync, shortcuts: recorder)
         self.settingsWindow = settingsWindow
         panelController.canHideApp = { !settingsWindow.isVisible }
         settings.onChange = { [weak self] old, new in
@@ -463,6 +456,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if !old.includeClipboardInBackup, new.includeClipboardInBackup {
                 Task { await self.sync?.backupIfDue() }
+            }
+            if old.shortcuts != new.shortcuts {
+                self.applyShortcuts()
             }
         }
         sync.start()
@@ -503,24 +499,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         !NSRunningApplication.runningApplications(withBundleIdentifier: blocker.bundleID).isEmpty
     }
 
-    /// Blockers currently switching shortcuts off.
-    private func blockedBlockers() -> [GatedHotKey.Blocker] {
-        var seen: Set<GatedHotKey.Blocker> = []
-        return gatedHotKeys.map(\.blocker).filter { blocker in
-            guard !seen.contains(blocker) else { return false }
-            seen.insert(blocker)
-            return isRunning(blocker) && !overriddenBlockers.contains(blocker)
+    private static func blocker(for id: ShortcutID) -> GatedHotKey.Blocker? {
+        switch id {
+        case .launcher: nil
+        case .clipboardHistory: maccy
+        case .window: rectangle
         }
     }
 
-    /// Registers each gated shortcut unless its look-alike app is running.
-    private func applyGatedHotKeys() {
-        guard let hotKeys else { return }
-        for gated in gatedHotKeys {
-            if isRunning(gated.blocker) && !overriddenBlockers.contains(gated.blocker) {
-                hotKeys.markDisabled(gated.combo, name: gated.name, reason: "off while \(gated.blocker.appName) runs")
-            } else if hotKeys.status(of: gated.name) != .registered {
-                hotKeys.register(gated.combo, name: gated.name, action: gated.action)
+    /// The app a shortcut is stepping aside for right now, if any.
+    private func activeBlocker(for id: ShortcutID, combo: KeyCombo) -> GatedHotKey.Blocker? {
+        guard let blocker = Self.blocker(for: id), Shortcuts.followsOtherAppHabit(id, combo),
+              isRunning(blocker), !overriddenBlockers.contains(blocker)
+        else { return nil }
+        return blocker
+    }
+
+    /// Blockers currently switching shortcuts off.
+    private func blockedBlockers() -> [GatedHotKey.Blocker] {
+        var result: [GatedHotKey.Blocker] = []
+        for (id, combo) in Shortcuts.resolve(settings.data.shortcuts) {
+            if let blocker = activeBlocker(for: id, combo: combo), !result.contains(blocker) {
+                result.append(blocker)
+            }
+        }
+        return result
+    }
+
+    /// Registers the shortcuts from settings.json: removed ones are
+    /// released, changed ones re-registered, and default ones step aside
+    /// while Maccy or Rectangle runs.
+    private func applyShortcuts() {
+        guard let hotKeys, !shortcutsPaused else { return }
+        let resolved = Shortcuts.resolve(settings.data.shortcuts)
+        for id in ShortcutID.allCases {
+            guard let action = shortcutActions[id] else { continue }
+            guard let combo = resolved[id] else {
+                hotKeys.unregister(name: id.title)
+                continue
+            }
+            if let blocker = activeBlocker(for: id, combo: combo) {
+                hotKeys.markDisabled(combo, name: id.title, reason: "off while \(blocker.appName) runs")
+            } else if hotKeys.status(of: id.title) != .registered || hotKeys.combo(of: id.title) != combo {
+                hotKeys.register(combo, name: id.title, action: action)
             }
         }
     }
@@ -533,9 +554,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 for await notification in center.notifications(named: name) {
                     let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
                     guard let self, let bundleID = app?.bundleIdentifier,
-                          self.gatedHotKeys.contains(where: { $0.blocker.bundleID == bundleID })
+                          [Self.maccy, Self.rectangle].contains(where: { $0.bundleID == bundleID })
                     else { continue }
-                    self.applyGatedHotKeys()
+                    self.applyShortcuts()
                 }
             }
         }

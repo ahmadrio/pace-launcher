@@ -1,10 +1,12 @@
 import Carbon.HIToolbox
 import DOTLauncherCore
+import Observation
 
 /// Registers global hotkeys through Carbon's RegisterEventHotKey.
 ///
 /// Carbon hotkeys need no Accessibility permission and keep working while
 /// Secure Input is on (unlike CGEventTaps).
+@Observable
 final class HotKeyCenter {
     enum Status: Equatable {
         case registered
@@ -26,13 +28,15 @@ final class HotKeyCenter {
 
     private static let signature: OSType = 0x444F_544C // "DOTL"
 
-    private var registrations: [UInt32: Registration] = [:]
-    private var idsByName: [String: UInt32] = [:]
-    private var nextID: UInt32 = 1
-    private var handlerRef: EventHandlerRef?
+    @ObservationIgnored private var registrations: [UInt32: Registration] = [:]
+    @ObservationIgnored private var idsByName: [String: UInt32] = [:]
+    @ObservationIgnored private var nextID: UInt32 = 1
+    @ObservationIgnored private var handlerRef: EventHandlerRef?
+    /// What each named shortcut is set to and whether it works (observed
+    /// by Settings).
     private(set) var entries: [Entry] = []
 
-    var onChange: (() -> Void)?
+    @ObservationIgnored var onChange: (() -> Void)?
 
     init() {
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
@@ -85,6 +89,17 @@ final class HotKeyCenter {
 
     func status(of name: String) -> Status? {
         entries.first { $0.name == name }?.status
+    }
+
+    func combo(of name: String) -> KeyCombo? {
+        entries.first { $0.name == name }?.combo
+    }
+
+    /// Releases every shortcut, e.g. while Settings records a new one.
+    func unregisterAll() {
+        for name in entries.map(\.name) {
+            unregister(name: name)
+        }
     }
 
     func unregister(name: String) {

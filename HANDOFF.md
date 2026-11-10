@@ -36,6 +36,10 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-10-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-10.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-10-ledger.md`
+- **Tahap 11** selesai di branch `tahap-11` (10 Nov 2026), belum di-merge.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-11-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-11.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-11-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -49,6 +53,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 | Snippets | Ketik nama atau keyword di root, lalu ⏎ untuk paste. Placeholder: `{date}`, `{time}`, `{datetime}`, `{clipboard}`. |
 | Notes | "Open Notes", "Create Note", "Search Notes". Jendela floating Markdown dengan autosave. |
 | **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, **Quicklinks**, Scripts, Sync. |
+| **Perintah sistem** | "Lock Screen" (⌃⌘Q macOS), "Sleep" / "Sleep Displays" (`pmset`), "Start Screen Saver", "Log Out" (⇧⌘Q; ↩ dua kali, lalu dialog macOS). Alias `kunci`, `tidur`, `keluar`. Empat yang pertama bisa diberi shortcut global. Restart, Shut Down, Empty Trash, dan Dark Mode **belum ada**: butuh izin Automation/Full Disk Access (tanya Pace dulu). |
 | **Emoji** | Perintah "Search Emoji" (bisa diberi shortcut global): cari dengan nama atau kata sehari-hari (`cinta`, `ketawa`, `thanks`, `jepang`), ⏎ menempel ke app sebelumnya (clipboard dikembalikan), ⌘C menyalin. Emoji yang sering dipakai naik; tanpa ketikan, wajah dulu. Data dari properti Unicode Swift + bendera dari kode wilayah; tanpa skin tone dan emoji gabungan. |
 | **Quicklinks** | URL tersimpan dengan `{query}` (Settings › Quicklinks atau perintah "Create Quicklink"). Ketik `gh dot launcher` untuk langsung mencari di GitHub; keyword saja (`g`) tidak mengangkat quicklink di atas app, karena quicklink diranking dari namanya; memilih quicklink lewat namanya meminta teksnya dulu; quicklink tanpa `{query}` langsung dibuka. Teks di-percent-encode. Bawaan: Google (`g`), YouTube (`yt`), GitHub (`gh`), Google Maps (`maps`). Disimpan di `settings.json` (ikut sync); **"Open with"** per quicklink (browser terpasang; browser yang hilang → browser default + HUD); entri tulisan tangan tanpa `id` tetap terbaca (id diturunkan dari nama + URL), URL non-ASCII (`bücher.de`) diterima, spasi ditolak. |
 | **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings, Search Emoji (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi begitu file kembali (folder skrip dipantau, termasuk folder yang baru muncul setelah DOT berjalan). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
@@ -79,7 +84,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 351 test Core (Swift Testing)
+make test     # 355 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -128,6 +133,7 @@ make reset-tcc
 - **Ketikan uji UI harus dijaga:** panel DOT bisa tertutup di antara langkah, dan ketikan berikutnya jatuh ke app terdepan (Warp: ⌘N membuka jendela baru). Kirim tombol hanya setelah memastikan `AXFocusedUIElement` DOT adalah kolom teks. Jangan kirim Esc/⌘W tanpa penjaga: Esc di terminal tempat Claude Code berjalan menghentikan sesi. Tutup Settings lewat tombol close AX.
 - **Menunggu "Translating…" di uji UI:** pakai OCR Vision (`VNRecognizeTextRequest`) pada screenshot panel, lalu kirim Esc dari alat yang sama.
 - **AX `set value` tidak sampai ke binding SwiftUI `TextField`:** di uji UI Settings, ketik sungguhan lewat penjaga yang memastikan app terdepan menurut `NSWorkspace.frontmostApplication` adalah DOT (System Events `frontmost` salah untuk app tanpa Dock) dan field yang dituju punya fokus.
+- **Perintah sistem tidak pernah dijalankan saat uji:** `defaults write com.pace.DOTLauncher DOTSystemCommandDryRun -bool true` membuat DOT hanya mencatat "system command … (dry run)". Hapus lagi setelah uji. Uji dulu yang paling ringan (screen saver) untuk memastikan flag-nya terbaca.
 - **Uji quicklink tanpa membuka browser:** app penangkap kecil dengan skema `dott7://` mencatat URL yang diterima. LaunchServices menolak mengikat skema untuk app di folder sementara (`launch-disabled in-temp-dir`), jadi app itu didaftarkan dari `~/Library/Caches/dot-launcher-tests` lalu dicabut (`lsregister -u`) dan dihapus.
 - **`URL(string:)` longgar:** spasi di path di-encode diam-diam, host non-ASCII jadi punycode. Quicklink menolak template yang berisi spasi, lalu memakai parsing longgar (supaya `bücher.de` dan `|` diterima). `URL.host()` mengembalikan bentuk percent-encoded (`b%C3%BCcher.de`); URL yang dibuka memakai punycode (`absoluteString`).
 - **Kalkulator tanggal (`DateQuery`) dites dengan `now`, zona waktu, dan locale yang ditetapkan.** en_ID memakai titik untuk jam ("14.59"). `TimeZoneNames` tidak lagi memakai `TimeZone(abbreviation:)`: Foundation tidak mengenal WIB/WITA/AEST, memetakan WIT ke Jakarta (padahal Jayapura) dan UTC ke GMT, serta mengenal kata biasa (EAT, CAT, ART). Singkatan berasal dari tabel tetap; `kolkata` butuh alias karena macOS memakai `Asia/Calcutta`. Jam harus berisi menit atau am/pm, supaya `10 in in cm` tetap konversi.
@@ -150,5 +156,7 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Minor yang ditunda di ledger tahap 10 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap, shortcut skrip yang hilang tidak memberi tanda saat ditekan).
-2. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): skin tone untuk emoji, profil browser per quicklink, perintah sistem (Lock Screen, Sleep, Empty Trash).
+1. Merge `tahap-11` ke `main` (keputusan Pace).
+2. Minor yang ditunda di ledger tahap 11 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap, shortcut skrip yang hilang tidak memberi tanda saat ditekan).
+3. Restart, Shut Down, Empty Trash, Toggle Dark Mode: **perlu keputusan Pace** soal izin Automation (Apple Events ke loginwindow/Finder/System Events) atau Full Disk Access.
+4. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): skin tone untuk emoji, profil browser per quicklink.

@@ -9,8 +9,10 @@ KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 # LibreSSL writes .p12 files with the algorithms `security import` reads.
 OPENSSL=/usr/bin/openssl
 
-if security find-identity -p codesigning "$KEYCHAIN" | grep -qF "\"$NAME\""; then
-  echo "\"$NAME\" already exists in the login keychain; nothing to do." >&2
+# Every keychain codesign searches, read before grepping (no pipe under pipefail).
+IDENTITIES="$(security find-identity -p codesigning)"
+if grep -qF "\"$NAME\"" <<<"$IDENTITIES"; then
+  echo "\"$NAME\" already exists in your keychains; nothing to do." >&2
   exit 1
 fi
 
@@ -34,8 +36,9 @@ subjectKeyIdentifier = hash
 EOF
 
 "$OPENSSL" req -x509 -newkey rsa:3072 -nodes -sha256 -days 7300 \
-  -config "$WORK/cert.cnf" -keyout "$WORK/key.pem" -out "$WORK/cert.pem" 2>/dev/null
-export P12_PASS="$("$OPENSSL" rand -hex 24)"
+  -config "$WORK/cert.cnf" -keyout "$WORK/key.pem" -out "$WORK/cert.pem"
+P12_PASS="$("$OPENSSL" rand -hex 24)"
+export P12_PASS
 "$OPENSSL" pkcs12 -export -inkey "$WORK/key.pem" -in "$WORK/cert.pem" -name "$NAME" \
   -passout env:P12_PASS -out "$WORK/identity.p12"
 security import "$WORK/identity.p12" -k "$KEYCHAIN" -f pkcs12 -P "$P12_PASS" -T /usr/bin/codesign >/dev/null

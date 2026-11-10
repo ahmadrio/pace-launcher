@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds a release of PACE Launcher and packages it as a checked DMG plus a
 # SHA-256 checksum in build/release/. See docs/RELEASING.md.
-# PACE_ALLOW_DIRTY=1 packages uncommitted changes (for testing only).
+# PACE_ALLOW_DIRTY=1 packages uncommitted changes (for testing only); the
+# files are then named …-dirty so they can't pass for a release.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -11,8 +12,11 @@ OUT="$ROOT/build/release"
 
 fail() { echo "error: $*" >&2; exit 1; }
 
-if [[ -n "$(git status --porcelain)" && "${PACE_ALLOW_DIRTY:-}" != "1" ]]; then
-  fail "uncommitted changes; commit them first (PACE_ALLOW_DIRTY=1 makes a test package)"
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "not a git checkout; package from a clone of the repository"
+SUFFIX=""
+if [[ -n "$(git status --porcelain)" ]]; then
+  [[ "${PACE_ALLOW_DIRTY:-}" == "1" ]] || fail "uncommitted changes; commit them first (PACE_ALLOW_DIRTY=1 makes a test package)"
+  SUFFIX="-dirty"
 fi
 
 VERSION="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
@@ -42,12 +46,16 @@ check_app() {
 echo "==> checking $APP"
 check_app "$APP"
 
-NAME="PACE-Launcher-$VERSION"
+NAME="PACE-Launcher-$VERSION$SUFFIX"
 DMG="$OUT/$NAME.dmg"
+# Built under a hidden name and renamed only after every check passed, so a
+# failed run never leaves a file that looks like a release.
+PARTIAL="$OUT/.partial-$NAME.dmg"
 STAGE="$(mktemp -d "${TMPDIR:-/tmp}/pace-dmg.XXXXXX")"
 MOUNT="$(mktemp -d "${TMPDIR:-/tmp}/pace-mount.XXXXXX")"
 cleanup() {
   diskutil eject "$MOUNT" >/dev/null 2>&1 || true
+  rm -f "${PARTIAL:?}"
   rm -rf "${STAGE:?}"
   rmdir "$MOUNT" 2>/dev/null || true
 }
@@ -57,14 +65,14 @@ echo "==> creating $DMG"
 ditto "$APP" "$STAGE/PACE Launcher.app"
 ln -s /Applications "$STAGE/Applications"
 mkdir -p "$OUT"
-rm -f "${DMG:?}" "${DMG:?}.sha256"
-diskutil image create from --format ULFO --volumeName "PACE Launcher" "$STAGE" "$DMG" >/dev/null
+rm -f "${DMG:?}" "${DMG:?}.sha256" "${PARTIAL:?}"
+diskutil image create from --format ULFO --volumeName "PACE Launcher" "$STAGE" "$PARTIAL" >/dev/null
 echo
-hdiutil verify "$DMG" >/dev/null 2>&1 || fail "hdiutil verify failed for $DMG"
+hdiutil verify "$PARTIAL" >/dev/null 2>&1 || fail "hdiutil verify failed for $DMG"
 
 echo "==> checking the mounted DMG"
-diskutil image attach --readOnly --nobrowse --mountPoint "$MOUNT" "$DMG" >/dev/null
-CONTENTS="$(ls "$MOUNT" | tr '\n' '|')"
+diskutil image attach --readOnly --nobrowse --mountPoint "$MOUNT" "$PARTIAL" >/dev/null
+CONTENTS="$(ls -A "$MOUNT" | tr '\n' '|')"
 [[ "$CONTENTS" == "Applications|PACE Launcher.app|" ]] || fail "unexpected DMG contents: $CONTENTS"
 [[ "$(readlink "$MOUNT/Applications")" == "/Applications" ]] || fail "Applications link is wrong"
 check_app "$MOUNT/PACE Launcher.app"
@@ -72,6 +80,7 @@ if grep -rlaF "PRIVATE KEY" "$MOUNT" >/dev/null 2>&1; then fail "key material fo
 echo "==> Gatekeeper (expected: rejected, because the app is not notarized)"
 spctl -a -t exec -vv "$MOUNT/PACE Launcher.app" 2>&1 | sed 's/^/    /' || true
 diskutil eject "$MOUNT" >/dev/null
+mv "$PARTIAL" "$DMG"
 
 # Written from inside OUT so the file names the bare DMG, ready for `shasum -c`.
 (cd "$OUT" && shasum -a 256 "$NAME.dmg" > "$NAME.dmg.sha256" && shasum -a 256 -c "$NAME.dmg.sha256" >/dev/null) \

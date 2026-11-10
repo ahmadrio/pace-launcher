@@ -33,7 +33,10 @@ fi
 
 echo "==> signing"
 xattr -cr "$APP"
-if [[ "$IDENTITY" != "-" ]] && security find-identity -p codesigning | grep -qiF -- "$IDENTITY"; then
+# Read the list first: `grep -q` in a pipe under pipefail can turn an early
+# exit into a false "not found".
+IDENTITIES="$(security find-identity -p codesigning)"
+if [[ "$IDENTITY" != "-" ]] && grep -qiF -- "$IDENTITY" <<<"$IDENTITIES"; then
   codesign --force --sign "$IDENTITY" --timestamp=none "$APP"
   codesign --verify --strict --verbose=1 "$APP"
   if ! codesign -d -r- "$APP" 2>&1 | grep -Eq 'certificate (leaf|root)'; then

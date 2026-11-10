@@ -26,6 +26,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     func show(section: SettingsSection = .general) {
         model.section = section
+        // Shortcuts › Scripts lists what is on disk now.
+        scripts.reload()
         let window = window ?? makeWindow()
         self.window = window
         NSApp.activate()

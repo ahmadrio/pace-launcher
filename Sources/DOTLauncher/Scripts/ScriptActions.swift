@@ -66,6 +66,28 @@ final class ScriptActions {
         start(script, [])
     }
 
+    /// A script's global shortcut: what ↩ on its row does, except that a
+    /// confirmation is asked with a HUD (press the shortcut again) and
+    /// background scripts run without opening the panel.
+    func runFromShortcut(_ script: ScriptCommand, comboText: String, showPanel: () -> Void, notify: (String, Bool) -> Void) {
+        switch ScriptShortcut.step(for: script, isConfirmed: confirmation.press(script.id, at: .now)) {
+        case .notExecutable:
+            notify("Not executable. Select it in DOT and press ⌘⇧X.", true)
+        case .confirm:
+            notify("Press \(comboText) again to run \(script.metadata.title)", false)
+        case .fillArguments:
+            showPanel()
+            confirmation.reset()
+            form.prepare(script)
+            model.reset(to: .scriptArguments)
+        case .runInPanel:
+            showPanel()
+            start(script, [])
+        case .runInBackground:
+            start(script, [])
+        }
+    }
+
     /// ↩ in the arguments form.
     func submitArguments() {
         guard let script = form.script, let arguments = form.arguments() else { return }

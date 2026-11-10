@@ -19,7 +19,10 @@ final class HotKeyCenter {
     }
 
     struct Entry {
+        /// The ShortcutID raw value: unique, unlike titles.
         let name: String
+        /// What menus show.
+        let title: String
         let combo: KeyCombo
         var status: Status
     }
@@ -53,15 +56,15 @@ final class HotKeyCenter {
         }
     }
 
-    /// Registers `combo` under `name`, replacing any earlier registration
-    /// with the same name. Returns the resulting status.
+    /// Registers `combo` under `name` (a ShortcutID raw value), replacing
+    /// any earlier registration with the same name. Returns the resulting status.
     @discardableResult
-    func register(_ combo: KeyCombo, name: String, action: @escaping () -> Void) -> Status {
+    func register(_ combo: KeyCombo, name: String, title: String, action: @escaping () -> Void) -> Status {
         unregister(name: name)
 
         if combo.conflicts(with: Self.enabledSystemShortcuts()) {
-            Log.hotkeys.notice("\(name, privacy: .public) \(combo.displayString, privacy: .public) clashes with a system shortcut")
-            return record(Entry(name: name, combo: combo, status: .unavailable(OSStatus(eventHotKeyExistsErr))))
+            Log.hotkeys.notice("\(title, privacy: .public) \(combo.displayString, privacy: .public) clashes with a system shortcut")
+            return record(Entry(name: name, title: title, combo: combo, status: .unavailable(OSStatus(eventHotKeyExistsErr))))
         }
 
         let id = nextID
@@ -86,21 +89,21 @@ final class HotKeyCenter {
         }
 
         guard status == noErr else {
-            Log.hotkeys.notice("\(name, privacy: .public) \(combo.displayString, privacy: .public) not registered: \(status)")
-            return record(Entry(name: name, combo: combo, status: .unavailable(status)))
+            Log.hotkeys.notice("\(title, privacy: .public) \(combo.displayString, privacy: .public) not registered: \(status)")
+            return record(Entry(name: name, title: title, combo: combo, status: .unavailable(status)))
         }
 
         registrations[id] = Registration(combo: combo, ref: ref, action: action)
         idsByName[name] = id
-        Log.hotkeys.info("\(name, privacy: .public) registered as \(combo.displayString, privacy: .public)\(shared ? " (shared)" : "", privacy: .public)")
-        return record(Entry(name: name, combo: combo, status: shared ? .shared : .registered))
+        Log.hotkeys.info("\(title, privacy: .public) registered as \(combo.displayString, privacy: .public)\(shared ? " (shared)" : "", privacy: .public)")
+        return record(Entry(name: name, title: title, combo: combo, status: shared ? .shared : .registered))
     }
 
     /// Records a hotkey that is intentionally not registered, so the status
     /// menu can explain why.
-    func markDisabled(_ combo: KeyCombo, name: String, reason: String) {
+    func markDisabled(_ combo: KeyCombo, name: String, title: String, reason: String) {
         unregister(name: name)
-        record(Entry(name: name, combo: combo, status: .disabled(reason)))
+        record(Entry(name: name, title: title, combo: combo, status: .disabled(reason)))
     }
 
     func status(of name: String) -> Status? {

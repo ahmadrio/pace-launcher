@@ -47,7 +47,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         if AppPaths.isUsingTestFolders {
             addInfo("⚠︎ Test data folders in use")
         }
-        let launcherCombo = hotKeys.combo(of: ShortcutID.launcher.title)?.displayString ?? ""
+        let launcherCombo = hotKeys.combo(of: ShortcutID.launcher.rawValue)?.displayString ?? ""
         addItem("Open DOT Launcher   \(launcherCombo)", action: #selector(open))
         menu.addItem(.separator())
 
@@ -131,7 +131,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             case .unavailable(let code): " — in use by another app (\(code))"
             case .disabled(let reason): " — \(reason)"
             }
-            let item = NSMenuItem(title: "\(entry.combo.displayString)\t\(entry.name)\(state)", action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: "\(entry.combo.displayString)\t\(entry.title)\(state)", action: nil, keyEquivalent: "")
             item.isEnabled = false
             submenu.addItem(item)
         }

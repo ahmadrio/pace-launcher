@@ -247,7 +247,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             submitTitle: "Run",
             queryChanged: { _ in }
         )
-        scriptLibrary.onChange = { search.rebuild() }
+        scriptLibrary.onChange = { [weak self] in
+            search.rebuild()
+            self?.applyShortcuts()
+        }
 
         model.search = { query in search.results(for: query) }
         model.handlers[.clipboard] = LauncherModel.ModeHandler(
@@ -453,6 +456,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.panelController = panelController
         self.hotKeys = hotKeys
 
+        // Script shortcuts need the scripts before the first panel opens.
+        scriptLibrary.reload()
         applyShortcuts()
         watchBlockingApps()
 
@@ -476,6 +481,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.shortcutsPaused = paused
             if paused { hotKeys.unregisterAll() } else { self.applyShortcuts() }
         }
+        recorder.titleOf = { [weak self] id in self?.shortcut(for: id)?.title ?? id.title }
         let maintenance = ClipboardMaintenance(store: clipboardStore, settings: settings)
         maintenance.onChange = {
             if panelController.isVisible, model.mode == .clipboard { model.refresh() }
@@ -578,15 +584,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyShortcuts() {
         guard let hotKeys, !shortcutsPaused else { return }
         let resolved = Shortcuts.resolve(settings.data.shortcuts)
+        var registered: [ShortcutID: KeyCombo] = [:]
+        var held: [ShortcutID] = []
+        for entry in hotKeys.entries {
+            guard let id = ShortcutID(rawValue: entry.name) else { continue }
+            held.append(id)
+            // A renamed script re-registers, so menus show its new title.
+            let working = entry.status == .registered || entry.status == .shared
+            if working, shortcut(for: id)?.title == entry.title { registered[id] = entry.combo }
+        }
         var desired: [ShortcutID: KeyCombo] = [:]
         var gated: [(id: ShortcutID, combo: KeyCombo, blocker: GatedHotKey.Blocker)] = []
-        var registered: [ShortcutID: KeyCombo] = [:]
-        for id in ShortcutID.allCases where shortcutActions[id] != nil {
-            let status = hotKeys.status(of: id.title)
-            if status == .registered || status == .shared, let combo = hotKeys.combo(of: id.title) {
-                registered[id] = combo
-            }
-            guard let combo = resolved[id] else { continue }
+        for id in Shortcuts.ordered(resolved.keys) {
+            // A script that is not found keeps its saved shortcut but holds no combo.
+            guard let combo = resolved[id], shortcut(for: id) != nil else { continue }
             if let blocker = activeBlocker(for: id, combo: combo) {
                 gated.append((id, combo, blocker))
             } else {
@@ -597,17 +608,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Release every changed combo before registering new ones, so a
         // swap (A↔B) never tries to take a combo that is still held.
         let plan = Shortcuts.registrationPlan(registered: registered, desired: desired)
-        for id in plan.release { hotKeys.unregister(name: id.title) }
-        for id in ShortcutID.allCases where shortcutActions[id] != nil && resolved[id] == nil {
-            hotKeys.unregister(name: id.title)
+        for id in plan.release { hotKeys.unregister(name: id.rawValue) }
+        let gatedIDs = Set(gated.map(\.id))
+        for id in held where desired[id] == nil && !gatedIDs.contains(id) {
+            hotKeys.unregister(name: id.rawValue)
         }
         for entry in gated {
-            hotKeys.markDisabled(entry.combo, name: entry.id.title, reason: "off while \(entry.blocker.appName) runs")
+            hotKeys.markDisabled(entry.combo, name: entry.id.rawValue, title: entry.id.title, reason: "off while \(entry.blocker.appName) runs")
         }
         for id in plan.register {
-            guard let combo = desired[id], let action = shortcutActions[id] else { continue }
-            hotKeys.register(combo, name: id.title, action: action)
+            guard let combo = desired[id], let shortcut = shortcut(for: id) else { continue }
+            hotKeys.register(combo, name: id.rawValue, title: shortcut.title, action: shortcut.action)
         }
+    }
+
+    /// What a shortcut is called and does; nil for a script that is not
+    /// found (its shortcut stays saved, but nothing is registered).
+    private func shortcut(for id: ShortcutID) -> (title: String, action: () -> Void)? {
+        if case .script(let key) = id {
+            guard let script = ScriptShortcut.script(forKey: key, in: scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory) else { return nil }
+            return (script.metadata.title, { [weak self] in self?.runScriptShortcut(key) })
+        }
+        guard let action = shortcutActions[id] else { return nil }
+        return (id.title, action)
+    }
+
+    /// A script shortcut: re-reads the scripts (mode and arguments may have
+    /// changed), then does what choosing the script in the launcher does.
+    private func runScriptShortcut(_ key: String) {
+        let id = ShortcutID.script(key)
+        let comboText = hotKeys?.combo(of: id.rawValue)?.displayString ?? "the shortcut"
+        scriptLibrary.reload()
+        guard let script = ScriptShortcut.script(forKey: key, in: scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory) else {
+            hud?.show("Script not found: \(id.title)", isError: true)
+            return
+        }
+        Log.hotkeys.info("script shortcut: \(script.metadata.title, privacy: .public)")
+        scriptActions?.runFromShortcut(
+            script, comboText: comboText,
+            showPanel: { [weak self] in self?.panelController?.show() },
+            notify: { [weak self] text, isError in self?.hud?.show(text, isError: isError) }
+        )
     }
 
     /// Re-applies gated shortcuts when Maccy or Rectangle starts or quits.

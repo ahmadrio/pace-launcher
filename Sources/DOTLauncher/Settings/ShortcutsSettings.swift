@@ -16,6 +16,8 @@ final class ShortcutRecorder {
 
     @ObservationIgnored let settings: SettingsStore
     @ObservationIgnored let hotKeys: HotKeyCenter
+    /// Names other shortcuts in "Already used by …" (scripts by their title).
+    @ObservationIgnored var titleOf: (ShortcutID) -> String = { $0.title }
     /// true while recording: the app releases or re-applies its hotkeys.
     @ObservationIgnored private let pause: (Bool) -> Void
     @ObservationIgnored private var monitor: Any?
@@ -115,7 +117,7 @@ final class ShortcutRecorder {
     @discardableResult
     private func choose(_ combo: KeyCombo?, for id: ShortcutID) -> Bool {
         if let problem = Shortcuts.validate(combo, for: id, current: current, system: HotKeyCenter.enabledSystemShortcuts()) {
-            problems[id] = problem.message
+            problems[id] = problem.message(naming: titleOf)
             return false
         }
         problems[id] = nil
@@ -126,19 +128,35 @@ final class ShortcutRecorder {
 
 struct ShortcutsSettings: View {
     let recorder: ShortcutRecorder
+    let scripts: ScriptLibrary
+
+    private var scriptRows: [ScriptShortcut.Row] {
+        ScriptShortcut.rows(scripts: scripts.scripts, mainFolder: AppPaths.scriptsDirectory, saved: recorder.settings.data.shortcuts)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Click a shortcut, then press the new keys. Esc cancels, ⌫ removes it. Clipboard and window shortcuts left at their defaults turn off while Maccy or Rectangle runs. To use ⌘Space, first turn off Spotlight's shortcut in System Settings › Keyboard › Keyboard Shortcuts › Spotlight.")
+            Text("Click a shortcut, then press the new keys. Esc cancels, ⌫ removes it. Script commands can have shortcuts too. Clipboard and window shortcuts left at their defaults turn off while Maccy or Rectangle runs. To use ⌘Space, first turn off Spotlight's shortcut in System Settings › Keyboard › Keyboard Shortcuts › Spotlight.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ForEach([ShortcutID.Group.launcher, .commands, .window], id: \.self) { group in
+            ForEach([ShortcutID.Group.launcher, .commands, .scripts, .window], id: \.self) { group in
                 VStack(alignment: .leading, spacing: 10) {
                     Text(Self.title(of: group)).font(.headline)
-                    ForEach(ShortcutID.allCases.filter { $0.group == group }, id: \.rawValue) { id in
-                        ShortcutRow(id: id, recorder: recorder)
+                    if group == .scripts {
+                        if scriptRows.isEmpty {
+                            Text("No script commands yet. Add them in the Scripts section.")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(scriptRows, id: \.id.rawValue) { row in
+                            ShortcutRow(id: row.id, title: row.title, detail: row.detail, isMissing: row.isMissing, recorder: recorder)
+                        }
+                    } else {
+                        ForEach(ShortcutID.allCases.filter { $0.group == group }, id: \.rawValue) { id in
+                            ShortcutRow(id: id, title: id.title, recorder: recorder)
+                        }
                     }
                 }
             }
@@ -158,6 +176,9 @@ struct ShortcutsSettings: View {
 
 private struct ShortcutRow: View {
     let id: ShortcutID
+    let title: String
+    var detail: String?
+    var isMissing = false
     let recorder: ShortcutRecorder
 
     private var combo: KeyCombo? { recorder.current[id] }
@@ -171,7 +192,7 @@ private struct ShortcutRow: View {
     /// Why a saved shortcut is not working right now, if it is not.
     private var status: String? {
         guard !isRecording, recorder.recording == nil, combo != nil else { return nil }
-        switch recorder.hotKeys.status(of: id.title) {
+        switch recorder.hotKeys.status(of: id.rawValue) {
         case .unavailable: return "Couldn't register: another app uses it"
         case .disabled(let reason): return reason.prefix(1).uppercased() + reason.dropFirst()
         case .shared: return "Shared with another app that may also react"
@@ -182,7 +203,12 @@ private struct ShortcutRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack {
-                Text(id.title)
+                Text(title)
+                if let detail {
+                    Text(detail)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button {
                     if isRecording { recorder.stop() } else { recorder.start(id) }
@@ -190,9 +216,11 @@ private struct ShortcutRow: View {
                     Text(label)
                         .frame(minWidth: 130)
                 }
+                .disabled(isMissing)
                 .accessibilityIdentifier("shortcut-" + id.rawValue)
                 if combo != id.defaultCombo, !isRecording {
-                    Button("Reset") { recorder.reset(id) }
+                    // Scripts have no default, so going back means removing it.
+                    Button(id.defaultCombo == nil && id.group == .scripts ? "Remove" : "Reset") { recorder.reset(id) }
                         .accessibilityIdentifier("reset-" + id.rawValue)
                 }
             }
@@ -204,7 +232,7 @@ private struct ShortcutRow: View {
                 // Shared still works, so it is a note, not a warning.
                 Text(status)
                     .font(.system(size: 11))
-                    .foregroundStyle(recorder.hotKeys.status(of: id.title) == .shared ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
+                    .foregroundStyle(recorder.hotKeys.status(of: id.rawValue) == .shared ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
             }
         }
     }

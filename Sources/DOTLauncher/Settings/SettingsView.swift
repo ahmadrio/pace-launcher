@@ -92,7 +92,7 @@ struct SettingsView: View {
         case .appearance:
             AppearanceSettings(settings: settings)
         case .shortcuts:
-            ShortcutsSettings(recorder: shortcuts)
+            ShortcutsSettings(recorder: shortcuts, scripts: scripts)
         case .scripts:
             ScriptsSettings(scripts: scripts)
         case .snippets:

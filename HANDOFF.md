@@ -269,7 +269,7 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   - `grep -q` dengan `pipefail`
   - DMG gagal-cek tetap bernama final
   - paket `PACE_ALLOW_DIRTY` tanpa akhiran `-dirty`
-- **Belum diuji:** alur Gatekeeper sungguhan (unduhan ber-quarantine → "Open Anyway") di macOS 27. Teks di `INSTALL.md` mengikuti perilaku macOS 15+, dan Pace akan mengujinya saat memasang dari GitHub.
+- **Alur Gatekeeper sungguhan sudah terbukti** (11 Nov 2026, 06:37): Pace mengunduh v1.0.0 dari GitHub Releases dan memasangnya lewat Open Anyway sesuai `docs/INSTALL.md`; "berhasil". App di `/Applications` membawa `com.apple.quarantine`, build `20261111063223`, sertifikat PACE.
 
 ## Tahap 23: sambutan, izin, cek update (11 Nov 2026)
 - **Jendela sambutan** (`Welcome/`): sekali per Mac (`welcomeShown` di UserDefaults, ditandai saat tampil), lalu dari menu bar / launcher. Status izin dari `PermissionChecklist` (Core); Input Monitoring dianggap granted selama keyboard tap auto-expand berjalan, karena di Mac Pace tap berjalan walau `CGPreflightListenEventAccess` bilang belum. Begitu izin itu diberikan, PACE mencoba menyalakan auto-expand sekali tanpa relaunch. Automation hanya dijelaskan (mengeceknya bisa memunculkan dialog).
@@ -304,7 +304,7 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   4. Tahap 24 (selesai, dipublikasikan 11 Nov 2026): README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir, repo publik, rilis v1.0.0.
 
 ## Langkah berikutnya
-1. **Pace memasang v1.0.0 dari GitHub Releases** (app belum terpasang di Mac-nya): uji alur Gatekeeper / Open Anyway sungguhan di macOS 27, lalu beri izin lewat jendela sambutan. Rilis berikutnya mengikuti `docs/RELEASING.md` (naikkan versi, catatan di `docs/releases/`, `make release`, tag, `gh release create`); `origin` = `https://github.com/ahmadrio/pace-launcher.git`, push ke `main` dan tag hanya dengan persetujuan Pace.
+1. **Rilis berikutnya** mengikuti `docs/RELEASING.md` (naikkan versi, catatan di `docs/releases/`, `make release`, tag, `gh release create`). `origin` = `https://github.com/ahmadrio/pace-launcher.git`; push ke `main`, tag, dan rilis hanya dengan persetujuan Pace. v1.0.0 sudah terpasang dari GitHub di Mac Pace (11 Nov 06:37); izin diberikan lewat jendela sambutan.
 2. Minor yang ditunda di ledger tahap 23.
 3. Minor yang ditunda di ledger tahap 20 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test; runner perintah sistem hanya diverifikasi dengan membaca kode).
 4. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).

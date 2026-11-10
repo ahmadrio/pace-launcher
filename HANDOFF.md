@@ -12,7 +12,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-4-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-4.md`
   - Ledger (semua `Ruling:` dan minor yang ditunda): `docs/superpowers/plans/2026-11-10-tahap-4-ledger.md`
-- **Tahap 5** selesai di branch **`tahap-5`** dan belum di-merge ke `main`. Pace sudah meng-uninstall Raycast; DOT kini satu-satunya launcher.
+- **Tahap 5** selesai dan sudah di-merge ke `main` (10 Nov 2026). Pace sudah meng-uninstall Raycast; DOT kini satu-satunya launcher.
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-5-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-5.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-5-ledger.md`
@@ -112,7 +112,6 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Review akhir branch `tahap-5`, lalu merge ke `main`.
-2. Shortcut untuk script command.
-3. Singkatan angka di kalkulator (`1jt`, `10rb`, `10k`).
-4. Minor yang masih ditunda (lihat ledger tahap 4 dan 5): TIFF lazy saat paste, gambar dibaca di main thread sebelum cek ukuran, batas cache thumbnail.
+1. Shortcut untuk script command.
+2. Singkatan angka di kalkulator (`1jt`, `10rb`, `10k`).
+3. Minor yang ditunda di ledger tahap 5 (terutama jawaban berbahasa Indonesia yang hilang saat dibatalkan ketika diterjemahkan balik, dan `1 idr to usd` = 0) serta tahap 4 (TIFF lazy saat paste, batas cache thumbnail).

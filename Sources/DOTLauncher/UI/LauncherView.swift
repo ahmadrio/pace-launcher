@@ -109,11 +109,11 @@ private struct Footer: View {
     var body: some View {
         HStack(spacing: 16) {
             if let notice = model.notice {
-                // One line: a long notice is cut short rather than pushing
-                // the hints onto two lines.
+                // The hints keep their size; a notice too long for one line
+                // takes two rather than being cut ("delete all chats").
                 Label(notice, systemImage: "info.circle")
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             } else {
                 Text(model.mode.title).foregroundStyle(.tertiary)
             }
@@ -124,7 +124,8 @@ private struct Footer: View {
             ForEach(Array(model.availableActions.prefix(2).enumerated()), id: \.offset) { _, action in
                 KeyHint(key: action.shortcut.display, label: action.title)
             }
-            if !model.results.isEmpty {
+            // Navigate makes room for a notice, which matters more then.
+            if !model.results.isEmpty, model.notice == nil {
                 KeyHint(key: "↑↓", label: "Navigate")
             }
             KeyHint(key: "esc", label: model.mode == .root ? "Close" : "Back")

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct LauncherView: View {
@@ -87,6 +88,10 @@ private struct ResultList: View {
                                 .contentShape(.rect)
                                 .onTapGesture {
                                     model.select(index: index)
+                                    // The second click of a double-click is not a
+                                    // second press: it must not confirm Empty Trash,
+                                    // Restart, Shut Down or Log Out.
+                                    guard (NSApp.currentEvent?.clickCount ?? 1) <= 1 else { return }
                                     model.performSelected()
                                 }
                         }

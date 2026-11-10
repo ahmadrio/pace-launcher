@@ -60,6 +60,10 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-16-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-16.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-16-ledger.md`
+- **Tahap 17** selesai di branch `tahap-17` (10 Nov 2026), menunggu keputusan merge.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-17-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-17.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-17-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -73,7 +77,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 | Snippets | Ketik nama atau keyword di root, lalu ⏎ untuk paste. Placeholder: `{date}`, `{time}`, `{datetime}`, `{clipboard}`. |
 | Notes | "Open Notes", "Create Note", "Search Notes". Jendela floating Markdown dengan autosave. |
 | **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, **Quicklinks**, Scripts, Sync. |
-| **Perintah sistem** | "Lock Screen" (⌃⌘Q macOS), "Sleep" / "Sleep Displays" (`pmset`), "Start Screen Saver", "Log Out" (⇧⌘Q; ↩ kedua harus selama pesan "Press ↩ again to log out" masih tampil, lalu dialog macOS; pesan hilang sendiri setelah 3 detik, dan mengetik, pindah baris, atau membuka ulang panel juga membatalkan ↩ pertama; ↩ yang ditahan tidak dihitung dua kali). Alias `kunci`, `tidur`, `keluar`. Empat yang pertama bisa diberi shortcut global. Restart, Shut Down, Empty Trash, dan Dark Mode **belum ada**: butuh izin Automation/Full Disk Access (tanya Pace dulu). |
+| **Perintah sistem** | "Lock Screen" (⌃⌘Q macOS), "Sleep" / "Sleep Displays" (`pmset`), "Start Screen Saver", "Log Out" (⇧⌘Q; ↩ kedua harus selama pesan "Press ↩ again to log out" masih tampil, lalu dialog macOS; pesan hilang sendiri setelah 3 detik, dan mengetik, pindah baris, atau membuka ulang panel juga membatalkan ↩ pertama; ↩ yang ditahan tidak dihitung dua kali). **Restart** / **Shut Down** (Apple Event ke loginwindow, lalu dialog macOS sendiri), **Empty Trash** (Finder), dan **Toggle Dark Mode** (System Events) memakai izin **Automation** (disetujui Pace, 10 Nov 2026; tanpa Full Disk Access) lewat `osascript` sebagai proses anak DOT. Restart, Shut Down, dan Empty Trash butuh ↩ dua kali dengan pesannya sendiri (satu `ConfirmationPrompt`). Izin ditolak → HUD "Allow DOT Launcher to control <app>…" dan System Settings terbuka di Automation; Cancel di dialog macOS diam. Alias `kunci`, `tidur`, `keluar`, `reboot`, `matikan`, `kosongkan sampah`, `mode gelap`. Lock Screen, Sleep, Sleep Displays, Start Screen Saver, dan Toggle Dark Mode bisa diberi shortcut global. |
 | **Emoji** | Perintah "Search Emoji" (bisa diberi shortcut global): cari dengan nama atau kata sehari-hari (`cinta`, `ketawa`, `thanks`, `jepang`), ⏎ menempel ke app sebelumnya (clipboard dikembalikan), ⌘C menyalin. Emoji yang sering dipakai naik; tanpa ketikan, wajah dulu. **Skin tone:** ⌘T di picker menggilir Default → Light → … → Dark (footer menyebut pilihannya), atau Settings › General › Emoji; **⌘⇧T (Own Tone)** memberi satu emoji warnanya sendiri (mengikuti default → Default … Dark → mengikuti default lagi), disimpan di `emojiSkinTones` (`settings.json`, ikut sync) dan bisa di-reset di Settings; hanya emoji dasar Unicode (tangan, orang) yang punya bentuk resmi berwarna kulit yang berubah (👪 👯 🤼 tidak), ☝️ jadi ☝🏽 tanpa variation selector. Pemakaian dicatat per emoji dasar, jadi urutan tidak hilang saat tone diganti. Data dari properti Unicode Swift + bendera dari kode wilayah; tanpa emoji gabungan (keluarga, pasangan). |
 | **Quicklinks** | URL tersimpan dengan `{query}` (Settings › Quicklinks atau perintah "Create Quicklink"). Ketik `gh dot launcher` untuk langsung mencari di GitHub; keyword saja (`g`) tidak mengangkat quicklink di atas app, karena quicklink diranking dari namanya; memilih quicklink lewat namanya meminta teksnya dulu; quicklink tanpa `{query}` langsung dibuka. Teks di-percent-encode. Bawaan: Google (`g`), YouTube (`yt`), GitHub (`gh`), Google Maps (`maps`). Disimpan di `settings.json` (ikut sync); **"Open with"** per quicklink (browser terpasang; browser yang hilang → browser default + HUD); entri tulisan tangan tanpa `id` tetap terbaca (id diturunkan dari nama + URL), URL non-ASCII (`bücher.de`) diterima, spasi ditolak. |
 | **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings, Search Emoji, Lock Screen, Sleep, Sleep Displays, Start Screen Saver (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali selama HUD "Press … again" masih tampil, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan tetap memakai kombinasinya: menekannya memunculkan HUD "Script not found: <file>", dan begitu file kembali tombol yang sama menjalankannya lagi (folder skrip dipantau, termasuk folder yang baru muncul setelah DOT berjalan). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
@@ -104,7 +108,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 372 test Core (Swift Testing)
+make test     # 374 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -169,6 +173,7 @@ make reset-tcc
 - **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
 
 ## Belum diuji / batasan yang diketahui
+- **Restart, Shut Down, Empty Trash, Toggle Dark Mode belum pernah dijalankan sungguhan** (10 Nov 2026): hanya mode uji, plus `osacompile` untuk keempat AppleScript. Atribusi izin Automation ke DOT (bukan ke `osascript`) belum terlihat langsung.
 - **Sync dengan iCloud Drive asli sudah dicek sekali (10 Nov 2026, izin Pace, data di-backup dulu):** nyala → file pindah ke iCloud dan ter-upload (`ubiquitousItemIsUploaded`), backup clipboard utuh (21 clip, `integrity_check` ok), snippet/note tetap muncul, quit menulis backup, relaunch tanpa pertanyaan restore. Mati → file kembali identik, backup tetap di iCloud sampai "Delete iCloud Backups" ditekan. Setelahnya data dan iCloud dikembalikan seperti semula.
 - Placeholder dari "Optimize Mac Storage" yang asli dan edit dari iPhone/Files belum diuji. Perilakunya hanya disimulasikan dengan mengganti nama file.
 - Auto-expand berjalan tanpa izin Input Monitoring baru di Mac ini. Di Mac lain, izin itu mungkin perlu diberikan (Settings › Snippets menampilkan statusnya).
@@ -181,6 +186,6 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Minor yang ditunda di ledger tahap 16 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test, form dengan dropdown di isian pertama tidak mendapat fokus tanpa Full Keyboard Access).
-2. Restart, Shut Down, Empty Trash, Toggle Dark Mode: **perlu keputusan Pace** soal izin Automation (Apple Events ke loginwindow/Finder/System Events) atau Full Disk Access.
+1. **Pace mencoba sendiri** Toggle Dark Mode, Empty Trash, Restart, dan Shut Down sekali masing-masing: pemakaian pertama memunculkan dialog izin Automation macOS (System Events, Finder, loginwindow), yang hanya bisa diklik Pace. Uji otomatis hanya memakai mode uji.
+2. Minor yang ditunda di ledger tahap 17 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test, form dengan dropdown di isian pertama tidak mendapat fokus tanpa Full Keyboard Access).
 3. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).

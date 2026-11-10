@@ -39,16 +39,35 @@ public actor ClipboardStore {
         """,
     ]
 
-    private static let columns = "c.id, c.kind, c.text, c.source, c.created_at, c.last_used_at, c.use_count, c.pinned"
+    private static let columns = "c.id, c.hash, c.kind, c.text, c.source, c.created_at, c.last_used_at, c.use_count, c.pinned"
     private static let order = "ORDER BY c.pinned DESC, c.last_used_at DESC, c.id DESC"
 
     private let db: SQLiteDatabase
+    /// Where image clips keep `<hash>.png` and `<hash>-thumb.png`.
+    public nonisolated let imagesDirectory: URL?
 
-    public init(path: String) throws {
+    public init(path: String, imagesDirectory: URL? = nil) throws {
         let db = try SQLiteDatabase(path: path)
         try db.execute("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")
         try Migrator.migrate(db, steps: Self.migrations)
         self.db = db
+        self.imagesDirectory = imagesDirectory
+    }
+
+    /// The full picture of an image clip; nil when missing (for example
+    /// after restoring a backup, which holds only the database).
+    public nonisolated func imageURL(for item: ClipItem) -> URL? {
+        existingFile(for: item, suffix: ".png")
+    }
+
+    public nonisolated func thumbnailURL(for item: ClipItem) -> URL? {
+        existingFile(for: item, suffix: "-thumb.png")
+    }
+
+    private nonisolated func existingFile(for item: ClipItem, suffix: String) -> URL? {
+        guard item.kind == .image, let imagesDirectory else { return nil }
+        let url = imagesDirectory.appending(path: item.hash + suffix)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
     /// Stores a new clip, or bumps the existing one with the same content.
@@ -117,7 +136,14 @@ public actor ClipboardStore {
     }
 
     public func delete(_ id: Int64) throws {
+        let image = try db.query("SELECT hash FROM clips WHERE id = ? AND kind = ?", [.integer(id), .text(ClipKind.image.rawValue)])
+            .first?.string("hash")
         try db.run("DELETE FROM clips WHERE id = ?", [.integer(id)])
+        if let image, let imagesDirectory {
+            for suffix in [".png", "-thumb.png"] {
+                try? FileManager.default.removeItem(at: imagesDirectory.appending(path: image + suffix))
+            }
+        }
     }
 
     /// Writes a consistent copy of the history to `path`.
@@ -141,6 +167,7 @@ public actor ClipboardStore {
     private func insertOrBump(_ draft: ClipDraft) throws -> ClipItem {
         let hash = draft.contentHash
         let time = draft.date.timeIntervalSince1970
+        if let image = draft.image { try writeFiles(of: image, named: hash) }
 
         if let existing = try db.query("SELECT id FROM clips WHERE hash = ?", [.text(hash)]).first?.int("id") {
             try db.run(
@@ -168,6 +195,18 @@ public actor ClipboardStore {
         return try item(id: id)
     }
 
+    /// Writes the picture and thumbnail unless they are already there.
+    private func writeFiles(of image: ClipImage, named hash: String) throws {
+        guard let imagesDirectory else { throw SQLiteError(code: 0, message: "no folder for image clips") }
+        try FileManager.default.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+        for (suffix, data) in [(".png", image.png), ("-thumb.png", image.thumbnail)] {
+            let url = imagesDirectory.appending(path: hash + suffix)
+            if !FileManager.default.fileExists(atPath: url.path) {
+                try data.write(to: url, options: .atomic)
+            }
+        }
+    }
+
     private func item(id: Int64) throws -> ClipItem {
         guard let item = try db.query("SELECT \(Self.columns) FROM clips c WHERE c.id = ?", [.integer(id)])
             .first.flatMap(Self.item)
@@ -179,6 +218,7 @@ public actor ClipboardStore {
 
     private static func item(_ row: SQLRow) -> ClipItem? {
         guard let id = row.int("id"),
+              let hash = row.string("hash"),
               let kind = row.string("kind").flatMap(ClipKind.init(rawValue:)),
               let text = row.string("text"),
               let created = row.double("created_at"),
@@ -186,6 +226,7 @@ public actor ClipboardStore {
         else { return nil }
         return ClipItem(
             id: id,
+            hash: hash,
             text: text,
             kind: kind,
             sourceBundleID: row.string("source"),

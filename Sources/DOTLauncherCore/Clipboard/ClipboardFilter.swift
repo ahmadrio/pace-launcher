@@ -14,9 +14,20 @@ public enum ClipboardFilter {
         "net.antelle.keeweb",
     ]
 
-    public static func shouldIgnore(types: [String], text: String?, hasFiles: Bool) -> Bool {
+    /// Picture types an image clip is read from.
+    public static let imageTypes: Set<String> = ["public.png", "public.tiff"]
+
+    /// A copy is an image clip when it carries a picture and nothing else
+    /// worth keeping: no files and no text. Spreadsheet cells come with a
+    /// picture of themselves, but their text is what people paste.
+    public static func isImageCopy(types: [String], text: String?, hasFiles: Bool) -> Bool {
+        guard !hasFiles, types.contains(where: imageTypes.contains) else { return false }
+        return (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    public static func shouldIgnore(types: [String], text: String?, hasFiles: Bool, hasImage: Bool = false) -> Bool {
         if types.contains(where: ignoredTypes.contains) { return true }
-        if hasFiles { return false }
+        if hasFiles || hasImage { return false }
         guard let text else { return true }
         return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }

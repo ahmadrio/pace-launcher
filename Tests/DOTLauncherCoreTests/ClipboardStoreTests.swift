@@ -129,6 +129,22 @@ struct ClipboardStoreTests {
 }
 
 struct ClipboardFilterTests {
+    @Test func `an image with no text is kept`() {
+        #expect(!ClipboardFilter.shouldIgnore(types: ["public.png"], text: nil, hasFiles: false, hasImage: true))
+    }
+
+    @Test func `a secret marker still wins over an image`() {
+        #expect(ClipboardFilter.shouldIgnore(types: ["public.png", "org.nspasteboard.ConcealedType"], text: nil, hasFiles: false, hasImage: true))
+    }
+
+    @Test func `a copy with text and an image is not an image clip`() {
+        #expect(!ClipboardFilter.isImageCopy(types: ["public.utf8-plain-text", "public.png"], text: "A1", hasFiles: false))
+        #expect(ClipboardFilter.isImageCopy(types: ["public.tiff"], text: nil, hasFiles: false))
+        #expect(ClipboardFilter.isImageCopy(types: ["public.png", "public.utf8-plain-text"], text: "  \n", hasFiles: false))
+        #expect(!ClipboardFilter.isImageCopy(types: ["public.png", "public.file-url"], text: nil, hasFiles: true))
+        #expect(!ClipboardFilter.isImageCopy(types: ["public.utf8-plain-text"], text: nil, hasFiles: false))
+    }
+
     @Test(arguments: [
         "org.nspasteboard.ConcealedType",
         "org.nspasteboard.TransientType",

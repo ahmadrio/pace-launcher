@@ -57,6 +57,7 @@ final class ClipboardController {
         case .text: "Text"
         case .richText: "Rich Text"
         case .files: "Files"
+        case .image: "Image"
         }
 
         return LauncherResult(

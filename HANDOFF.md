@@ -214,15 +214,14 @@ make reset-tcc   # reset izin Accessibility dan Automation (dialog izin muncul l
   - Folder `…/DOT Launcher` dipindahkan ke `…/PACE Launcher`, tanpa menimpa.
   - iCloud hanya disentuh kalau sync aktif.
   - Di Mac Pace (10 Nov 23:21): 49 clip, 25 pemakaian, 6 gambar, dan `settings.json` cocok dengan backup.
-- **Disimpan di scratchpad sesi ini:**
-  - Backup: `real-backup-t21/` (folder data + `com.pace.DOTLauncher.plist`).
-  - App lama: `old-app/DOT Launcher.app`.
+- **Backup migrasi dan app lama sudah dihapus** atas keputusan Pace (10 Nov 23:31), setelah migrasi terbukti utuh. App juga sudah dicopot dari Mac Pace: ia akan memasangnya dari GitHub Releases. Datanya tetap di `~/Library/Application Support/PACE Launcher`.
+- **Ikon app:** `Resources/AppIcon.icns`, digambar oleh `scripts/make-icon.swift` (squircle violet–indigo, huruf P putih dengan garis kecepatan); `Info.plist` → `CFBundleIconFile = AppIcon`.
 - **Pace perlu memberi izin ulang untuk PACE Launcher:**
   - Accessibility dan Input Monitoring di System Settings › Privacy & Security.
   - Automation: diminta ulang saat Toggle Dark Mode / Empty Trash / Restart / Shut Down pertama.
   - Launch at Login perlu diaktifkan lagi di Settings kalau sebelumnya aktif.
   - Entri lama "DOT Launcher" di daftar izin boleh dihapus.
-- **Temuan lama (belum diperbaiki):** "Create Script Command" membuka file `.sh` baru dengan app default untuk `.sh`. Di Mac Pace itu Warp, yang **menjalankan** template alih-alih membukanya untuk diedit.
+- **Temuan lama (perbaiki sebelum rilis publik, tahap 22):** "Create Script Command" membuka file `.sh` baru dengan app default untuk `.sh`. Di Mac Pace itu Warp, yang **menjalankan** template alih-alih membukanya untuk diedit.
 
 ## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)
 - **Publik, tanpa Apple Developer Program**: tidak dinotarisasi; pengguna membuka lewat System Settings › Privacy & Security › Open Anyway. Ditandatangani dengan sertifikat **self-signed** (identitas tetap antar versi supaya izin pengguna bertahan setelah update), bukan sertifikat Apple Development.

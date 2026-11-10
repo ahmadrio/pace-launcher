@@ -152,6 +152,11 @@ final class LauncherModel {
         confirmation.reset()
         results = []
         searchField?.stringValue = ""
+        // The arguments form takes the keyboard; every other mode types into
+        // the search field, so leaving the form hands it back.
+        if mode != .scriptArguments, let field = searchField, field.currentEditor() == nil {
+            field.window?.makeFirstResponder(field)
+        }
         handlers[mode]?.entered?()
         if query.isEmpty {
             if let queryChanged = handlers[mode]?.queryChanged {

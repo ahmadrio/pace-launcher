@@ -67,8 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcutActions: [ShortcutID: () -> Void] = [:]
     /// True while Settings records a shortcut: hotkeys stay released.
     private var shortcutsPaused = false
-    /// Log Out runs on the second ↩ within 3 s.
-    private var logOutConfirmation = PressConfirmation()
+    /// Log Out runs on a second ↩ while its notice shows (3 s).
+    private let logOutPrompt = ConfirmationPrompt()
     /// Script keys and titles at the last shortcut apply; a reload that
     /// leaves them alone does not re-register anything.
     private var scriptFingerprint: [String: String] = [:]
@@ -673,22 +673,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let action: LauncherResult.Action = command.needsConfirmation
                 ? .stay { [weak self] in
                     guard let self else { return }
-                    // The second ↩ counts only while its notice is shown:
-                    // typing, moving or reopening the panel clears the
+                    // Typing, moving or reopening the panel clears the
                     // notice, and with it the first press.
-                    let stillShown = model.notice == Self.logOutNotice
-                    guard self.logOutConfirmation.press(command.rawValue, at: .now, stillShown: stillShown) else {
-                        model.notice = Self.logOutNotice
-                        // The notice goes when the first press stops counting.
-                        Task { [weak self] in
-                            try? await Task.sleep(for: .milliseconds(3100))
-                            guard let self, !self.logOutConfirmation.isArmed(command.rawValue, at: .now),
-                                  model.notice == Self.logOutNotice
-                            else { return }
-                            model.notice = nil
-                        }
-                        return
-                    }
+                    let notice = Self.logOutNotice
+                    guard self.logOutPrompt.press(
+                        command.rawValue,
+                        isShown: { model.notice == notice }, show: { model.notice = notice }, hide: { model.notice = nil }
+                    ) else { return }
                     model.close()
                     // Use is learned when it runs, not on the first ↩.
                     do {
@@ -792,7 +783,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// and runs the script again once the file is back.
     private func shortcut(for id: ShortcutID) -> (title: String, action: () -> Void)? {
         if case .script(let key) = id {
-            let title = ScriptShortcut.script(forKey: key, in: scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory)?.metadata.title ?? id.title
+            let title = ScriptShortcut.script(forKey: key, in: scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory)?.metadata.title
+                ?? "\(id.title) (not found)"
             return (title, { [weak self] in self?.runScriptShortcut(key) })
         }
         guard let action = shortcutActions[id] else { return nil }
@@ -805,15 +797,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let id = ShortcutID.script(key)
         let comboText = hotKeys?.combo(of: id.rawValue)?.displayString ?? "the shortcut"
         scriptLibrary.reload()
+        guard let hud else { return }
         guard let script = ScriptShortcut.script(forKey: key, in: scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory) else {
-            hud?.show("Script not found: \(id.title)", isError: true)
+            hud.show("Script not found: \(id.title)", isError: true)
             return
         }
         Log.hotkeys.info("script shortcut: \(script.metadata.title, privacy: .public)")
         scriptActions?.runFromShortcut(
             script, comboText: comboText,
             showPanel: { [weak self] in self?.panelController?.show() },
-            notify: { [weak self] text, isError in self?.hud?.show(text, isError: isError) }
+            hud: hud
         )
     }
 

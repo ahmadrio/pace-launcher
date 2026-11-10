@@ -8,9 +8,12 @@ final class ScriptActions {
     private let form: ScriptArgumentForm
     private let model: LauncherModel
     private let start: (ScriptCommand, [String]) -> Void
-    private var confirmation = PressConfirmation()
+    /// ↩ on a row and in the arguments form.
+    private let prompt = ConfirmationPrompt()
     /// Separate from ↩'s, so one press of each never adds up to a run.
-    private var shortcutConfirmation = PressConfirmation()
+    private let shortcutPrompt = ConfirmationPrompt()
+    /// The form's values when it asked to confirm: changing one asks again.
+    private var askedValues: [String]?
     private var inline: [String: (text: String, updated: Date)] = [:]
 
     /// Called when an inline script produced a new subtitle.
@@ -56,14 +59,16 @@ final class ScriptActions {
             return
         }
         guard script.metadata.arguments.isEmpty else {
-            confirmation.reset()
+            prompt.reset()
             form.prepare(script)
             model.reset(to: .scriptArguments)
             return
         }
-        guard confirmed(script) else {
-            model.notice = "Press ↩ again to run \(script.metadata.title)"
-            return
+        if script.metadata.needsConfirmation {
+            let text = "Press ↩ again to run \(script.metadata.title)"
+            let model = model
+            guard prompt.press(script.id, isShown: { model.notice == text }, show: { model.notice = text }, hide: { model.notice = nil })
+            else { return }
         }
         start(script, [])
     }
@@ -71,15 +76,25 @@ final class ScriptActions {
     /// A script's global shortcut: what ↩ on its row does, except that a
     /// confirmation is asked with a HUD (press the shortcut again) and
     /// background scripts run without opening the panel.
-    func runFromShortcut(_ script: ScriptCommand, comboText: String, showPanel: () -> Void, notify: (String, Bool) -> Void) {
-        switch ScriptShortcut.step(for: script, isConfirmed: shortcutConfirmation.press(script.id, at: .now)) {
+    func runFromShortcut(_ script: ScriptCommand, comboText: String, showPanel: () -> Void, hud: HUDController) {
+        let text = "Press \(comboText) again to run \(script.metadata.title)"
+        let shortcutPrompt = shortcutPrompt
+        let confirmed = {
+            shortcutPrompt.press(
+                script.id,
+                isShown: { hud.currentText == text },
+                show: { hud.show(text, isError: false, duration: shortcutPrompt.window + 1) },
+                hide: { hud.hide() }
+            )
+        }
+        switch ScriptShortcut.step(for: script, isConfirmed: confirmed()) {
         case .notExecutable:
-            notify("Not executable. Select it in DOT and press ⌘⇧X.", true)
+            hud.show("Not executable. Select it in DOT and press ⌘⇧X.", isError: true)
         case .confirm:
-            notify("Press \(comboText) again to run \(script.metadata.title)", false)
+            break // the prompt is up
         case .fillArguments:
             showPanel()
-            confirmation.reset()
+            prompt.reset()
             form.prepare(script)
             model.reset(to: .scriptArguments)
         case .runInPanel:
@@ -93,9 +108,20 @@ final class ScriptActions {
     /// ↩ in the arguments form.
     func submitArguments() {
         guard let script = form.script, let arguments = form.arguments() else { return }
-        guard confirmed(script) else {
-            form.message = "Press ↩ again to run \(script.metadata.title)"
-            return
+        if script.metadata.needsConfirmation {
+            // Confirms these values: editing one after the prompt asks again.
+            let text = "Press ↩ again to run \(script.metadata.title)"
+            let form = form
+            let confirmed = prompt.press(
+                script.id,
+                isShown: { [weak self] in form.message == text && form.values == self?.askedValues },
+                show: {
+                    askedValues = form.values
+                    form.message = text
+                },
+                hide: { form.message = nil }
+            )
+            guard confirmed else { return }
         }
         start(script, arguments)
     }
@@ -117,11 +143,6 @@ final class ScriptActions {
                 run.stop()
             }
         }
-    }
-
-    private func confirmed(_ script: ScriptCommand) -> Bool {
-        guard script.metadata.needsConfirmation else { return true }
-        return confirmation.press(script.id, at: .now)
     }
 
     private func makeExecutable(_ script: ScriptCommand) {

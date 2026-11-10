@@ -64,7 +64,12 @@ struct ScriptArgumentsView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .onAppear { focused = 0 }
+        // On the next turn: when the form first appears its fields are not
+        // in the window yet, and the search field keeps the keyboard.
+        .task {
+            try? await Task.sleep(for: .milliseconds(100))
+            focused = 0
+        }
         .onExitCommand(perform: cancel)
     }
 

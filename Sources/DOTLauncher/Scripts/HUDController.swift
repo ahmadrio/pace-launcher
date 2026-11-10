@@ -6,9 +6,12 @@ import SwiftUI
 final class HUDController {
     private var panel: NSPanel?
     private var hideTask: Task<Void, Never>?
+    /// The message on screen; nil once hidden.
+    private(set) var currentText: String?
 
-    func show(_ text: String, isError: Bool) {
+    func show(_ text: String, isError: Bool, duration: TimeInterval = 2.2) {
         hideTask?.cancel()
+        currentText = text
         let panel = panel ?? makePanel()
         self.panel = panel
         panel.contentView = NSHostingView(rootView: HUDView(text: text, isError: isError))
@@ -20,10 +23,16 @@ final class HUDController {
         }
         panel.orderFrontRegardless()
         hideTask = Task {
-            try? await Task.sleep(for: .seconds(2.2))
+            try? await Task.sleep(for: .seconds(duration))
             guard !Task.isCancelled else { return }
-            self.panel?.orderOut(nil)
+            self.hide()
         }
+    }
+
+    func hide() {
+        hideTask?.cancel()
+        panel?.orderOut(nil)
+        currentText = nil
     }
 
     private func makePanel() -> NSPanel {

@@ -4,7 +4,7 @@ BUILT_APP := build/$(APP_NAME)
 INSTALLED_APP := $(HOME)/Applications/$(APP_NAME)
 BUNDLE_ID := io.github.ahmadrio.PACELauncher
 
-.PHONY: test app run install logs reset-tcc signing-identity clean
+.PHONY: test app run install release logs reset-tcc signing-identity clean
 
 test:
 	swift test
@@ -24,6 +24,10 @@ install: app
 
 run: install
 	open "$(INSTALLED_APP)"
+
+# A checked DMG and SHA-256 checksum in build/release (docs/RELEASING.md).
+release:
+	scripts/package-release.sh
 
 logs:
 	log stream --style compact --level debug --predicate 'subsystem == "$(BUNDLE_ID)"'

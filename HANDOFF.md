@@ -88,7 +88,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-11-tahap-23-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-11-tahap-23.md`
   - Ledger: `docs/superpowers/plans/2026-11-11-tahap-23-ledger.md`
-- **Tahap 24** (siap publik: README, LICENSE, PRIVACY, skrip rilis, pemindaian akhir) selesai dan sudah di-merge ke `main` (11 Nov 2026). Publikasi disetujui Pace ("ya", 11 Nov 06:15).
+- **Tahap 24** (siap publik: README, LICENSE, PRIVACY, skrip rilis, pemindaian akhir) selesai, di-merge ke `main`, dan **dipublikasikan** (11 Nov 2026, disetujui Pace "ya" 06:15): repo publik https://github.com/ahmadrio/pace-launcher, rilis **v1.0.0** di https://github.com/ahmadrio/pace-launcher/releases/tag/v1.0.0.
   - Desain: `docs/superpowers/specs/2026-11-11-tahap-24-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-11-tahap-24.md`
   - Ledger: `docs/superpowers/plans/2026-11-11-tahap-24-ledger.md`
@@ -290,7 +290,7 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
 - **Skrip rilis:** keenam minor tahap 22 beres (`-dirty`, tolak di luar git, DMG bernama sementara sampai semua cek lolos, `ls -A`, daftar identitas dibaca ke variabel, skrip sertifikat mencari di semua keychain dan tidak menyembunyikan error `openssl`). Skrip sertifikat tidak dijalankan.
 - **Path pembangun di binary rilis:** build rilis sempat memuat 289 salinan `/Users/pace/…` (tabel simbol debug dan dua stub "unimplemented initializer"). Kini: `strip -S` + `-file-prefix-map` (release saja) → 0, dan `make release` gagal kalau `$HOME` atau path checkout ada di byte binary. Build debug tetap memuat path (tidak dibagikan).
 - **Pemindaian akhir (11 Nov 06:08):** `gitleaks` 240 commit + folder kerja: tidak ada kebocoran. Pola sendiri di seluruh riwayat: tidak ada kunci privat, token, atau kata sandi; email di isi file hanya `noreply@anthropic.com`; IP hanya contoh (`1.2.3.4`, `127.0.0.1`). **Ikut publik atas keputusan Pace ("apa adanya"):** nama dan email author di metadata semua commit; path `/Users/pace/…` di beberapa dokumen; satu sebutan Mattermost (ledger tahap 12); profil browser "Ahmad"/"Work" (HANDOFF, spec tahap 13). File terbesar: `AppIcon.icns` 1 MB.
-- **DMG terakhir** dibuat dari commit di branch `tahap-24`; rilis sungguhan dibuat ulang dari `main` setelah merge.
+- **Rilis v1.0.0 (11 Nov 06:33):** DMG dibuat dari `de869c3` (tag `v1.0.0`, annotated), SHA-256 `25d55a8636a5e2a456d24582aba7b94bc116f1c4800a74b56c5d4937352725a0`, tanpa path dari Mac Pace. Dicek setelah terbit: GitHub mengenali GPL-3.0; `releases/latest` (tanpa login, header seperti app) mengembalikan `v1.0.0`; DMG yang diunduh dari GitHub lolos `shasum -c` dan identik dengan file lokal. Deskripsi repo: "A free, open-source launcher for macOS 27: apps, calculator, clipboard history, snippets, window snapping and more."
 
 ## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)
 - **Publik, tanpa Apple Developer Program**: tidak dinotarisasi; pengguna membuka lewat System Settings › Privacy & Security › Open Anyway. Ditandatangani dengan sertifikat **self-signed** (identitas tetap antar versi supaya izin pengguna bertahan setelah update), bukan sertifikat Apple Development.
@@ -301,10 +301,10 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   1. Tahap 21: ganti nama ke PACE Launcher (teks, bundle, modul, log), migrasi data `~/Library/Application Support/DOT Launcher` dan pengaturan lama, header skrip `@pace.*` (tetap menerima `@dot.*` dan `@raycast.*`). Izin Accessibility, Input Monitoring, dan Automation perlu diberi ulang sekali.
   2. Tahap 22 (selesai): paket rilis (sertifikat self-signed, versi 1.0.0, DMG, checksum, panduan instalasi).
   3. Tahap 23 (selesai): panduan izin saat pertama dibuka, cek update lewat GitHub Releases.
-  4. Tahap 24: README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir; lalu membuat repo publik dan push — **hanya setelah Pace bilang ya saat itu**.
+  4. Tahap 24 (selesai, dipublikasikan 11 Nov 2026): README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir, repo publik, rilis v1.0.0.
 
 ## Langkah berikutnya
-1. **Publikasi — hanya setelah Pace bilang ya saat itu:** setelah merge, commit ledger tahap 24 dan penanda merge di HANDOFF **dulu**, lalu di HEAD `main` itu `make release` (DMG harus dari commit yang di-tag); `gh repo create ahmadrio/pace-launcher --public --source . --remote origin --description "…"`; `git push -u origin main`; tag `v1.0.0` + push; `gh release create` sesuai `docs/RELEASING.md` (notes dari `docs/releases/v1.0.0.md` dengan SHA-256 diisi). Lalu cek: lisensi dikenali GitHub, `releases/latest` di API mengembalikan `v1.0.0`, checksum unduhan cocok. Setelah itu Pace memasang dari GitHub (uji Gatekeeper / Open Anyway sungguhan).
+1. **Pace memasang v1.0.0 dari GitHub Releases** (app belum terpasang di Mac-nya): uji alur Gatekeeper / Open Anyway sungguhan di macOS 27, lalu beri izin lewat jendela sambutan. Rilis berikutnya mengikuti `docs/RELEASING.md` (naikkan versi, catatan di `docs/releases/`, `make release`, tag, `gh release create`); `origin` = `https://github.com/ahmadrio/pace-launcher.git`, push ke `main` dan tag hanya dengan persetujuan Pace.
 2. Minor yang ditunda di ledger tahap 23.
 3. Minor yang ditunda di ledger tahap 20 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test; runner perintah sistem hanya diverifikasi dengan membaca kode).
 4. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).

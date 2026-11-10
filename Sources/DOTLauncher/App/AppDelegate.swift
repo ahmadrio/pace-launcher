@@ -112,7 +112,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 + CommandCatalog.appCommands(
                     toggleIcon: { self?.toggleMenuBarIcon() },
                     iconVisible: { self?.settings.data.showMenuBarIcon ?? true },
-                    openSettings: { self?.settingsWindow?.show() }
+                    openSettings: { self?.settingsWindow?.show() },
+                    openAppearance: { self?.settingsWindow?.show(section: .appearance) }
                 )
         }
         let search = LauncherSearch(
@@ -734,9 +735,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .alreadyRunning:
             hud?.show("\(command.title) is already running.", isError: false)
         case .timedOut:
-            // Finder may still be emptying a large Trash: not an error.
             guard case .appleScript(_, let target) = command.action else { return }
-            hud?.show("\(target) is still working on it.", isError: false)
+            if command == .emptyTrash {
+                // Finder may still be emptying a large Trash: not an error.
+                hud?.show("\(target) is still working on it.", isError: false)
+            } else {
+                // Usually an Automation prompt left unanswered.
+                hud?.show("\(target) did not answer in time.", isError: true)
+            }
         case .notPermitted:
             guard case .appleScript(_, let target) = command.action else { return }
             hud?.show("Allow DOT Launcher to control \(target) in Privacy & Security › Automation.", isError: true)

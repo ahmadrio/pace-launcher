@@ -21,17 +21,27 @@ enum CommandCatalog {
     /// App-level commands, so everything in the menu bar menu is still
     /// reachable when the menu bar icon is hidden.
     static func appCommands(
-        toggleIcon: @escaping () -> Void, iconVisible: @escaping () -> Bool, openSettings: @escaping () -> Void
+        toggleIcon: @escaping () -> Void, iconVisible: @escaping () -> Bool, openSettings: @escaping () -> Void,
+        openAppearance: @escaping () -> Void
     ) -> [LauncherCommand] {
         [
             LauncherCommand(
                 id: "settings",
                 title: "Settings",
                 subtitle: "Appearance, snippets, scripts, sync",
-                aliases: ["preferences", "settings", "theme", "tema", "appearance"],
+                aliases: ["preferences", "settings"],
                 symbol: "gearshape",
                 actionTitle: "Open",
                 action: .run(openSettings)
+            ),
+            LauncherCommand(
+                id: "appearance-settings",
+                title: "Appearance Settings",
+                subtitle: "Theme, accent colour, glass, light or dark",
+                aliases: ["theme", "tema", "appearance", "tampilan"],
+                symbol: "paintpalette",
+                actionTitle: "Open",
+                action: .run(openAppearance)
             ),
             LauncherCommand(
                 id: "toggle-menu-bar-icon",

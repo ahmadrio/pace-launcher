@@ -78,25 +78,28 @@ enum SystemCommandRunner {
     /// for DOT Launcher; it runs off the main thread, which matters while
     /// the permission dialog or macOS's restart dialog is up.
     private typealias ScriptRun = (source: String, onEnd: @MainActor (AppleScriptEnd) -> Void)
-    /// Runs waiting per command: Toggle Dark Mode reads then sets the
-    /// appearance, so two overlapping runs could cancel out wrongly.
-    private static var waitingScripts: [SystemCommand: [ScriptRun]] = [:]
-    private static var runningScripts: Set<SystemCommand> = []
+    /// One run per command: Toggle Dark Mode queues a repeat (it reads, then
+    /// sets the appearance); the others drop it while still running.
+    private static var scriptRuns = ScriptRunQueue<SystemCommand, ScriptRun>()
 
     private static func runAppleScript(_ source: String, for command: SystemCommand, onEnd: @escaping @MainActor (AppleScriptEnd) -> Void) {
-        waitingScripts[command, default: []].append((source, onEnd))
-        startNextScript(for: command)
+        switch scriptRuns.submit((source, onEnd), for: command, queueIfBusy: command.queuesRepeatRuns) {
+        case .start(let run):
+            launch(run, for: command)
+        case .queued:
+            Log.app.info("system command \(command.rawValue, privacy: .public) waits for its previous run")
+        case .dropped:
+            Log.app.info("system command \(command.rawValue, privacy: .public) is already running")
+            onEnd(.alreadyRunning)
+        }
     }
 
-    private static func startNextScript(for command: SystemCommand) {
-        guard !runningScripts.contains(command), var waiting = waitingScripts[command], !waiting.isEmpty else { return }
-        let run = waiting.removeFirst()
-        waitingScripts[command] = waiting
-        runningScripts.insert(command)
+    private static func launch(_ run: ScriptRun, for command: SystemCommand) {
+        Log.app.info("system command \(command.rawValue, privacy: .public) started")
         start(run.source, for: command) { end in
+            Log.app.info("system command \(command.rawValue, privacy: .public) finished: \(String(describing: end), privacy: .public)")
             run.onEnd(end)
-            runningScripts.remove(command)
-            startNextScript(for: command)
+            if let next = scriptRuns.finish(command) { launch(next, for: command) }
         }
     }
 
@@ -112,9 +115,6 @@ enum SystemCommandRunner {
         process.terminationHandler = { process in
             let output = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
             let end = AppleScriptEnd(status: process.terminationStatus, errorOutput: output)
-            if end != .done {
-                log.notice("system command \(name, privacy: .public) ended: \(String(describing: end), privacy: .public)")
-            }
             Task { @MainActor in onEnd(end) }
         }
         do {

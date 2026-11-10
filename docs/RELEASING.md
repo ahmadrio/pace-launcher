@@ -55,8 +55,12 @@ security import PACE-Launcher-Signing.p12 -k ~/Library/Keychains/login.keychain-
    - Publish the release normally. Drafts and pre-releases are never offered to users.
    - Attach both files from `build/release/`.
    - In the notes, link `docs/INSTALL.md`, mention Open Anyway, and paste the SHA-256.
+   - Write the notes in `docs/releases/v<version>.md` (copy the previous one) and commit them before `make release`. Keep `SHA256_PLACEHOLDER` in them: each build has its own checksum, and the commands below fill it in.
    ```sh
    git tag v<version>
    git push origin v<version>
-   gh release create v<version> build/release/PACE-Launcher-<version>.dmg build/release/PACE-Launcher-<version>.dmg.sha256
+   sed "s/SHA256_PLACEHOLDER/$(cut -d' ' -f1 build/release/PACE-Launcher-<version>.dmg.sha256)/" \
+     docs/releases/v<version>.md > "$TMPDIR/release-notes.md"
+   gh release create v<version> --title "PACE Launcher <version>" --notes-file "$TMPDIR/release-notes.md" \
+     build/release/PACE-Launcher-<version>.dmg build/release/PACE-Launcher-<version>.dmg.sha256
    ```

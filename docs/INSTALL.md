@@ -6,7 +6,7 @@ PACE Launcher is free and open source. It is not notarized by Apple, because tha
 - macOS 27 on a Mac with Apple silicon.
 
 ## 1. Download and check
-1. From the **Releases** page of the PACE Launcher repository on GitHub, download both files:
+1. From the [latest release](https://github.com/ahmadrio/pace-launcher/releases/latest) on GitHub, download both files:
    - `PACE-Launcher-<version>.dmg`
    - `PACE-Launcher-<version>.dmg.sha256`
 2. Optional but recommended: check that the download is intact. In Terminal, from the folder holding both files:

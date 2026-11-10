@@ -30,6 +30,22 @@ public enum ScriptFolderEvents {
         return false
     }
 
+    /// The real path (symlinks, /tmp → /private/tmp), as FSEvents reports
+    /// it; a missing path gets its parent resolved.
+    public static func resolved(_ path: String) -> String {
+        let path = normalized(path)
+        if let real = realPath(path) { return real }
+        let parent = (path as NSString).deletingLastPathComponent
+        guard parent != path, let realParent = realPath(parent) else { return path }
+        return (realParent as NSString).appendingPathComponent((path as NSString).lastPathComponent)
+    }
+
+    private static func realPath(_ path: String) -> String? {
+        guard let pointer = realpath(path, nil) else { return nil }
+        defer { free(pointer) }
+        return String(cString: pointer)
+    }
+
     private static func normalized(_ path: String) -> String {
         var path = path
         while path.count > 1, path.hasSuffix("/") { path.removeLast() }

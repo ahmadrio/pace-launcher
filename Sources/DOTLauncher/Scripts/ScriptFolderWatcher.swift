@@ -19,7 +19,8 @@ final class ScriptFolderWatcher {
     /// Watches the folders (also ones that do not exist yet); does nothing
     /// when they are unchanged.
     func watch(_ folders: [URL]) {
-        self.folders = folders.map(\.path)
+        // FSEvents reports real paths (/private/tmp, symlink targets).
+        self.folders = folders.map { ScriptFolderEvents.resolved($0.path) }
         let paths = ScriptFolderEvents.watchPaths(for: self.folders)
         guard paths != watched else { return }
         stop()

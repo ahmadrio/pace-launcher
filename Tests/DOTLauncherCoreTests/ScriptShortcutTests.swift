@@ -107,5 +107,20 @@ struct ScriptShortcutTests {
         // ~ for a missing extra folder would report every file in it.
         #expect(ScriptFolderEvents.watchPaths(for: ["/tmp/main/", "/x/extra", "/tmp/main"]) == ["/tmp/main", "/x/extra"])
     }
+
+    @Test func `folders are compared by their real path`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        let real = folder.url.appending(path: "real")
+        try FileManager.default.createDirectory(at: real, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: folder.url.appending(path: "link"), withDestinationURL: real)
+        let link = folder.url.appending(path: "link").path
+        let resolved = ScriptFolderEvents.resolved(link)
+        #expect(resolved.hasSuffix("/real"))
+        #expect(resolved.hasPrefix("/private"))
+        #expect(ScriptFolderEvents.resolved(link + "/missing").hasSuffix("/real/missing"))
+        #expect(ScriptFolderEvents.isRelevant(resolved + "/a.sh", folders: [ScriptFolderEvents.resolved(link)]))
+        #expect(ScriptFolderEvents.resolved("/nowhere/at/all") == "/nowhere/at/all")
+    }
 }
 

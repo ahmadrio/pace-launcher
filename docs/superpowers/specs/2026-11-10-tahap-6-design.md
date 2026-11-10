@@ -75,7 +75,7 @@ Sama seperti tahap 5:
 - **Konversi**
   - Hasil kurs di bawah 1 memakai 3 digit signifikan: `1 idr to usd` = `0,0000553 USD`, bukan `0 USD`.
   - `Kb`, `Mb`, `Gb`, `Tb` (huruf b kecil, awalan huruf besar) adalah bit. Huruf kecil semua (`mb`) tetap byte, karena begitulah biasanya diketik.
-  - Pengambilan kurs memakai `URLSession` ephemeral: tanpa cookie, tanpa cache disk, tanpa `Accept-Language`.
+  - Pengambilan kurs memakai `URLSession` ephemeral: tanpa cookie dan tanpa cache disk. `Accept-Language` dan `User-Agent` diisi nilai umum (`en`, `DOTLauncher`), bukan bahasa dan versi sistem Pace.
 - **Clipboard**
   - TIFF untuk paste gambar dibuat hanya kalau app tujuan memintanya, tidak lagi selalu di main thread sebelum ⌘V.
   - Cache thumbnail dan ringkasan teks dibatasi (yang terakhir dipakai disimpan, yang lama dibuang).

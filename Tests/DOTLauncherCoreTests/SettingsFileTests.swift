@@ -91,4 +91,22 @@ struct SettingsFileTests {
         try folder.write("settings.json", "{}")
         #expect(!file.isWaitingForDownload)
     }
+
+    @Test func `quicklinks load leniently`() throws {
+        func decode(_ json: String) throws -> SettingsData {
+            try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8))
+        }
+        #expect(try decode("{}").quicklinks == Quicklink.defaults)
+        #expect(try decode(#"{"quicklinks": []}"#).quicklinks.isEmpty)
+        let mixed = try decode(#"{"quicklinks": [{"id": "6F1C2A3B-0000-4000-8000-000000000001", "name": "A", "url": "https://a.test"}, {"name": 3}], "showMenuBarIcon": false}"#)
+        #expect(mixed.quicklinks.map(\.name) == ["A"])
+        #expect(mixed.quicklinks.first?.keyword == nil)
+        #expect(!mixed.showMenuBarIcon)
+        #expect(try decode(#"{"quicklinks": "oops", "showMenuBarIcon": false}"#).quicklinks == Quicklink.defaults)
+
+        var data = SettingsData()
+        data.quicklinks = [Quicklink(name: "Wiki", keyword: "wk", url: "https://w.test/{query}")]
+        let copy = try JSONDecoder().decode(SettingsData.self, from: JSONEncoder().encode(data))
+        #expect(copy.quicklinks == data.quicklinks)
+    }
 }

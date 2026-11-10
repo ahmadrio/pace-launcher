@@ -13,11 +13,13 @@ public struct SettingsData: Codable, Sendable, Equatable {
     public var shortcuts: [String: String] = [:]
     /// How long unpinned clips are kept.
     public var clipboardRetention = ClipboardRetention.forever
+    /// Saved URLs for the launcher.
+    public var quicklinks: [Quicklink] = Quicklink.defaults
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts, clipboardRetention
+        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts, clipboardRetention, quicklinks
     }
 
     /// Missing keys keep their defaults, so older or newer files still load.
@@ -35,6 +37,19 @@ public struct SettingsData: Codable, Sendable, Equatable {
         // An unknown value (from a newer version) keeps the default instead
         // of resetting every setting.
         clipboardRetention = (try? container.decodeIfPresent(ClipboardRetention.self, forKey: .clipboardRetention)) ?? defaults.clipboardRetention
+        // A broken entry is skipped; an unreadable list or a missing key
+        // gives the starter quicklinks. Either way the other settings load.
+        quicklinks = (try? container.decodeIfPresent([Lossy<Quicklink>].self, forKey: .quicklinks))
+            .map { $0.compactMap(\.value) } ?? defaults.quicklinks
+    }
+}
+
+/// Decodes to nil instead of failing, so one bad array element is skipped.
+private struct Lossy<Value: Decodable>: Decodable {
+    let value: Value?
+
+    init(from decoder: any Decoder) throws {
+        value = try? Value(from: decoder)
     }
 }
 

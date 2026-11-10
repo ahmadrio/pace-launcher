@@ -81,6 +81,13 @@ struct UpdateCheckTests {
         #expect(GitHubRelease.decode(body("v1.2.3/../x")) == nil)
     }
 
+    @Test func `restores a remembered release from its tag`() throws {
+        let restored = try #require(GitHubRelease(tag: "v1.1.0"))
+        #expect(restored == (try release("v1.1.0")))
+        #expect(GitHubRelease(tag: "nightly") == nil)
+        #expect(GitHubRelease(tag: "v1.2.3/../x") == nil)
+    }
+
     @Test func `announces each version once`() throws {
         #expect(UpdateCheck.shouldAnnounce(try release("v1.1.0"), announced: nil))
         #expect(!UpdateCheck.shouldAnnounce(try release("v1.1"), announced: "1.1.0"))

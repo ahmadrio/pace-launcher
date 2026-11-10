@@ -14,8 +14,14 @@ final class HUDController {
         currentText = text
         let panel = panel ?? makePanel()
         self.panel = panel
-        panel.contentView = NSHostingView(rootView: HUDView(text: text, isError: isError))
-        let size = panel.contentView?.fittingSize ?? NSSize(width: 320, height: 44)
+        let host = NSHostingView(rootView: HUDView(text: text, isError: isError))
+        panel.contentView = host
+        // fittingSize lays the text out on one line; a message wider than
+        // the HUD gets the height of its wrapped lines instead.
+        var size = host.fittingSize
+        if size.width >= HUDView.maxWidth {
+            size = NSHostingController(rootView: host.rootView).sizeThatFits(in: NSSize(width: HUDView.maxWidth, height: 400))
+        }
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         if let visible = screen?.visibleFrame {
@@ -48,6 +54,8 @@ final class HUDController {
 }
 
 private struct HUDView: View {
+    static let maxWidth: CGFloat = 520
+
     let text: String
     let isError: Bool
 
@@ -58,7 +66,7 @@ private struct HUDView: View {
             .lineLimit(2)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .frame(maxWidth: 520)
+            .frame(maxWidth: Self.maxWidth)
             .glassEffect(in: .capsule)
     }
 }

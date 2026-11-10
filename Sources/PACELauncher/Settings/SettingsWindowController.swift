@@ -12,15 +12,17 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let shortcuts: ShortcutRecorder
     private let clipboard: ClipboardMaintenance
     private let quicklinks: QuicklinkEditor
+    private let updates: UpdateChecker
     private var window: NSWindow?
 
-    init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController, sync: SyncController, shortcuts: ShortcutRecorder, clipboard: ClipboardMaintenance) {
+    init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController, sync: SyncController, shortcuts: ShortcutRecorder, clipboard: ClipboardMaintenance, updates: UpdateChecker) {
         self.settings = settings
         self.scripts = scripts
         self.autoExpand = autoExpand
         self.sync = sync
         self.shortcuts = shortcuts
         self.clipboard = clipboard
+        self.updates = updates
         quicklinks = QuicklinkEditor(settings: settings)
     }
 
@@ -62,7 +64,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.delegate = self
         shortcuts.window = window
-        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync, shortcuts: shortcuts, clipboard: clipboard, quicklinks: quicklinks))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync, shortcuts: shortcuts, clipboard: clipboard, quicklinks: quicklinks, updates: updates))
         if !window.setFrameUsingName("PACESettingsWindow") {
             window.center()
         }

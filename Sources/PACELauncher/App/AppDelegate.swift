@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var scriptActions: ScriptActions?
     private var autoExpand: AutoExpandController?
     private var sync: SyncController?
+    private var updates: UpdateChecker?
 
     /// With sync on, quitting writes one last clipboard backup first
     /// (at most 10 s, so quitting never hangs).
@@ -93,6 +94,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.theme = theme
         let panelController = PanelController(model: model, theme: theme)
         let hotKeys = HotKeyCenter()
+        let updates = UpdateChecker(settings: settings)
+        self.updates = updates
 
         let windowCommands = CommandCatalog.windowCommands { action in
             windows.perform(action, on: panelController.targetApp)
@@ -115,6 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     openSettings: { self?.settingsWindow?.show() },
                     openAppearance: { self?.settingsWindow?.show(section: .appearance) }
                 )
+                + [CommandCatalog.checkForUpdates(updates)]
         }
         let search = LauncherSearch(
             indexer: indexer, usage: usage, icons: icons,
@@ -208,6 +212,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let session = ScriptSession()
         let hud = HUDController()
         self.hud = hud
+        updates.onAnnounce = { [weak self] release in
+            let place = self?.settings.data.showMenuBarIcon ?? true ? "Download it from the menu bar." : "Run “Check for Updates” to download it."
+            hud.show("PACE Launcher \(release.version) is available. \(place)", isError: false, duration: 6)
+        }
         model.customContent[.scriptOutput] = { AnyView(ScriptOutputView(session: session)) }
         model.handlers[.scriptOutput] = LauncherModel.ModeHandler(
             actions: {
@@ -609,7 +617,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             hideIcon: { [weak self] in self?.toggleMenuBarIcon() },
             openSettings: { [weak self] in self?.settingsWindow?.show() },
-            autoExpandStatus: { autoExpand.status }
+            autoExpandStatus: { autoExpand.status },
+            updates: updates
         )
         statusMenu?.setIconVisible(settings.data.showMenuBarIcon)
 
@@ -625,7 +634,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         maintenance.start()
         self.clipboardMaintenance = maintenance
-        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand, sync: sync, shortcuts: recorder, clipboard: maintenance)
+        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand, sync: sync, shortcuts: recorder, clipboard: maintenance, updates: updates)
         self.settingsWindow = settingsWindow
         panelController.canHideApp = { !settingsWindow.isVisible }
         settings.onChange = { [weak self] old, new in
@@ -652,8 +661,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if old.clipboardRetention != new.clipboardRetention {
                 self.clipboardMaintenance?.prune()
             }
+            if !old.checkForUpdates, new.checkForUpdates {
+                self.updates?.checkIfDue()
+            }
         }
         sync.start()
+        updates.start()
     }
 
     /// Notes in the active data folder; deleted notes go to the Trash.

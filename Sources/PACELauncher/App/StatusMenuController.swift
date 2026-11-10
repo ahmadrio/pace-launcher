@@ -14,6 +14,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let hideIcon: () -> Void
     private let openSettings: () -> Void
     private let autoExpandStatus: () -> AutoExpandController.Status
+    private let updates: UpdateChecker
 
     init(
         hotKeys: HotKeyCenter,
@@ -23,7 +24,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         enableAnyway: @escaping (GatedHotKey.Blocker) -> Void,
         hideIcon: @escaping () -> Void,
         openSettings: @escaping () -> Void,
-        autoExpandStatus: @escaping () -> AutoExpandController.Status
+        autoExpandStatus: @escaping () -> AutoExpandController.Status,
+        updates: UpdateChecker
     ) {
         self.hotKeys = hotKeys
         self.blockedGroups = blockedGroups
@@ -33,6 +35,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.hideIcon = hideIcon
         self.openSettings = openSettings
         self.autoExpandStatus = autoExpandStatus
+        self.updates = updates
         super.init()
         if let button = statusItem.button {
             button.image = MenuBarIcon.image()
@@ -46,6 +49,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
         if AppPaths.isUsingTestFolders {
             addInfo("⚠︎ Test data folders in use")
+        }
+        if let release = updates.available {
+            addItem("Download PACE Launcher \(release.version)…", action: #selector(downloadUpdate))
+            menu.addItem(.separator())
         }
         let launcherCombo = hotKeys.combo(of: ShortcutID.launcher.rawValue)?.displayString ?? ""
         addItem("Open PACE Launcher   \(launcherCombo)", action: #selector(open))
@@ -93,6 +100,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         } else {
             addInfo("Launch at Login: run `make run` to install first")
         }
+        addItem("Check for Updates…", action: #selector(checkForUpdates))
         addItem("Settings…", action: #selector(showSettings), key: ",")
         addItem("Hide Menu Bar Icon", action: #selector(hideMenuBarIcon))
         addItem("Quit PACE Launcher", action: #selector(quit), key: "q")
@@ -108,6 +116,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    @objc private func downloadUpdate() {
+        updates.openDownloadPage()
+    }
+
+    @objc private func checkForUpdates() {
+        updates.checkNow()
     }
 
     @objc private func showSettings() {

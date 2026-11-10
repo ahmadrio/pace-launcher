@@ -47,6 +47,7 @@ struct SettingsView: View {
     let shortcuts: ShortcutRecorder
     let clipboard: ClipboardMaintenance
     let quicklinks: QuicklinkEditor
+    let updates: UpdateChecker
 
     var body: some View {
         HStack(spacing: 0) {
@@ -91,7 +92,7 @@ struct SettingsView: View {
     @ViewBuilder private var detail: some View {
         switch model.section {
         case .general:
-            GeneralSettings(settings: settings, clipboard: clipboard)
+            GeneralSettings(settings: settings, clipboard: clipboard, updates: updates)
         case .appearance:
             AppearanceSettings(settings: settings)
         case .shortcuts:
@@ -111,6 +112,7 @@ struct SettingsView: View {
 private struct GeneralSettings: View {
     let settings: SettingsStore
     let clipboard: ClipboardMaintenance
+    let updates: UpdateChecker
 
     var body: some View {
         @Bindable var settings = settings
@@ -139,6 +141,10 @@ private struct GeneralSettings: View {
                     }
                 }
             }
+
+            Divider()
+
+            UpdateSettings(settings: settings, updates: updates)
 
             Divider()
 
@@ -202,6 +208,53 @@ private struct GeneralSettings: View {
                 }
             }
         }
+    }
+}
+
+/// Automatic update checks, the current version, and "Check Now".
+private struct UpdateSettings: View {
+    let settings: SettingsStore
+    let updates: UpdateChecker
+
+    var body: some View {
+        @Bindable var settings = settings
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Updates").font(.headline)
+            Toggle("Check for updates automatically", isOn: $settings.data.checkForUpdates)
+                .accessibilityIdentifier("check-updates-automatically")
+            Text(UpdateSettings.caption)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            HStack {
+                Text(statusLine)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if updates.isChecking {
+                    ProgressView().controlSize(.small)
+                }
+                Button("Check Now") { updates.checkNow() }
+                    .disabled(updates.isChecking)
+                    .accessibilityIdentifier("check-updates-now")
+            }
+            if let release = updates.available {
+                HStack {
+                    Label("PACE Launcher \(release.version.description) is available", systemImage: "arrow.down.circle")
+                    Spacer()
+                    Button("Download…") { updates.openDownloadPage() }
+                }
+                .padding(8)
+                .background(.quaternary, in: .rect(cornerRadius: 6))
+            }
+        }
+    }
+
+    static let caption = "Once a day PACE asks GitHub for the latest release. Nothing about you or your data is sent, and nothing is installed by itself."
+
+    private var statusLine: String {
+        let version = updates.current.map { "Version \($0)" } ?? "Version unknown"
+        guard let checked = updates.lastSuccess else { return "\(version) · Not checked yet" }
+        return "\(version) · Last checked \(checked.formatted(date: .abbreviated, time: .shortened))"
     }
 }
 

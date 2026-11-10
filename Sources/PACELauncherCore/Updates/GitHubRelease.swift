@@ -8,6 +8,20 @@ public struct GitHubRelease: Sendable, Equatable {
     public let isDraft: Bool
     public let isPrerelease: Bool
 
+    init(tag: String, version: AppVersion, isDraft: Bool, isPrerelease: Bool) {
+        self.tag = tag
+        self.version = version
+        self.isDraft = isDraft
+        self.isPrerelease = isPrerelease
+    }
+
+    /// A published release remembered by its tag; nil unless the tag is a
+    /// version.
+    public init?(tag: String) {
+        guard let version = AppVersion(tag) else { return nil }
+        self.init(tag: tag, version: version, isDraft: false, isPrerelease: false)
+    }
+
     private struct Response: Decodable {
         let tag_name: String
         let draft: Bool?

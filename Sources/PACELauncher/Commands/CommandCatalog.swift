@@ -76,6 +76,33 @@ enum CommandCatalog {
         ]
     }
 
+    /// "Check for Updates": downloads a release already found, otherwise
+    /// asks GitHub now and answers with a dialog.
+    static func checkForUpdates(_ updates: UpdateChecker) -> LauncherCommand {
+        let version = updates.current.map { "Version \($0)" } ?? "Version unknown"
+        let subtitle: String
+        if let release = updates.available {
+            subtitle = "\(version) · \(release.version) is available"
+        } else if let checked = updates.lastSuccess {
+            let relative = RelativeDateTimeFormatter()
+            relative.unitsStyle = .full
+            subtitle = "\(version) · checked \(relative.localizedString(for: checked, relativeTo: .now))"
+        } else {
+            subtitle = version
+        }
+        return LauncherCommand(
+            id: "check-for-updates",
+            title: updates.available.map { "Download PACE Launcher \($0.version)" } ?? "Check for Updates",
+            subtitle: subtitle,
+            aliases: ["check for updates", "update", "updates", "pembaruan", "version", "versi"],
+            symbol: "arrow.down.circle",
+            actionTitle: updates.available == nil ? "Check" : "Download",
+            action: .run {
+                if updates.available != nil { updates.openDownloadPage() } else { updates.checkNow() }
+            }
+        )
+    }
+
     static func windowCommands(perform: @escaping (WindowAction) -> Void) -> [LauncherCommand] {
         WindowAction.allCases.map { action in
             let shortcut = action.defaultHotKey.flatMap(KeyCombo.init)?.displayString

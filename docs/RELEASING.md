@@ -49,7 +49,10 @@ security import PACE-Launcher-Signing.p12 -k ~/Library/Keychains/login.keychain-
 
       Gatekeeper reports "rejected" here; that is expected without notarization.
    6. It writes `PACE-Launcher-<version>.dmg.sha256` and checks it with `shasum -a 256 -c`.
-4. Tag the commit `v<version>` and publish a GitHub Release with that tag.
+4. Tag the commit `v<version>` and publish a GitHub Release with that tag. The app's update check depends on it:
+   - PACE reads `releases/latest` of `ahmadrio/pace-launcher` (`UpdateCheck.repository` in `Sources/PACELauncherCore/Updates/UpdateCheck.swift`). If the repository is renamed, change that constant first.
+   - The tag must be `v` plus the same `x.y.z` as `CFBundleShortVersionString`. A tag PACE can't read as a version is ignored.
+   - Publish the release normally. Drafts and pre-releases are never offered to users.
    - Attach both files from `build/release/`.
    - In the notes, link `docs/INSTALL.md`, mention Open Anyway, and paste the SHA-256.
    ```sh

@@ -84,6 +84,10 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-22-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-22.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-22-ledger.md`
+- **Tahap 23** (jendela sambutan, izin, cek update) selesai di branch `tahap-23`, belum di-merge (11 Nov 2026).
+  - Desain: `docs/superpowers/specs/2026-11-11-tahap-23-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-11-tahap-23.md`
+  - Ledger: `docs/superpowers/plans/2026-11-11-tahap-23-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -105,7 +109,9 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
 | **Script commands** | Skrip apa pun dengan header `# @pace.title` (atau `# @dot.title` / `# @raycast.title` lama) di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown; form langsung fokus ke isian teks/password pertama — melewati dropdown — juga saat dibuka ulang lewat shortcut; isian password tidak memunculkan popup AutoFill "Passwords…" (`.textContentType(.oneTimeCode)`), jadi satu ↩ cukup; form yang hanya berisi dropdown tidak memfokus apa pun, ketikan awal tetap di kolom pencarian, dan ↩ menjalankan skrip dengan pilihan default; huruf yang diketik tepat setelah ↩ ikut pindah ke isian itu; Esc kembali ke pencarian) dan `needsConfirmation`. **Semua konfirmasi "tekan lagi"** (Log Out, baris skrip, form argumen, shortcut skrip lewat HUD) memakai `ConfirmationPrompt` (Core, diuji dengan jam palsu): tekan kedua hanya berlaku selama pesannya masih tampil, dan pesan hilang tepat saat tekan pertama habis (3 detik); mengubah isian form setelah pesan muncul meminta konfirmasi ulang. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
 | **Sync iCloud** | Settings › Sync › "Store data in iCloud Drive" (**default mati**). Saat menyala: Snippets, Notes, Scripts, dan `settings.json` pindah ke iCloud Drive › PACE Launcher, dan clipboard di-backup tiap 6 jam (5 backup terbaru disimpan) dan saat app ditutup. Restore memakai dua kali tekan. |
-| Menu bar | Status izin dan shortcut, Launch at Login, Hide Menu Bar Icon, Settings…, Quit. |
+| Menu bar | Status izin dan shortcut, Welcome & Permissions…, Launch at Login, Check for Updates…, Hide Menu Bar Icon, Settings…, Quit. |
+| **Sambutan & izin** | Jendela "Welcome to PACE Launcher" muncul **sekali per Mac** saat pertama dibuka: PACE ada di menu bar (tanpa ikon Dock), shortcut launcher aktual (catatan oranye + "Change Shortcut…" kalau dipakai app lain), dan empat izin (Accessibility, Input Monitoring, Paste from Other Apps, Automation) dengan kegunaan, status yang dibaca ulang tiap detik, dan tombol "Open Settings…". Juga toggle cek update dan Launch at login. Dibuka lagi lewat menu bar atau perintah "Welcome & Permissions" (`izin`, `permissions`, `welcome`, `setup`). |
+| **Cek update** | Sekali sehari (Settings › General › Updates, **default menyala**) PACE bertanya ke GitHub Releases `ahmadrio/pace-launcher`. Versi baru: HUD sekali per versi, item menu "Download PACE Launcher <v>…" (tetap ada setelah relaunch), baris di Settings, dan perintah launcher. "Check for Updates…" / "Check Now" / perintah "Check for Updates" menjawab dengan dialog (Download / Later; up to date; belum ada rilis; gagal + alasan). PACE hanya membuka halaman rilis; tidak pernah mengunduh atau memasang. |
 
 ## Keputusan
 - Nama: **PACE Launcher** (dulu DOT Launcher). Bundle ID: `io.github.ahmadrio.PACELauncher`. Target: **khusus macOS 27**.
@@ -118,7 +124,9 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Pengaturan yang ikut sync ada di `settings.json`: tema, ikon menu bar, auto-expand, app yang dikecualikan, backup clipboard, dan `shortcuts` (id → `"ctrl+opt+left"`, `""` = tanpa shortcut, id tidak ada = default).
   - Yang khusus Mac ini disimpan di UserDefaults: status sync, folder skrip tambahan, dan posisi jendela.
 - **Sync bersifat opt-in.** Kalau dimatikan, DOT sama sekali tidak membaca atau menulis iCloud Drive. Satu-satunya pengecualian adalah tombol "Delete iCloud Backups".
-- **Internet hanya untuk kurs:** `GET https://open.er-api.com/v6/latest/USD`, hanya saat konversi mata uang tampil dan cache (`exchange-rates.json`, lokal) belum ada atau lebih dari 12 jam; gagal → tunggu 1 menit atau Retry. Kurs lebih dari 7 hari ditandai "rates may be outdated". Uji offline: `PACERatesURLOverride`.
+- **Internet hanya untuk kurs dan cek update:**
+  - Kurs: `GET https://open.er-api.com/v6/latest/USD`, hanya saat konversi mata uang tampil dan cache (`exchange-rates.json`, lokal) belum ada atau lebih dari 12 jam; gagal → tunggu 1 menit atau Retry. Kurs lebih dari 7 hari ditandai "rates may be outdated". Uji offline: `PACERatesURLOverride`.
+  - Cek update (tahap 23): `GET https://api.github.com/repos/ahmadrio/pace-launcher/releases/latest`, paling sering sekali sehari setelah jawaban terakhir (dicoba 10 detik setelah app dibuka, lalu tiap jam), tidak selama jendela sambutan terbuka, dan tidak sama sekali kalau `checkForUpdates` mati. Header generik (`User-Agent: PACELauncher`), tanpa versi app atau data pengguna. URL dari jawaban GitHub tidak pernah dibuka; halaman rilis dibangun dari konstanta repo + tag. Uji: `PACEUpdatesURLOverride`.
   - Pemindahan file selalu disalin dulu, diverifikasi isinya, baru yang lama dihapus. Kalau nama sudah ada, keduanya disimpan dan file yang masuk diberi akhiran `(from This Mac)` atau `(from iCloud)`.
   - Kalau `Backups/` sudah berisi backup saat sync dinyalakan (misalnya setelah reset), backup otomatis ditahan sampai dipilih "Restore from Backup" atau "Keep Current History".
   - Mematikan sync tidak menghapus backup di iCloud. Sync juga menolak dimatikan selama masih ada file yang belum terunduh dari iCloud.
@@ -128,7 +136,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 384 test Core (Swift Testing)
+make test     # 399 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem io.github.ahmadrio.PACELauncher (termasuk debug)
 make reset-tcc   # reset izin Accessibility dan Automation (dialog izin muncul lagi)
@@ -140,6 +148,8 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   - `Sources/PACELauncherCore` berisi logika murni yang dites. Tambahan tahap 3: `Settings/` (SettingsData, SettingsFile, Theme), `Scripts/` (ScriptMetadata, ScriptScanner, ANSI), `Snippets/KeywordExpander`, dan `Sync/` (ICloudPlaceholder, FolderMigration, BackupRotation), ditambah backup/restore di `SQLiteDatabase`. Tambahan tahap 4: `Chat/` (ChatStore, ChatTitle), `Clipboard/` (ClipImage, ClipStats, file gambar di ClipboardStore), dan `Hotkeys/` (ShortcutID, Shortcuts, `KeyCombo.stringValue`). Tambahan tahap 5: `Calculator/` (Converter, MeasureUnit, ConversionFormat), `Currency/` (ExchangeRates, CurrencyNames), `Hotkeys/CommandShortcut` + `Shortcuts.registrationPlan`, `Clipboard/ClipboardRetention`, dan `Support/RunToken`.
   - `Sources/PACELauncher` berisi app. Tambahan tahap 3: `Settings/` (SettingsStore, SettingsView, ThemeController), `Scripts/` (ScriptRunner, ScriptLibrary, HUD), `Snippets/` (KeystrokeMonitor, AutoExpandController), dan `Sync/SyncController`. Tambahan tahap 4: riwayat di `AI/AIChatController` (lanjut chat via `LanguageModelSession(transcript:)`), `Clipboard/ClipPreviewView`, dan `Settings/ShortcutsSettings` (ShortcutRecorder); `HotKeyCenter` kini `@Observable` dan `AppDelegate.applyShortcuts()` mendaftarkan shortcut dari settings. Tambahan tahap 5: `Calculator/RatesService`, `Clipboard/ClipboardMaintenance` (retensi, Clear History, file yatim), dan baris konversi di `UI/LauncherSearch`.
 - **Data uji:** `defaults write io.github.ahmadrio.PACELauncher PACEDataRootOverride <folder>` dan `PACEiCloudRootOverride <folder>` mengalihkan semua data ke folder uji. Settings dan menu bar lalu menampilkan "Test data folders in use". Sync menolak menyala kalau hanya override lokal yang diisi. Setelah selesai, hapus kedua key dan `syncEnabled`.
+  - Selama folder uji dipakai, tanda per Mac memakai kunci berakhiran `.testData` (`welcomeShown.testData`, `lastUpdateCheck.testData`, `announcedUpdateVersion.testData`, `availableUpdateTag.testData`), jadi uji tidak pernah memakai "pembukaan pertama" Mac Pace. Hapus juga kunci-kunci itu setelah uji.
+  - Cek update otomatis tidak berjalan di folder uji kecuali `PACEUpdatesURLOverride` diisi (server lokal, misalnya `python3 -m http.server`). Jangan klik "Download…" saat uji: itu membuka github.com.
 
 ## Jebakan yang sudah ditemukan
 - **Swift Testing di CLT:** plugin `TestingMacros` tidak dimuat otomatis. `Package.swift` menambahkan `-plugin-path`.
@@ -256,6 +266,13 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   - paket `PACE_ALLOW_DIRTY` tanpa akhiran `-dirty`
 - **Belum diuji:** alur Gatekeeper sungguhan (unduhan ber-quarantine → "Open Anyway") di macOS 27. Teks di `INSTALL.md` mengikuti perilaku macOS 15+, dan Pace akan mengujinya saat memasang dari GitHub.
 
+## Tahap 23: sambutan, izin, cek update (11 Nov 2026)
+- **Jendela sambutan** (`Welcome/`): sekali per Mac (`welcomeShown` di UserDefaults, ditandai saat tampil), lalu dari menu bar / launcher. Status izin dari `PermissionChecklist` (Core); Input Monitoring dianggap granted selama keyboard tap auto-expand berjalan, karena di Mac Pace tap berjalan walau `CGPreflightListenEventAccess` bilang belum. Begitu izin itu diberikan, PACE mencoba menyalakan auto-expand sekali tanpa relaunch. Automation hanya dijelaskan (mengeceknya bisa memunculkan dialog).
+- **Cek update** (`Updates/UpdateChecker`, logika di Core `Updates/`): lihat "Keputusan". Hasil manual berupa `NSAlert`; hasil otomatis tidak pernah memunculkan dialog atau membuka browser. Rilis yang ditemukan disimpan (`availableUpdateTag`) dan dibuang begitu build ini sudah setara.
+- **HUD kini bisa dua baris.** Sebelumnya ukurannya selalu satu baris (`fittingSize`), jadi pesan panjang terpotong, termasuk "Allow PACE Launcher to control <app> in Privacy & Security › Automation.".
+- **Uji UI** di folder uji dengan server lokal sebagai pengganti GitHub: HUD, menu, keempat dialog, toggle mati (0 permintaan) dan nyala (1 permintaan), relaunch (0 permintaan, item menu tetap), jendela sambutan (0 permintaan selama terbuka, 1 setelah Done), dan hanya kunci `.testData` yang tertulis. Tampilan terang tidak difoto: Toggle Dark Mode untuk bundle baru akan memunculkan dialog Automation yang harus dijawab Pace.
+- **Belum diuji:** halaman rilis GitHub sungguhan (repo belum ada; tahap 24), dan izin yang diberikan sambil jendela sambutan terbuka (butuh Pace di System Settings).
+
 ## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)
 - **Publik, tanpa Apple Developer Program**: tidak dinotarisasi; pengguna membuka lewat System Settings › Privacy & Security › Open Anyway. Ditandatangani dengan sertifikat **self-signed** (identitas tetap antar versi supaya izin pengguna bertahan setelah update), bukan sertifikat Apple Development.
 - **Open source di GitHub** (akun `ahmadrio`), rilis lewat **GitHub Releases**. Lisensi **GPL-3.0**.
@@ -264,11 +281,11 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
 - **Urutan kerja usulan Claude:**
   1. Tahap 21: ganti nama ke PACE Launcher (teks, bundle, modul, log), migrasi data `~/Library/Application Support/DOT Launcher` dan pengaturan lama, header skrip `@pace.*` (tetap menerima `@dot.*` dan `@raycast.*`). Izin Accessibility, Input Monitoring, dan Automation perlu diberi ulang sekali.
   2. Tahap 22 (selesai): paket rilis (sertifikat self-signed, versi 1.0.0, DMG, checksum, panduan instalasi).
-  3. Tahap 23: panduan izin saat pertama dibuka, cek update lewat GitHub Releases.
+  3. Tahap 23 (selesai): panduan izin saat pertama dibuka, cek update lewat GitHub Releases.
   4. Tahap 24: README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir; lalu membuat repo publik dan push — **hanya setelah Pace bilang ya saat itu**.
 
 ## Langkah berikutnya
-1. **Tahap 23:** panduan izin saat pertama dibuka, dan cek update lewat GitHub Releases (tag `v<versi>`, lihat `docs/RELEASING.md`).
-2. **Tahap 24:** README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir, tautan halaman Releases di `docs/INSTALL.md`, minor skrip rilis dari ledger tahap 22, `make release` ulang; lalu repo publik, push, dan rilis pertama — **hanya setelah Pace bilang ya saat itu**.
+1. **Tahap 24:** README, LICENSE (GPL-3.0), kebijakan privasi (isi bagian "Network access" di `docs/INSTALL.md`), pemindaian akhir, tautan halaman Releases di `docs/INSTALL.md`, minor skrip rilis dari ledger tahap 22, `make release` ulang; lalu repo publik, push, dan rilis pertama — **hanya setelah Pace bilang ya saat itu**. Nama repo harus `ahmadrio/pace-launcher` (konstanta `UpdateCheck.repository`), atau ganti konstanta itu dulu.
+2. Minor yang ditunda di ledger tahap 23.
 3. Minor yang ditunda di ledger tahap 20 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test; runner perintah sistem hanya diverifikasi dengan membaca kode).
 4. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).

@@ -25,7 +25,12 @@ PACE Launcher is free and open source. It is not notarized by Apple, because tha
 1. Open PACE Launcher from Applications. macOS says it could not verify the app. Click **Done**.
 2. Open **System Settings › Privacy & Security** and scroll down to **Security**.
 3. Next to the message about PACE Launcher, click **Open Anyway**, then confirm with your password or Touch ID.
-4. PACE Launcher starts. Its icon appears in the menu bar, and **⌥Space** opens the launcher.
+4. PACE Launcher starts, and its **Welcome** window opens. It shows:
+   - that PACE lives in the menu bar (there is no Dock icon), and that **⌥Space** opens the launcher
+   - each permission, what it is for, and whether it is granted; the status updates while the window is open
+   - the update setting (see "Updates" below)
+
+   Reopen it any time with **Welcome & Permissions…** in the menu bar, or "Welcome & Permissions" in the launcher.
 
 You approve each new version this way once.
 
@@ -35,15 +40,29 @@ xattr -dr com.apple.quarantine "/Applications/PACE Launcher.app"
 ```
 
 ## 4. Permissions
-PACE Launcher asks for these when a feature first needs them. You can change them any time in **System Settings › Privacy & Security**.
+PACE Launcher asks for these when a feature first needs them, and the Welcome window lists them with buttons to the right System Settings pane. You can change them any time in **System Settings › Privacy & Security**.
 
 | Permission | Used for |
 |---|---|
-| Accessibility | Pasting into the app you were using, and moving and resizing windows. |
+| Accessibility | Pasting into the app you were using, moving and resizing windows, Lock Screen and Log Out. |
 | Input Monitoring | Expanding snippets as you type (some Macs only). |
+| Paste from Other Apps | Clipboard history. If macOS is set to ask each time, PACE pauses the history instead of asking on every copy. |
 | Automation | Restart, Shut Down, Empty Trash and Toggle Dark Mode. It controls System Events, Finder and the login window. macOS asks the first time you use one of these. |
 
 Every release is signed with the same certificate, so these permissions stay in place when you update.
+
+## Updates
+Once a day, PACE Launcher asks GitHub for the latest release of this repository. The request carries no information about you or your data, and PACE never downloads or installs anything by itself.
+- When a newer version exists, PACE shows a short message once, and the menu bar gets **Download PACE Launcher <version>…**, which opens the release page in your browser.
+- **Check for Updates…** in the menu bar (or "Check for Updates" in the launcher) asks right away and tells you the result.
+- To stop the daily check, turn off **Check for updates automatically** in **Settings › General** or in the Welcome window. Check for Updates still works when you ask.
+
+## Network access
+PACE Launcher connects to the internet only for:
+- **Exchange rates** (`open.er-api.com`), when a currency conversion is on screen and the saved rates are more than 12 hours old.
+- **The update check** (`api.github.com`), as described above.
+
+Opening a quicklink or a release page hands the address to your browser.
 
 ## Updating
 1. Quit PACE Launcher from its menu bar icon.

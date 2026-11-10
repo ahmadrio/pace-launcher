@@ -28,12 +28,16 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-8-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-8.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-8-ledger.md`
+- **Tahap 9** selesai di branch `tahap-9` (10 Nov 2026), belum di-merge.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-9-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-9.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-9-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
 | Launcher | ⌥Space membuka panel. App yang sedang aktif tetap di depan. ⌘C, ⌘V, ⌘A, dan ⌘Z berfungsi di kolom pencarian. |
 | Cari & buka aplikasi | Pencarian fuzzy (`vsc` → Visual Studio Code). Urutan hasil belajar dari pemakaian. |
-| Kalkulator | Ketik `(2+3)*4/3`, lalu ⏎ untuk menyalin. Titik dan koma sama-sama diterima sebagai desimal. Hasil ditampilkan dengan pemisah ribuan locale (`1.500.001`), tetapi disalin tanpa pemisah. **Konversi unit**: `10 km to mi`, `100 f in c`, `1 GiB to MB`, `3 meters ke feet` (panjang, massa, suhu, volume, luas, kecepatan, waktu, data). **Kurs**: `100 usd to idr`, `€50 in usd`, `$25` (ke mata uang locale), kurs dari ExchangeRate-API; hasil di bawah 1 memakai 3 digit signifikan (`1 idr to usd` = 0,0000553 USD). **Singkatan angka**: `1jt + 500rb`, `10k usd to idr`, `Rp 50rb`, `1 juta rupiah to usd` (k/rb/ribu, jt/juta, miliar, triliun, thousand/million/billion/trillion). `Mb`/`Gb` = bit, `mb`/`MB` = byte. ⏎ menyalin angka tanpa pemisah ribuan. |
+| Kalkulator | Ketik `(2+3)*4/3`, lalu ⏎ untuk menyalin. Titik dan koma sama-sama diterima sebagai desimal. Hasil ditampilkan dengan pemisah ribuan locale (`1.500.001`), tetapi disalin tanpa pemisah. **Konversi unit**: `10 km to mi`, `100 f in c`, `1 GiB to MB`, `3 meters ke feet` (panjang, massa, suhu, volume, luas, kecepatan, waktu, data). **Kurs**: `100 usd to idr`, `€50 in usd`, `$25` (ke mata uang locale), kurs dari ExchangeRate-API; hasil di bawah 1 memakai 3 digit signifikan (`1 idr to usd` = 0,0000553 USD). **Singkatan angka**: `1jt + 500rb`, `10k usd to idr`, `Rp 50rb`, `1 juta rupiah to usd` (k/rb/ribu, jt/juta, miliar, triliun, thousand/million/billion/trillion). `Mb`/`Gb` = bit, `mb`/`MB` = byte. ⏎ menyalin angka tanpa pemisah ribuan. **Tanggal & jam**: `now + 3 days`, `today + 2 weeks`, `besok + 1 bulan`, `days until 17 aug` / `hari menuju 17 agustus` (⏎ menyalin angkanya), `time in tokyo` / `jam di tokyo`, `5pm in london`, `23.00 wib in tokyo` (menandai hari yang berbeda). Zona: WIB/WITA/WIT, singkatan umum (JST, PST, …), AEST, UTC, dan nama kota. |
 | Clipboard history | Ketik "clip" atau ⇧⌥C, lalu ⏎ untuk paste. Isi password manager tidak disimpan. **Gambar** ikut tercatat (PNG di `Clipboard Images/`, maks. 20 MB / 50 megapiksel). Preview clip terpilih di kanan. ⌘P pin/unpin, ⌃X hapus (dua kali), **⌘⇧↩ paste sebagai teks polos** (tanpa format; tidak menambah clip baru). Settings › General › Clipboard History: **Keep history** (Forever … 1 day; clip yang di-pin tidak pernah dihapus; mempersingkat meminta konfirmasi dengan jumlah clip) dan **Clear History…** (dua kali tekan). |
 | Window snapping | "Left Half", "Maximize", "Restore", dan lainnya. Shortcut ⌃⌥ mengikuti Rectangle. |
 | Translator | Ketik "tr", ⏎, lalu tulis teks. Arah Indonesia ↔ Inggris dipilih otomatis, ⌘L membalik arah. Semuanya on-device. |
@@ -71,7 +75,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 325 test Core (Swift Testing)
+make test     # 340 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -122,6 +126,9 @@ make reset-tcc
 - **AX `set value` tidak sampai ke binding SwiftUI `TextField`:** di uji UI Settings, ketik sungguhan lewat penjaga yang memastikan app terdepan menurut `NSWorkspace.frontmostApplication` adalah DOT (System Events `frontmost` salah untuk app tanpa Dock) dan field yang dituju punya fokus.
 - **Uji quicklink tanpa membuka browser:** app penangkap kecil dengan skema `dott7://` mencatat URL yang diterima. LaunchServices menolak mengikat skema untuk app di folder sementara (`launch-disabled in-temp-dir`), jadi app itu didaftarkan dari `~/Library/Caches/dot-launcher-tests` lalu dicabut (`lsregister -u`) dan dihapus.
 - **`URL(string:)` longgar:** spasi di path di-encode diam-diam, host non-ASCII jadi punycode. Quicklink menolak template yang berisi spasi, lalu memakai parsing longgar (supaya `bücher.de` dan `|` diterima). `URL.host()` mengembalikan bentuk percent-encoded (`b%C3%BCcher.de`); URL yang dibuka memakai punycode (`absoluteString`).
+- **Kalkulator tanggal (`DateQuery`) dites dengan `now`, zona waktu, dan locale yang ditetapkan.** en_ID memakai titik untuk jam ("14.59"). `TimeZone(abbreviation:)` tidak mengenal WIB/WITA/WIT/AEST dan memetakan UTC ke GMT, jadi `TimeZoneNames` punya tabel sendiri. Jam harus berisi menit atau am/pm, supaya `10 in in cm` tetap konversi.
+- **FSEvents melaporkan path asli** (`/private/tmp`, target symlink): folder skrip diresolusi dengan `realpath` sebelum dibandingkan (`ScriptFolderEvents.resolved`).
+- **Host quicklink untuk tampilan diambil dari template** (`displayHost`), karena URL jadinya memakai punycode (`xn--bcher-kva.de`).
 - **Nama emoji Unicode kadang kuno** ("HEAVY BLACK HEART"): `EmojiCatalog` memakai tabel kecil nama + kata kunci populer untuk sekitar 40 emoji.
 - **Folder skrip dipantau FSEvents** (`ScriptFolderWatcher`, jeda 0,5 detik, `UseCFTypes | FileEvents`). Folder yang belum ada dipantau langsung (FSEvents melaporkan saat folder itu dibuat; induknya sengaja tidak dipantau karena untuk folder tambahan bisa berarti seluruh `~`); hanya path yang relevan (`ScriptFolderEvents.isRelevant`: tanpa komponen tersembunyi, maksimal kedalaman pemindai) memicu pembacaan ulang. Shortcut didaftarkan ulang hanya kalau kunci/judul skrip berubah (`ScriptShortcut.fingerprint`).
 - **Dokumen TextEdit uji:** `make new document with properties {name: …}` memunculkan dialog "You don't own the file" saat isinya diubah. Klik Cancel lalu tutup dengan `saving no`.
@@ -139,5 +146,6 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Minor yang ditunda di ledger tahap 8 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap, shortcut skrip yang hilang tidak memberi tanda saat ditekan).
-2. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): skin tone untuk emoji, quicklink yang dibuka di browser tertentu, kalkulator tanggal/waktu (`now + 3 days`).
+1. Merge `tahap-9` ke `main` (keputusan Pace).
+2. Minor yang ditunda di ledger tahap 9 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap, shortcut skrip yang hilang tidak memberi tanda saat ditekan).
+3. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): skin tone untuk emoji, quicklink yang dibuka di browser tertentu, selisih dua tanggal (`17 aug - 1 jan`).

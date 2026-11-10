@@ -18,6 +18,7 @@ public enum DateQuery {
         calendar.timeZone = timeZone
         return arithmetic(text, now: now, calendar: calendar)
             ?? countdown(text, now: now, calendar: calendar)
+            ?? zoneTime(text, now: now, calendar: calendar)
     }
 
     /// (title, copied text).
@@ -95,6 +96,50 @@ public enum DateQuery {
             rest = rest[match.range.upperBound...]
         }
         return .date(date, withTime: withTime)
+    }
+
+    // MARK: - Time zones
+
+    /// "time in tokyo", "5pm in london", "9:30am jst to wib", "23.00 wib ke tokyo".
+    private static func zoneTime(_ text: String, now: Date, calendar: Calendar) -> Result? {
+        if let match = text.wholeMatch(of: /(?:time|jam|waktu) (?:in|di) (.+)/),
+           let target = TimeZoneNames.zone(for: String(match.1)) {
+            return .time(now, zone: target.zone, place: target.place,
+                         dayChanged: !sameDay(now, calendar.timeZone, target.zone))
+        }
+        // A time needs minutes or am/pm: "5 in tokyo" is not one.
+        guard let match = text.wholeMatch(of: /(\d{1,2})(?:[:.](\d{2}))? ?(am|pm)?(?: (.+?))? (?:in|to|ke) (.+)/),
+              match.2 != nil || match.3 != nil,
+              var hour = Int(match.1)
+        else { return nil }
+        let minute = match.2.flatMap { Int($0) } ?? 0
+        if let meridiem = match.3 {
+            guard (1...12).contains(hour) else { return nil }
+            hour = hour % 12 + (meridiem == "pm" ? 12 : 0)
+        }
+        guard (0...23).contains(hour), (0...59).contains(minute),
+              let target = TimeZoneNames.zone(for: String(match.5))
+        else { return nil }
+        var source = calendar
+        if let name = match.4 {
+            guard let zone = TimeZoneNames.zone(for: String(name)) else { return nil }
+            source.timeZone = zone.zone
+        }
+        // That time today, in the source zone.
+        var components = source.dateComponents([.year, .month, .day], from: now)
+        components.hour = hour
+        components.minute = minute
+        guard let instant = source.date(from: components) else { return nil }
+        return .time(instant, zone: target.zone, place: target.place,
+                     dayChanged: !sameDay(instant, source.timeZone, target.zone))
+    }
+
+    private static func sameDay(_ date: Date, _ first: TimeZone, _ second: TimeZone) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = first
+        let a = calendar.dateComponents([.year, .month, .day], from: date)
+        calendar.timeZone = second
+        return a == calendar.dateComponents([.year, .month, .day], from: date)
     }
 
     // MARK: - Countdowns

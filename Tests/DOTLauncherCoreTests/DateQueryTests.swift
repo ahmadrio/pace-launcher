@@ -60,3 +60,51 @@ struct DateQueryTests {
         #expect(date.copy == date.title)
     }
 }
+
+struct TimeZoneQueryTests {
+    @Test func `zones by name`() {
+        let expected: [(String, String)] = [
+            ("wib", "Asia/Jakarta"), ("WITA", "Asia/Makassar"), ("wit", "Asia/Jayapura"), ("jst", "Asia/Tokyo"),
+            ("pst", "America/Los_Angeles"), ("aest", "Australia/Sydney"), ("utc", "GMT"), ("tokyo", "Asia/Tokyo"),
+            ("New York", "America/New_York"), ("nyc", "America/New_York"), ("bali", "Asia/Makassar"),
+        ]
+        for (name, identifier) in expected {
+            #expect(TimeZoneNames.zone(for: name)?.zone.identifier == identifier, "\(name)")
+        }
+        #expect(TimeZoneNames.zone(for: "atlantis") == nil)
+        #expect(TimeZoneNames.zone(for: "new york")?.place == "New York")
+        #expect(TimeZoneNames.zone(for: "wib")?.place == "WIB")
+    }
+
+    @Test func `time in a place`() {
+        #expect(evaluate("time in tokyo") == .time(tuesday, zone: TimeZone(identifier: "Asia/Tokyo")!, place: "Tokyo", dayChanged: false))
+        #expect(evaluate("jam di tokyo") == .time(tuesday, zone: TimeZone(identifier: "Asia/Tokyo")!, place: "Tokyo", dayChanged: false))
+    }
+
+    @Test func `converted times can cross midnight`() {
+        #expect(evaluate("5pm in london") == .time(wib(2026, 11, 10, 17), zone: TimeZone(identifier: "Europe/London")!, place: "London", dayChanged: false))
+        #expect(evaluate("9:30am jst to wib") == .time(wib(2026, 11, 10, 7, 30), zone: jakarta, place: "WIB", dayChanged: false))
+        #expect(evaluate("23.00 wib in tokyo") == .time(wib(2026, 11, 10, 23), zone: TimeZone(identifier: "Asia/Tokyo")!, place: "Tokyo", dayChanged: true))
+        guard case .time(_, _, let place, _)? = evaluate("17:00 ke new york") else {
+            Issue.record("expected a time")
+            return
+        }
+        #expect(place == "New York")
+    }
+
+    @Test func `ambiguous times are not converted`() {
+        for input in ["5 in tokyo", "13pm in tokyo", "25:00 in tokyo", "time in atlantis", "5pm in"] {
+            #expect(evaluate(input) == nil, "\(input)")
+        }
+    }
+
+    @Test func `converted times show the day when it changes`() {
+        let result = DateQuery.display(.time(wib(2026, 11, 10, 23), zone: TimeZone(identifier: "Asia/Tokyo")!, place: "Tokyo", dayChanged: true),
+                                       locale: Locale(identifier: "en_US"), timeZone: jakarta)
+        #expect(result.title.contains("Tokyo"))
+        #expect(result.title.contains(" · "))
+        #expect(!result.copy.contains("Tokyo"))
+        #expect(result.copy.contains("1:00"))
+    }
+}
+

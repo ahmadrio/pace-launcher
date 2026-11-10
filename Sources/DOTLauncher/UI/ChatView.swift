@@ -10,7 +10,7 @@ struct ChatView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 28))
                     .foregroundStyle(.tertiary)
-                Text(chat.unavailableReason ?? "Ask anything. Answers come from Apple's on-device model.\nQuestions in Indonesian are translated automatically.")
+                Text(chat.unavailableReason ?? "Ask anything. Answers come from Apple's on-device model.\nQuestions in Indonesian are translated automatically.\nPress ⌘Y for saved chats.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }

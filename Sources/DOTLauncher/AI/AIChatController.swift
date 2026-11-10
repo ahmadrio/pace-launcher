@@ -30,13 +30,17 @@ final class AIChatController {
 
     private(set) var messages: [ChatMessage] = []
     var showOriginal = false
+    /// The chat that finished exchanges are saved to.
+    private(set) var chatID = UUID()
 
     @ObservationIgnored private let translator: Translator
+    @ObservationIgnored private let store: ChatStore?
     @ObservationIgnored private var session = LanguageModelSession(instructions: AIChatController.instructions)
     @ObservationIgnored private var generation: Task<Void, Never>?
 
-    init(translator: Translator) {
+    init(translator: Translator, store: ChatStore?) {
         self.translator = translator
+        self.store = store
     }
 
     var isGenerating: Bool { generation != nil }
@@ -103,13 +107,102 @@ final class AIChatController {
         generation = nil
         messages = []
         showOriginal = false
+        chatID = UUID()
         session = LanguageModelSession(instructions: Self.instructions)
         prewarm()
+    }
+
+    // MARK: - History
+
+    /// Shows a saved chat and continues it with the same context.
+    func open(_ id: UUID) async {
+        guard let store else { return }
+        let saved: [SavedChatMessage]
+        do {
+            saved = try await store.messages(of: id)
+        } catch {
+            Log.app.error("could not load a chat: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        generation?.cancel()
+        generation = nil
+        messages = saved.map { message in
+            ChatMessage(
+                role: message.role == .user ? .user : .assistant,
+                text: message.text,
+                original: message.role == .assistant ? message.original : nil,
+                phase: .done
+            )
+        }
+        showOriginal = false
+        chatID = id
+        session = LanguageModelSession(transcript: Self.transcript(for: saved))
+        prewarm()
+    }
+
+    func history(matching query: String) async -> [ChatSummary] {
+        guard let store else { return [] }
+        do {
+            return try await store.chats(matching: query)
+        } catch {
+            Log.app.error("could not list chats: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    func delete(_ id: UUID) async {
+        do {
+            try await store?.delete(id)
+        } catch {
+            Log.app.error("could not delete a chat: \(error.localizedDescription, privacy: .public)")
+        }
+        // The open chat was deleted: start over so it is not saved again.
+        if id == chatID { reset() }
+    }
+
+    func deleteAll() async {
+        do {
+            try await store?.deleteAll()
+        } catch {
+            Log.app.error("could not delete chats: \(error.localizedDescription, privacy: .public)")
+        }
+        reset()
+    }
+
+    /// The saved messages as the model saw them, after the instructions.
+    private static func transcript(for saved: [SavedChatMessage]) -> Transcript {
+        var entries: [Transcript.Entry] = [
+            .instructions(Transcript.Instructions(segments: [.text(Transcript.TextSegment(content: instructions))], toolDefinitions: [])),
+        ]
+        for message in saved {
+            let segments: [Transcript.Segment] = [.text(Transcript.TextSegment(content: message.modelText))]
+            switch message.role {
+            case .user: entries.append(.prompt(Transcript.Prompt(segments: segments)))
+            case .assistant: entries.append(.response(Transcript.Response(assetIDs: [], segments: segments)))
+            }
+        }
+        return Transcript(entries: entries)
+    }
+
+    /// Saves a finished exchange (an answer stopped with Esc counts).
+    private func save(question: String, questionEnglish: String?, answerID: UUID, chat: UUID) async {
+        guard let store, let answer = messages.first(where: { $0.id == answerID }),
+              let exchange = SavedChatMessage.exchange(
+                  question: question, questionEnglish: questionEnglish,
+                  answer: answer.text, answerEnglish: answer.original
+              )
+        else { return }
+        do {
+            try await store.append(exchange, to: chat, at: .now)
+        } catch {
+            Log.app.error("could not save a chat: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     // MARK: - Private
 
     private func respond(to prompt: String, answerID: UUID) async {
+        let chat = chatID
         let supported = Set(SystemLanguageModel.default.supportedLanguages.compactMap { $0.languageCode?.identifier })
         let route = ChatLanguageRoute.route(detected: LanguageDetector.dominantLanguage(of: prompt), supported: supported)
 
@@ -147,6 +240,7 @@ final class AIChatController {
         } catch {
             if Task.isCancelled {
                 update(answerID) { $0.phase = .done }
+                await save(question: prompt, questionEnglish: bridgeLanguage == nil ? nil : modelPrompt, answerID: answerID, chat: chat)
             } else {
                 update(answerID) { $0.phase = .failed(Self.message(for: error)) }
             }
@@ -160,6 +254,7 @@ final class AIChatController {
                 $0.phase = .done
                 $0.isBridged = false
             }
+            await save(question: prompt, questionEnglish: bridgeLanguage == nil ? nil : modelPrompt, answerID: answerID, chat: chat)
             return
         }
 
@@ -172,6 +267,7 @@ final class AIChatController {
                 $0.phase = .done
                 $0.isBridged = false
             }
+            await save(question: prompt, questionEnglish: modelPrompt, answerID: answerID, chat: chat)
         } catch {
             update(answerID) { $0.phase = .failed("Could not translate the answer: \(error.localizedDescription)") }
         }

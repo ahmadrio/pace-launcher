@@ -39,6 +39,7 @@ final class LauncherModel {
         case clipboard
         case translate
         case ai
+        case chatHistory
         case snippets
         case notes
         case scriptOutput
@@ -50,6 +51,7 @@ final class LauncherModel {
             case .clipboard: "Search clipboard history…"
             case .translate: "Translate…"
             case .ai: "Ask anything…"
+            case .chatHistory: "Search AI chats…"
             case .snippets: "Search snippets…"
             case .notes: "Search notes…"
             case .scriptOutput: "Script output"
@@ -63,6 +65,7 @@ final class LauncherModel {
             case .clipboard: "Clipboard History"
             case .translate: "Translate"
             case .ai: "AI Chat"
+            case .chatHistory: "AI Chats"
             case .snippets: "Snippets"
             case .notes: "Notes"
             case .scriptOutput: "Script"

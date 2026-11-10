@@ -95,7 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let search = LauncherSearch(
             indexer: indexer, usage: Self.openUsageStore(), icons: icons,
             commands: { [weak self] in
-                [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat()] + windowCommands
+                [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat(), CommandCatalog.aiChatHistory()] + windowCommands
                     + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
                     + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
                     + CommandCatalog.scriptCommands(create: { self?.scriptLibrary.createTemplate() }, openFolder: { self?.scriptLibrary.openFolder() })
@@ -283,7 +283,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.translator = translator
 
-        let chat = AIChatController(translator: translator)
+        let chat = AIChatController(translator: translator, store: Self.openChatStore())
         let askAI: (String) -> Void = { query in
             model.reset(to: .ai)
             chat.send(query)
@@ -321,10 +321,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         action: .stay { chat.showOriginal.toggle() }
                     ))
                 }
+                actions.append(SecondaryAction(title: "History", shortcut: .command("y"), action: .enter(.chatHistory)))
                 return actions
             },
             escape: { chat.cancel() },
             entered: { chat.prewarm() }
+        )
+        let chatRelative = RelativeDateTimeFormatter()
+        chatRelative.unitsStyle = .abbreviated
+        model.handlers[.chatHistory] = LauncherModel.ModeHandler(
+            results: { query in
+                await chat.history(matching: query).map { summary in
+                    LauncherResult(
+                        id: "chat:" + summary.id.uuidString,
+                        title: summary.title,
+                        subtitle: "\(summary.messageCount) messages · \(chatRelative.localizedString(for: summary.updatedAt, relativeTo: .now))",
+                        icon: .symbol("bubble.left.and.bubble.right"),
+                        accessory: "Chat",
+                        actionTitle: "Open",
+                        action: .stay {
+                            Task {
+                                await chat.open(summary.id)
+                                model.reset(to: .ai)
+                            }
+                        },
+                        secondaryActions: [
+                            // Deleting is async: refresh once it is done.
+                            SecondaryAction(title: "Delete", shortcut: .delete, confirm: true, action: .stay {
+                                Task {
+                                    await chat.delete(summary.id)
+                                    model.refresh()
+                                }
+                            }),
+                        ]
+                    )
+                }
+            },
+            actions: {
+                [SecondaryAction(
+                    title: "Delete All Chats",
+                    shortcut: KeyShortcut(key: "\u{7f}", modifiers: [.command, .shift]),
+                    confirm: true,
+                    action: .stay {
+                        Task {
+                            await chat.deleteAll()
+                            model.refresh()
+                        }
+                    }
+                )]
+            }
         )
         self.chat = chat
         indexer.onUpdate = {
@@ -498,6 +543,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return try UsageStore(database: SQLiteDatabase(path: AppPaths.launcherDatabase.path))
         } catch {
             Log.app.error("usage store unavailable: \(String(describing: error), privacy: .public)")
+            return nil
+        }
+    }
+
+    private static func openChatStore() -> ChatStore? {
+        do {
+            return try ChatStore(path: AppPaths.chatDatabase.path)
+        } catch {
+            Log.app.error("chat store unavailable: \(String(describing: error), privacy: .public)")
             return nil
         }
     }

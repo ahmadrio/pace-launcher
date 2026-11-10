@@ -160,6 +160,18 @@ enum CommandCatalog {
         )
     }
 
+    static func aiChatHistory() -> LauncherCommand {
+        LauncherCommand(
+            id: "ai-chat-history",
+            title: "AI Chat History",
+            subtitle: "Reopen and continue saved AI chats",
+            aliases: ["ai history", "chats", "chat history"],
+            symbol: "clock.arrow.circlepath",
+            actionTitle: "Open",
+            action: .enter(.chatHistory)
+        )
+    }
+
     static func translate() -> LauncherCommand {
         LauncherCommand(
             id: "translate",

@@ -24,6 +24,9 @@ enum UpdateAlert {
         let response = alert.runModal()
         if case .available(let release) = outcome, response == .alertFirstButtonReturn {
             download(release)
+            // The browser takes focus; deactivating now could give it to
+            // the previous app instead and leave the page behind.
+            return
         }
         // Hand focus back unless Settings or the welcome window is open.
         let windowOpen = NSApp.windows.contains { $0.isVisible && !($0 is NSPanel) && $0.styleMask.contains(.titled) }

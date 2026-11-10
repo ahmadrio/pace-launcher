@@ -77,16 +77,11 @@ final class UpdateChecker {
 
     /// An automatic check, when every condition allows one.
     func checkIfDue() {
-        guard settings.data.checkForUpdates else {
-            Log.app.debug("update check skipped: turned off")
-            return
-        }
-        guard !isPaused() else {
-            Log.app.debug("update check skipped: welcome window open")
-            return
-        }
-        guard hasOverride || !AppPaths.isUsingTestFolders else {
-            Log.app.debug("update check skipped: test data folders without PACEUpdatesURLOverride")
+        guard UpdateCheck.mayCheckAutomatically(
+            enabled: settings.data.checkForUpdates, settingsLoaded: !settings.isWaitingForDownload,
+            paused: isPaused(), usingTestFolders: AppPaths.isUsingTestFolders, hasOverride: hasOverride
+        ) else {
+            Log.app.debug("automatic update check not allowed now")
             return
         }
         guard current != nil, !isChecking, UpdateCheck.isDue(lastSuccess: lastSuccess, now: .now) else { return }

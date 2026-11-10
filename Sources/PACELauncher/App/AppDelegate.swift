@@ -647,8 +647,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.welcome = welcome
         // The first check waits until the welcome window, which shows the
         // setting, has been closed.
-        updates.isPaused = { [weak welcome] in welcome?.isVisible ?? false }
-        panelController.canHideApp = { !settingsWindow.isVisible }
+        updates.isPaused = { [weak welcome] in welcome?.isOpen ?? false }
+        // Closing the launcher must not hide Settings or the welcome window.
+        panelController.canHideApp = { [weak welcome] in !settingsWindow.isVisible && !(welcome?.isOpen ?? false) }
         settings.onChange = { [weak self] old, new in
             guard let self else { return }
             if old.autoExpandEnabled != new.autoExpandEnabled {

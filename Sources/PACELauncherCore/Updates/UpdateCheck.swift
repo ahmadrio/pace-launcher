@@ -23,7 +23,9 @@ public enum UpdateCheck {
         switch status {
         case 200:
             guard let release = GitHubRelease.decode(body) else {
-                return .failed("GitHub sent an answer PACE can’t read.")
+                // A release tagged with something that is not a version is
+                // ignored, not retried every hour.
+                return GitHubRelease.isRelease(body) ? .upToDate : .failed("GitHub sent an answer PACE can’t read.")
             }
             let isNew = release.version > current && !release.isDraft && !release.isPrerelease
             return isNew ? .available(release) : .upToDate
@@ -34,6 +36,16 @@ public enum UpdateCheck {
         default:
             return .failed("GitHub answered with status \(status).")
         }
+    }
+
+    /// Whether an automatic check may ask GitHub at all: the user allows it,
+    /// their settings are loaded (not an iCloud placeholder standing in with
+    /// defaults), nothing pauses it, and test data folders point at a
+    /// local server.
+    public static func mayCheckAutomatically(
+        enabled: Bool, settingsLoaded: Bool, paused: Bool, usingTestFolders: Bool, hasOverride: Bool
+    ) -> Bool {
+        enabled && settingsLoaded && !paused && (hasOverride || !usingTestFolders)
     }
 
     /// A day after the last answer; also when that answer seems to come

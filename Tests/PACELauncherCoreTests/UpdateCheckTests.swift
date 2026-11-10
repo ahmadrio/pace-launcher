@@ -63,6 +63,27 @@ struct UpdateCheckTests {
         #expect(UpdateCheck.outcome(current: current, status: 500, body: Data()) == .failed("GitHub answered with status 500."))
     }
 
+    @Test func `a release whose tag is not a version is not new`() throws {
+        let current = try version("1.0.0")
+        // A real answer: ignored, so installs don't retry every hour.
+        #expect(UpdateCheck.outcome(current: current, status: 200, body: body("release-1.1")) == .upToDate)
+        #expect(UpdateCheck.outcome(current: current, status: 200, body: body("v1.1.0-rc1")) == .upToDate)
+        // Not a release at all: still a failure.
+        #expect(UpdateCheck.outcome(current: current, status: 200, body: Data(#"{"message":"Moved"}"#.utf8))
+            == .failed("GitHub sent an answer PACE can’t read."))
+    }
+
+    @Test func `automatic checks need every condition`() {
+        let ok = UpdateCheck.mayCheckAutomatically(enabled: true, settingsLoaded: true, paused: false, usingTestFolders: false, hasOverride: false)
+        #expect(ok)
+        #expect(!UpdateCheck.mayCheckAutomatically(enabled: false, settingsLoaded: true, paused: false, usingTestFolders: false, hasOverride: false))
+        // settings.json is still an iCloud placeholder: the user's choice is unknown.
+        #expect(!UpdateCheck.mayCheckAutomatically(enabled: true, settingsLoaded: false, paused: false, usingTestFolders: false, hasOverride: false))
+        #expect(!UpdateCheck.mayCheckAutomatically(enabled: true, settingsLoaded: true, paused: true, usingTestFolders: false, hasOverride: false))
+        #expect(!UpdateCheck.mayCheckAutomatically(enabled: true, settingsLoaded: true, paused: false, usingTestFolders: true, hasOverride: false))
+        #expect(UpdateCheck.mayCheckAutomatically(enabled: true, settingsLoaded: true, paused: false, usingTestFolders: true, hasOverride: true))
+    }
+
     @Test func `is due once a day`() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         #expect(UpdateCheck.isDue(lastSuccess: nil, now: now))

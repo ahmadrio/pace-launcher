@@ -28,6 +28,11 @@ public struct GitHubRelease: Sendable, Equatable {
         let prerelease: Bool?
     }
 
+    /// The answer is a release (it has a tag), whatever the tag says.
+    static func isRelease(_ data: Data) -> Bool {
+        (try? JSONDecoder().decode(Response.self, from: data)) != nil
+    }
+
     /// Nil unless the answer is a release whose tag is a version.
     public static func decode(_ data: Data) -> GitHubRelease? {
         guard let response = try? JSONDecoder().decode(Response.self, from: data),

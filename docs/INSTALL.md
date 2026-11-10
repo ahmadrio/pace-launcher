@@ -54,7 +54,7 @@ Every release is signed with the same certificate, so these permissions stay in 
 ## Updates
 Once a day, PACE Launcher asks GitHub for the latest release of this repository. The request carries no information about you or your data, and PACE never downloads or installs anything by itself.
 - When a newer version exists, PACE shows a short message once, and the menu bar gets **Download PACE Launcher <version>…**, which opens the release page in your browser.
-- **Check for Updates…** in the menu bar (or "Check for Updates" in the launcher) asks right away and tells you the result.
+- **Check for Updates…** in the menu bar asks right away and tells you the result. "Check for Updates" in the launcher does the same; once a newer version is known, it is called "Download PACE Launcher <version>" and opens the release page.
 - To stop the daily check, turn off **Check for updates automatically** in **Settings › General** or in the Welcome window. Check for Updates still works when you ask.
 
 ## Network access

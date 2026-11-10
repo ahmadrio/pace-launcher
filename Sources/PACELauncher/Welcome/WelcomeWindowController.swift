@@ -27,7 +27,9 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
         self.openShortcuts = openShortcuts
     }
 
-    var isVisible: Bool { window?.isVisible ?? false }
+    /// From show() until the window closes, even while PACE is hidden:
+    /// update checks wait and the launcher must not hide PACE meanwhile.
+    private(set) var isOpen = false
 
     /// Shows the window unless this Mac has seen it. Test data folders use
     /// their own flag, so a test run never uses up the real first launch.
@@ -40,6 +42,7 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
+        isOpen = true
         status.startWatching()
         let window = window ?? makeWindow()
         self.window = window
@@ -48,6 +51,7 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        isOpen = false
         status.stopWatching()
         let closing = window
         let otherWindowOpen = NSApp.windows.contains {

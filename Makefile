@@ -30,6 +30,7 @@ logs:
 
 reset-tcc:
 	tccutil reset Accessibility $(BUNDLE_ID)
+	tccutil reset AppleEvents $(BUNDLE_ID)
 
 clean:
 	swift package clean

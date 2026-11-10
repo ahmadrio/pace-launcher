@@ -110,6 +110,22 @@ struct SettingsFileTests {
         #expect(copy.quicklinks == data.quicklinks)
     }
 
+    @Test func `skin tone loads leniently`() throws {
+        func decode(_ json: String) throws -> SettingsData {
+            try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8))
+        }
+        #expect(try decode(#"{"emojiSkinTone": "medium"}"#).emojiSkinTone == .medium)
+        let unknown = try decode(#"{"emojiSkinTone": "purple", "showMenuBarIcon": false}"#)
+        #expect(unknown.emojiSkinTone == .none)
+        #expect(!unknown.showMenuBarIcon)
+        #expect(try decode(#"{"emojiSkinTone": 3}"#).emojiSkinTone == .none)
+        #expect(try decode("{}").emojiSkinTone == .none)
+        var data = SettingsData()
+        data.emojiSkinTone = .mediumDark
+        let copy = try JSONDecoder().decode(SettingsData.self, from: JSONEncoder().encode(data))
+        #expect(copy.emojiSkinTone == .mediumDark)
+    }
+
     @Test func `quicklinks without or with duplicate ids load`() throws {
         func decode(_ json: String) throws -> SettingsData {
             try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8))

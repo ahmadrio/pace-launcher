@@ -38,6 +38,16 @@ public enum EmojiCatalog {
         return ResultRanker.rank(trimmed, ranked, limit: limit).compactMap { byCharacter[$0] }
     }
 
+    /// The emoji in the chosen skin tone. Only emoji Unicode lists as
+    /// modifier bases change (👍 → 👍🏽); the variation selector is dropped,
+    /// since the modifier already asks for colour (☝️ → ☝🏽).
+    public static func toned(_ emoji: Emoji, skinTone: EmojiSkinTone) -> Emoji {
+        guard let modifier = skinTone.modifier,
+              let base = emoji.character.unicodeScalars.first, base.properties.isEmojiModifierBase
+        else { return emoji }
+        return Emoji(character: String(base) + modifier, name: emoji.name, keywords: emoji.keywords)
+    }
+
     // Prepared once: building the fuzzy targets on every keystroke is slow.
     private static let candidates = all.map { SearchCandidate(id: $0.character, title: $0.name, aliases: $0.keywords) }
     private static let byCharacter = Dictionary(all.map { ($0.character, $0) }) { first, _ in first }

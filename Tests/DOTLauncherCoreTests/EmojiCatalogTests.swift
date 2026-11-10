@@ -60,4 +60,25 @@ struct EmojiCatalogTests {
         #expect(first("tada") == "🎉")
         #expect(first("poop") == "💩")
     }
+
+    @Test func `skin tone changes only emoji that take it`() {
+        func toned(_ character: String, _ tone: EmojiSkinTone) -> String {
+            EmojiCatalog.toned(Emoji(character: character, name: "x", keywords: ["k"]), skinTone: tone).character
+        }
+        #expect(toned("👍", .medium) == "👍🏽")
+        #expect(toned("☝️", .medium) == "☝🏽")
+        #expect(toned("🙏", .medium) == "🙏🏽")
+        #expect(toned("👋", .dark) == "👋🏿")
+        for character in ["❤️", "🔥", "🇮🇩"] {
+            #expect(toned(character, .medium) == character, "\(character)")
+        }
+        #expect(toned("👍", .none) == "👍")
+        let thumbs = EmojiCatalog.toned(Emoji(character: "👍", name: "Thumbs up", keywords: ["like"]), skinTone: .light)
+        #expect(thumbs.name == "Thumbs up")
+        #expect(thumbs.keywords == ["like"])
+        #expect(EmojiSkinTone.dark.next == .none)
+        #expect(EmojiSkinTone.none.next == .light)
+        #expect(EmojiSkinTone.allCases.map(\.title) == ["Default", "Light", "Medium-Light", "Medium", "Medium-Dark", "Dark"])
+        #expect(EmojiSkinTone.allCases.map { $0.modifier ?? "" } == ["", "🏻", "🏼", "🏽", "🏾", "🏿"])
+    }
 }

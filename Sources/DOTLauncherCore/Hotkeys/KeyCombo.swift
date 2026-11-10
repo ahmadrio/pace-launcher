@@ -47,6 +47,23 @@ public struct KeyCombo: Sendable, Hashable {
         return result + (Self.keySymbols[keyCode] ?? "key \(keyCode)")
     }
 
+    /// The form `init?(_:)` reads back, such as "ctrl+opt+left".
+    public var stringValue: String {
+        var parts: [String] = []
+        if carbonModifiers & Self.control != 0 { parts.append("ctrl") }
+        if carbonModifiers & Self.option != 0 { parts.append("opt") }
+        if carbonModifiers & Self.shift != 0 { parts.append("shift") }
+        if carbonModifiers & Self.command != 0 { parts.append("cmd") }
+        parts.append(Self.keyNames[keyCode] ?? "")
+        return parts.joined(separator: "+")
+    }
+
+    /// Keys DOT can name, show and store (an ANSI layout's keys).
+    public var isKnownKey: Bool { Self.keyNames[keyCode] != nil }
+
+    /// F1–F12, which may be used without a modifier.
+    public var isFunctionKey: Bool { Self.functionKeyCodes.contains(keyCode) }
+
     /// True when the same combo is already taken by one of `others`
     /// (for example the enabled system shortcuts).
     public func conflicts(with others: [KeyCombo]) -> Bool {
@@ -107,6 +124,16 @@ public struct KeyCombo: Sendable, Hashable {
         }
         return table
     }()
+
+    /// The first name of each key, for `stringValue`.
+    private static let keyNames: [UInt32: String] = {
+        var table: [UInt32: String] = [:]
+        for entry in namedKeys { table[entry.code] = entry.names[0] }
+        for (character, code) in characterKeys { table[code] = String(character) }
+        return table
+    }()
+
+    private static let functionKeyCodes: Set<UInt32> = [122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111]
 
     private static let keySymbols: [UInt32: String] = {
         var table: [UInt32: String] = [:]

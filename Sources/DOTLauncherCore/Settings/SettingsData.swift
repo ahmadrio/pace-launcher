@@ -8,11 +8,14 @@ public struct SettingsData: Codable, Sendable, Equatable {
     public var autoExpandEnabled = true
     public var autoExpandExcludedBundleIDs: [String] = []
     public var includeClipboardInBackup = true
+    /// Global shortcuts by `ShortcutID.rawValue`; "" means none, and a
+    /// missing id means the default.
+    public var shortcuts: [String: String] = [:]
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup
+        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts
     }
 
     /// Missing keys keep their defaults, so older or newer files still load.
@@ -26,6 +29,7 @@ public struct SettingsData: Codable, Sendable, Equatable {
             ?? defaults.autoExpandExcludedBundleIDs
         includeClipboardInBackup = try container.decodeIfPresent(Bool.self, forKey: .includeClipboardInBackup)
             ?? defaults.includeClipboardInBackup
+        shortcuts = try container.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? defaults.shortcuts
     }
 }
 

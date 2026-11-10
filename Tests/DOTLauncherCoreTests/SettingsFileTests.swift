@@ -22,6 +22,23 @@ struct SettingsFileTests {
         #expect(file.load() == data)
     }
 
+    @Test func `settings without shortcuts still load`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        try folder.write("settings.json", #"{"showMenuBarIcon": false}"#)
+        #expect(SettingsFile(url: folder.url.appending(path: "settings.json")).load().shortcuts == [:])
+    }
+
+    @Test func `shortcuts round-trip`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        let file = SettingsFile(url: folder.url.appending(path: "settings.json"))
+        var data = SettingsData()
+        data.shortcuts = ["launcher": "ctrl+opt+cmd+l", "clipboardHistory": ""]
+        try file.save(data)
+        #expect(file.load().shortcuts == data.shortcuts)
+    }
+
     @Test func `corrupt file gives defaults`() throws {
         let folder = TemporaryFolder()
         defer { folder.remove() }

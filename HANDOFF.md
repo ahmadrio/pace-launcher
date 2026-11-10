@@ -32,7 +32,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-9-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-9.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-9-ledger.md`
-- **Tahap 10** selesai di branch `tahap-10` (10 Nov 2026), belum di-merge.
+- **Tahap 10** selesai dan sudah di-merge ke `main` (10 Nov 2026).
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-10-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-10.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-10-ledger.md`
@@ -79,7 +79,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 348 test Core (Swift Testing)
+make test     # 351 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -150,6 +150,5 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Merge `tahap-10` ke `main` (keputusan Pace).
-2. Minor yang ditunda di ledger tahap 10 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap, shortcut skrip yang hilang tidak memberi tanda saat ditekan).
-3. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): skin tone untuk emoji, profil browser per quicklink, perintah sistem (Lock Screen, Sleep, Empty Trash).
+1. Minor yang ditunda di ledger tahap 10 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap, shortcut skrip yang hilang tidak memberi tanda saat ditekan).
+2. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): skin tone untuk emoji, profil browser per quicklink, perintah sistem (Lock Screen, Sleep, Empty Trash).

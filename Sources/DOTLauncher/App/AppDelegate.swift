@@ -376,6 +376,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             search.rebuild()
             if panelController.isVisible { model.refresh() }
         }
+        let rates = RatesService()
+        search.rates = rates
+        rates.onUpdate = {
+            if panelController.isVisible, model.mode == .root { model.refresh() }
+        }
         let sync = SyncController(
             settings: settings, clipboard: clipboardStore,
             beforeMove: { notes.flush() },

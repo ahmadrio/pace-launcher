@@ -43,6 +43,8 @@ enum AppPaths {
     static var clipboardDatabase: URL { localRoot.appending(path: "clipboard.sqlite") }
     /// Image clips as PNG files (local only, never synced or backed up).
     static var clipboardImagesDirectory: URL { localRoot.appending(path: "Clipboard Images") }
+    /// Cached exchange rates (local only).
+    static var exchangeRatesFile: URL { localRoot.appending(path: "exchange-rates.json") }
     /// Saved AI chats (local only, never synced or backed up).
     static var chatDatabase: URL { localRoot.appending(path: "chat.sqlite") }
     /// One JSON file per snippet.

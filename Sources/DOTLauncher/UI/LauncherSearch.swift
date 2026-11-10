@@ -17,6 +17,8 @@ final class LauncherSearch {
     var snippetRow: ((Snippet) -> LauncherResult)?
     var scripts: () -> [ScriptCommand] = { [] }
     var scriptRow: ((ScriptCommand) -> LauncherResult)?
+    /// Exchange rates for currency conversions. Set by the composition root.
+    var rates: RatesService?
 
     private let indexer: AppIndexer
     private let usage: UsageStore?
@@ -72,8 +74,9 @@ final class LauncherSearch {
         let matches = ResultRanker.rank(query, ranked, limit: 30).compactMap { id in
             items[id].flatMap { result(for: $0, id: id) }
         }
-        // A calculation is always the first row; "Ask AI" is always the last.
-        let calculation = calculation(for: query)
+        // A conversion or calculation is always the first row; "Ask AI" is
+        // always the last.
+        let calculation = conversion(for: query) ?? calculation(for: query)
         return [calculation].compactMap { $0 } + matches + [calculation == nil ? askAIRow(for: query) : nil].compactMap { $0 }
     }
 
@@ -91,6 +94,67 @@ final class LauncherSearch {
             accessory: "Tab",
             actionTitle: "Ask",
             action: .stay { askAI(trimmed) }
+        )
+    }
+
+    private static let ratesDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
+    /// "10 km to mi", "100 usd to idr", "$25".
+    private func conversion(for query: String) -> LauncherResult? {
+        guard let parsed = Converter.parse(query) else { return nil }
+        let locale = Locale.current
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+
+        if case .unit = parsed.from {
+            guard let value = Converter.convertUnits(parsed), case .unit(let to)? = parsed.to else { return nil }
+            let copied = ConversionFormat.copy(value, maxFractionDigits: nil, significantDigits: 6, locale: locale)
+            return conversionRow(
+                title: ConversionFormat.display(value, maxFractionDigits: nil, significantDigits: 6, locale: locale) + " " + to.symbol,
+                subtitle: trimmed, copied: copied
+            )
+        }
+
+        let conversion = Converter.resolveCurrencyTarget(parsed, localCurrency: locale.currency?.identifier)
+        guard case .currency(let from) = conversion.from, case .currency(let to)? = conversion.to, let service = rates else { return nil }
+        service.refreshIfNeeded()
+        guard let current = service.rates else {
+            return LauncherResult(
+                id: "convert",
+                title: service.isFetching ? "Fetching exchange rates…" : "Exchange rates unavailable (offline?)",
+                subtitle: service.isFetching ? "\(trimmed) · from ExchangeRate-API" : "Press Return to try again",
+                icon: .symbol("dollarsign.arrow.circlepath"),
+                accessory: "Convert",
+                actionTitle: service.isFetching ? "" : "Retry",
+                action: .stay { service.retry() }
+            )
+        }
+        guard let value = current.convert(conversion.amount, from: from, to: to) else { return nil }
+        var subtitle = "\(trimmed) · Rates by ExchangeRate-API · \(Self.ratesDate.string(from: current.updated))"
+        if current.isOutdated(now: .now) { subtitle += " · rates may be outdated" }
+        return conversionRow(
+            title: ConversionFormat.display(value, maxFractionDigits: 2, significantDigits: nil, locale: locale) + " " + to,
+            subtitle: subtitle,
+            copied: ConversionFormat.copy(value, maxFractionDigits: 2, significantDigits: nil, locale: locale)
+        )
+    }
+
+    private func conversionRow(title: String, subtitle: String, copied: String) -> LauncherResult {
+        LauncherResult(
+            id: "convert",
+            title: title,
+            subtitle: subtitle,
+            icon: .symbol("arrow.left.arrow.right"),
+            accessory: "Convert",
+            actionTitle: "Copy",
+            action: .run {
+                TextPaster.copy(copied)
+                Log.panel.info("copied a conversion result")
+            }
         )
     }
 

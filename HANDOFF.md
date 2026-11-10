@@ -20,7 +20,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-6-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-6.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-6-ledger.md`
-- **Tahap 7** selesai di branch `tahap-7` (10 Nov 2026), belum di-merge.
+- **Tahap 7** selesai dan sudah di-merge ke `main` (10 Nov 2026).
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-7-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-7.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-7-ledger.md`
@@ -133,6 +133,5 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Merge `tahap-7` ke `main` (keputusan Pace).
-2. Minor yang ditunda di ledger tahap 7 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap).
-3. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): emoji picker, paste clip sebagai teks polos, quicklink yang dibuka di browser tertentu.
+1. Minor yang ditunda di ledger tahap 7 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap).
+2. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): emoji picker, paste clip sebagai teks polos, quicklink yang dibuka di browser tertentu.

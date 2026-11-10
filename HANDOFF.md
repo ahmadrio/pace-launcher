@@ -246,6 +246,14 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
 - **Ikon menu bar baru** (permintaan Pace, 10 Nov 23:53): huruf P dengan tiga garis kecepatan seperti ikon app, digambar saat render di `App/MenuBarIcon.swift` sebagai template image (otomatis putih atau hitam mengikuti menu bar). Menggantikan simbol `command.square`.
 - **"Create Script Command"** kini membuka template di editor teks default (TextEdit di Mac Pace); kalau tidak ada editor, file ditunjukkan di Finder.
 - **Build rilis sudah dicoba dari DMG** di folder uji (panel dan pencarian jalan), lalu dicopot lagi. App tetap tidak terpasang di Mac Pace.
+- **Review akhir** (Opus): dua perbaikan.
+  - Gambar ikon menu bar bisa crash kalau macOS menggambarnya di luar main thread; kini `nonisolated`.
+  - `make release` kini hanya menerima `DEFAULT_IDENTITY`. Sertifikat lain akan me-reset izin semua pengguna.
+- **DMG terakhir** dibuat dari commit `62e2768` (sha256 `d4d53353…`). Tahap 24 membuatnya ulang dari commit rilis.
+- **Minor skrip yang ditunda** ada di ledger tahap 22. Layak dibereskan sebelum rilis pertama:
+  - `grep -q` dengan `pipefail`
+  - DMG gagal-cek tetap bernama final
+  - paket `PACE_ALLOW_DIRTY` tanpa akhiran `-dirty'
 - **Belum diuji:** alur Gatekeeper sungguhan (unduhan ber-quarantine → "Open Anyway") di macOS 27. Teks di `INSTALL.md` mengikuti perilaku macOS 15+, dan Pace akan mengujinya saat memasang dari GitHub.
 
 ## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)
@@ -261,6 +269,6 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
 
 ## Langkah berikutnya
 1. **Tahap 23:** panduan izin saat pertama dibuka, dan cek update lewat GitHub Releases (tag `v<versi>`, lihat `docs/RELEASING.md`).
-2. **Tahap 24:** README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir, tautan halaman Releases di `docs/INSTALL.md`; lalu repo publik, push, dan rilis pertama — **hanya setelah Pace bilang ya saat itu**.
+2. **Tahap 24:** README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir, tautan halaman Releases di `docs/INSTALL.md`, minor skrip rilis dari ledger tahap 22, `make release` ulang; lalu repo publik, push, dan rilis pertama — **hanya setelah Pace bilang ya saat itu**.
 3. Minor yang ditunda di ledger tahap 20 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test; runner perintah sistem hanya diverifikasi dengan membaca kode).
 4. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).

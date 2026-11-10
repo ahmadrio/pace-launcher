@@ -83,6 +83,29 @@ struct CurrencyTests {
         #expect(Converter.parse("10 cat to idr") == nil)
     }
 
+    @Test func `grouped amounts follow the locale`() {
+        let enID = Locale(identifier: "en_ID"), enUS = Locale(identifier: "en_US")
+        #expect(Converter.parse("rp 50.000 to usd", locale: enID)?.amount == 50_000)
+        #expect(Converter.parse("Rp 50.000", locale: enID)?.amount == 50_000)
+        #expect(Converter.parse("1.000 usd to idr", locale: enID)?.amount == 1_000)
+        #expect(Converter.parse("1.500.000 idr", locale: enID)?.amount == 1_500_000)
+        #expect(Converter.parse("1.500.000,75 idr", locale: enID)?.amount == 1_500_000.75)
+        #expect(Converter.parse("1,5 kg to g", locale: enID)?.amount == 1.5)
+        #expect(Converter.parse("1.5 kg to g", locale: enID)?.amount == 1.5)
+        #expect(Converter.parse("1,000 usd to idr", locale: enUS)?.amount == 1_000)
+        #expect(Converter.parse("1.5 kg to g", locale: enUS)?.amount == 1.5)
+    }
+
+    @Test func `version numbers after a currency code are not conversions`() {
+        #expect(Converter.parse("php 8.3") == nil)
+        #expect(Converter.parse("PHP 7.4") == nil)
+        #expect(Converter.parse("cad 2") == nil)
+        #expect(Converter.parse("won 5") == nil)
+        #expect(currencies(Converter.parse("us$ 10")) == ("USD", nil))
+        #expect(currencies(Converter.parse("€50")) == ("EUR", nil))
+        #expect(currencies(Converter.parse("8 php")) == ("PHP", nil))
+    }
+
     @Test func `unit names win over currency codes`() {
         guard case .unit? = Converter.parse("1 cup to ml")?.from else {
             Issue.record("cup should be a unit")

@@ -64,6 +64,13 @@ struct ConverterTests {
         #expect(Converter.parse("10 km") == nil)
     }
 
+    @Test func `long pasted text is rejected quickly`() {
+        let paragraph = String(repeating: "Please explain how to move 10 km in an hour to someone ", count: 360) + "10 km to mi"
+        let started = Date.now
+        #expect(Converter.parse(paragraph) == nil)
+        #expect(Date.now.timeIntervalSince(started) < 0.1)
+    }
+
     @Test func `parse reports the units`() throws {
         let conversion = try #require(Converter.parse("10 km to mi"))
         #expect(conversion.amount == 10)

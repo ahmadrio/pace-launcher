@@ -154,8 +154,8 @@ final class AIChatController {
     }
 
     func delete(_ id: UUID) async {
-        // The open chat is cleared first, so an answer finishing during the
-        // delete cannot save it again.
+        // The open chat is cleared first; the store also refuses late saves
+        // into a deleted chat (the cancelled answer still tries to save).
         if id == chatID { reset() }
         do {
             try await store?.delete(id)
@@ -165,12 +165,14 @@ final class AIChatController {
     }
 
     func deleteAll() async {
+        // Clear first, like delete: the store also refuses late saves into
+        // deleted chats, so a cancelled answer cannot bring one back.
+        reset()
         do {
             try await store?.deleteAll()
         } catch {
             Log.app.error("could not delete chats: \(error.localizedDescription, privacy: .public)")
         }
-        reset()
     }
 
     /// The saved messages as the model saw them, after the instructions.

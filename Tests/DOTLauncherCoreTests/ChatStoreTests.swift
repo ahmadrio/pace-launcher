@@ -68,6 +68,21 @@ struct ChatStoreTests {
         #expect(try await store.chats().count == 150)
     }
 
+    @Test func `a deleted chat stays deleted when a late answer is saved`() async throws {
+        let store = try ChatStore(path: ":memory:")
+        let a = UUID(), b = UUID()
+        try await store.append(exchange("a", "1"), to: a, at: t0)
+        try await store.append(exchange("b", "2"), to: b, at: t0)
+
+        try await store.delete(a)
+        try await store.append(exchange("late question", "partial answer"), to: a, at: t0.addingTimeInterval(5))
+        #expect(try await store.chats().map(\.id) == [b])
+
+        try await store.deleteAll()
+        try await store.append(exchange("late", "answer"), to: b, at: t0.addingTimeInterval(9))
+        #expect(try await store.chats().isEmpty)
+    }
+
     @Test func `delete all empties the history`() async throws {
         let store = try ChatStore(path: ":memory:")
         try await store.append(exchange("a", "1"), to: UUID(), at: t0)

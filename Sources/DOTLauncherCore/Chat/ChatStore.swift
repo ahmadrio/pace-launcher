@@ -66,6 +66,9 @@ public actor ChatStore {
     ]
 
     private let db: SQLiteDatabase
+    /// Chats deleted while the app runs. An answer that was still streaming
+    /// when its chat was deleted must not bring the chat back.
+    private var deleted: Set<String> = []
 
     public init(path: String) throws {
         let db = try SQLiteDatabase(path: path)
@@ -79,7 +82,7 @@ public actor ChatStore {
     /// Adds messages to chat `id`, creating it (titled after its first
     /// question) when it is new. The chat moves to the top of the list.
     public func append(_ messages: [SavedChatMessage], to id: UUID, at date: Date) throws {
-        guard !messages.isEmpty else { return }
+        guard !messages.isEmpty, !deleted.contains(id.uuidString) else { return }
         let key = SQLValue.text(id.uuidString)
         let time = SQLValue.real(date.timeIntervalSince1970)
         try db.transaction {
@@ -155,10 +158,22 @@ public actor ChatStore {
     }
 
     public func delete(_ id: UUID) throws {
+        deleted.insert(id.uuidString)
         try db.run("DELETE FROM chats WHERE id = ?", [.text(id.uuidString)])
+        flushDeletes()
     }
 
     public func deleteAll() throws {
+        for row in try db.query("SELECT id FROM chats") {
+            if let id = row.string("id") { deleted.insert(id) }
+        }
         try db.run("DELETE FROM chats")
+        flushDeletes()
+    }
+
+    /// Writes the WAL back and empties it, so deleted text does not linger
+    /// there while the connection stays open.
+    private func flushDeletes() {
+        try? db.execute("PRAGMA wal_checkpoint(TRUNCATE);")
     }
 }

@@ -101,7 +101,8 @@ public struct MeasureUnit: Sendable, Hashable {
     static func trailing(in text: String) -> (unit: MeasureUnit, rest: String)? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         let lower = trimmed.lowercased()
-        for entry in aliasTable where trimmed.count > entry.alias.count {
+        let length = trimmed.count
+        for entry in aliasTable where length > entry.alias.count {
             let matches = entry.exact ? trimmed.hasSuffix(entry.alias) : lower.hasSuffix(entry.alias)
             guard matches else { continue }
             let rest = String(trimmed.dropLast(entry.alias.count))

@@ -38,6 +38,12 @@ public enum CurrencyNames {
         return iso.contains(upper) ? upper : nil
     }
 
+    /// Signs that may stand before the amount ("$25", "Rp 50.000"). Codes
+    /// and names only follow it, so "php 8.3" stays a search.
+    public static func isSymbol(_ word: String) -> Bool {
+        symbols[word.trimmingCharacters(in: .whitespaces).lowercased()] != nil
+    }
+
     /// True for words that may be converted without a target: symbols,
     /// names and everyday codes.
     public static func worksAlone(_ word: String) -> Bool {

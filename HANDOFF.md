@@ -9,13 +9,13 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-3.md`
   - Ledger (semua `Ruling:`): `docs/superpowers/plans/2026-11-10-tahap-3-ledger.md`
 - **Tahap 4** selesai dan sudah di-merge ke `main` (10 Nov 2026).
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-4-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-4.md`
+  - Ledger (semua `Ruling:` dan minor yang ditunda): `docs/superpowers/plans/2026-11-10-tahap-4-ledger.md`
 - **Tahap 5** selesai di branch **`tahap-5`** dan belum di-merge ke `main`. Pace sudah meng-uninstall Raycast; DOT kini satu-satunya launcher.
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-5-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-5.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-5-ledger.md`
-  - Desain: `docs/superpowers/specs/2026-11-10-tahap-4-design.md`
-  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-4.md`
-  - Ledger (semua `Ruling:` dan minor yang ditunda): `docs/superpowers/plans/2026-11-10-tahap-4-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -57,7 +57,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 263 test Core (Swift Testing)
+make test     # 269 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -91,7 +91,9 @@ make reset-tcc
 - **zsh:** `log` adalah builtin zsh, jadi pakai `/usr/bin/log`. `FileManager` mengubah `/var` menjadi `/private/var`.
 - **Store actor + aksi `.stay`:** `.stay` langsung me-refresh daftar, padahal `ChatStore`/`ClipboardStore` adalah actor. Hapus/pin dijalankan dalam `Task`, lalu daftar di-refresh setelah `await`.
 - **Merekam shortcut:** semua hotkey DOT dilepas selama merekam (kalau tidak, ⌥Space ditangkap Carbon sebelum sampai ke jendela). Perekam hanya membaca tombol dari jendela Settings, berhenti saat Settings kehilangan fokus, dan batal sendiri kalau Settings tidak mendapat fokus dalam 1 detik, supaya hotkey tidak pernah tertahan. Kombinasi yang dipegang app lain secara global (Rectangle: ⌃⌥←; di Mac Pace juga ⌃⌥⌘M) tidak pernah sampai ke DOT, jadi tidak bisa direkam selama app itu berjalan.
-- **SQLite macOS memakai `secure_delete = FAST` secara default:** teks pendek yang dihapus sudah ditimpa, tetapi halaman overflow tidak. `chat.sqlite` dan `clipboard.sqlite` kini memakai `secure_delete = ON`; test-nya memakai teks ±20 KB.
+- **SQLite macOS memakai `secure_delete = FAST` secara default:** teks pendek yang dihapus sudah ditimpa, tetapi halaman overflow tidak. `chat.sqlite` dan `clipboard.sqlite` kini memakai `secure_delete = ON`, dan setiap penghapusan menjalankan `wal_checkpoint(TRUNCATE)` (koneksi tetap terbuka, jadi WAL menyimpan halaman lama). Untuk clipboard, indeks FTS5 juga di-`optimize`, karena tanpa itu trigram teks yang dihapus tetap ada di `clips_fts_data` bersama tombstone-nya. Test memeriksa saat store masih terbuka.
+- **Angka berpemisah ribuan di konversi mengikuti locale:** di en_ID `Rp 50.000` = 50000 dan `1,5 kg` = 1,5. Pola grup (`1.500.000,75`) dicek dulu; selain itu "." dan "," sama-sama desimal seperti kalkulator. Input konversi maksimal 100 karakter (teks panjang yang ditempel tidak diparse). Kode/nama mata uang hanya boleh di **belakang** angka (`8 php`); di depan hanya simbol (`$`, `Rp`, `€`), supaya `php 8.3` tetap pencarian.
+- **⌘Space:** macOS tetap mendaftarkan ⌘Space (non-eksklusif) walaupun shortcut Spotlight dimatikan, sehingga pendaftaran eksklusif gagal `-9878`. `HotKeyCenter` lalu mendaftar bersama (status `.shared`, catatan abu-abu di Settings).
 - **Foundation `UnitVolume.cups` = 240 ml** (legal cup). DOT memakai US cup 236,588 ml lewat unit sendiri. "pound" adalah massa; poundsterling ditulis `gbp`/`£`.
 - **System Events `frontmost`** tidak bisa dipercaya untuk app tanpa Dock seperti DOT (selalu terbaca "Finder"). Cek fokus lewat `AXMain`/`AXFocusedWindow` atau efeknya.
 - **Uji UI Settings:** Settings yang dibuka dari launcher tidak membuat DOT jadi app aktif, dan klik AX juga tidak. Sebelum mengirim tombol keyboard, jalankan `tell application id "com.pace.DOTLauncher" to activate`. Tombol di Settings › Shortcuts punya `AXIdentifier` (`shortcut-<id>`, `reset-<id>`).

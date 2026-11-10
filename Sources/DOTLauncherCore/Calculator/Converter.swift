@@ -28,19 +28,26 @@ public enum Converter {
     private static let separators = [" to ", " in ", " as ", " ke ", "=", "->", "→"]
 
     /// nil when the input is not a conversion.
-    public static func parse(_ input: String) -> Conversion? {
+    /// Conversions are short; anything longer (a pasted paragraph sent to
+    /// AI with Tab) is skipped without parsing, on every keystroke.
+    static let maxLength = 100
+
+    /// nil when the input is not a conversion. `locale` decides how grouped
+    /// amounts read: "50.000" is fifty thousand in en_ID.
+    public static func parse(_ input: String, locale: Locale = .current) -> Conversion? {
+        guard input.utf16.count <= maxLength * 2 else { return nil }
         let text = input.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { return nil }
+        guard !text.isEmpty, text.count <= maxLength else { return nil }
 
         for range in separatorRanges(in: text) {
             let left = String(text[..<range.lowerBound])
             let right = String(text[range.upperBound...])
-            guard let source = source(in: left), let target = target(named: right) else { continue }
+            guard let source = source(in: left, locale: locale), let target = target(named: right) else { continue }
             return Conversion(amount: source.amount, from: source.target, to: target)
         }
         // A currency amount alone ("$25", "100 usd") converts to the
         // local currency; rare codes need a target.
-        if let source = source(in: text), case .currency = source.target, CurrencyNames.worksAlone(source.word) {
+        if let source = source(in: text, locale: locale), case .currency = source.target, CurrencyNames.worksAlone(source.word) {
             return Conversion(amount: source.amount, from: source.target, to: nil)
         }
         return nil
@@ -82,28 +89,47 @@ public enum Converter {
 
     /// "<amount> <unit>", "<amount> <currency>" or "<currency> <amount>"
     /// on the left of the separator. Units are tried first ("cup").
-    static func source(in text: String) -> (amount: Double, target: ConversionTarget, word: String)? {
+    static func source(in text: String, locale: Locale) -> (amount: Double, target: ConversionTarget, word: String)? {
         let text = text.trimmingCharacters(in: .whitespaces)
-        if let (unit, rest) = MeasureUnit.trailing(in: text), let amount = Calculator.amount(rest) {
+        if let (unit, rest) = MeasureUnit.trailing(in: text), let amount = amount(rest, locale: locale) {
             return (amount, .unit(unit), unit.symbol)
         }
         // "25 usd", "25usd", "100 rupiah", "25$"
         let trailing = text.reversed().prefix { !$0.isNumber && !$0.isWhitespace && $0 != ")" }
         if !trailing.isEmpty {
             let word = String(trailing.reversed())
-            if let code = CurrencyNames.code(for: word), let amount = Calculator.amount(String(text.dropLast(word.count))) {
+            if let code = CurrencyNames.code(for: word), let amount = amount(String(text.dropLast(word.count)), locale: locale) {
                 return (amount, .currency(code), word)
             }
         }
-        // "$25", "rp 50000", "us$ 10", "€50"
+        // "$25", "rp 50000", "us$ 10", "€50" (signs only: "php 8.3" is a search)
         let leading = text.prefix { !$0.isNumber && !$0.isWhitespace && $0 != "(" && $0 != "-" }
-        if !leading.isEmpty {
+        if !leading.isEmpty, CurrencyNames.isSymbol(String(leading)) {
             let word = String(leading)
-            if let code = CurrencyNames.code(for: word), let amount = Calculator.amount(String(text.dropFirst(word.count))) {
+            if let code = CurrencyNames.code(for: word), let amount = amount(String(text.dropFirst(word.count)), locale: locale) {
                 return (amount, .currency(code), word)
             }
         }
         return nil
+    }
+
+    /// An amount: a number grouped the locale's way ("1.500.000,75" in
+    /// en_ID), else a plain number or expression where "." and "," both
+    /// mean a decimal point ("1,5", "2*5").
+    static func amount(_ text: String, locale: Locale) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if let grouped = groupedNumber(trimmed, locale: locale) { return grouped }
+        return Calculator.amount(trimmed)
+    }
+
+    private static func groupedNumber(_ text: String, locale: Locale) -> Double? {
+        guard let group = locale.groupingSeparator, let decimal = locale.decimalSeparator,
+              !group.isEmpty, group != decimal
+        else { return nil }
+        let pattern = "^\\d{1,3}(" + NSRegularExpression.escapedPattern(for: group) + "\\d{3})+("
+            + NSRegularExpression.escapedPattern(for: decimal) + "\\d+)?$"
+        guard text.range(of: pattern, options: .regularExpression) != nil else { return nil }
+        return Double(text.replacingOccurrences(of: group, with: "").replacingOccurrences(of: decimal, with: "."))
     }
 
     /// The single unit or currency on the right of the separator.

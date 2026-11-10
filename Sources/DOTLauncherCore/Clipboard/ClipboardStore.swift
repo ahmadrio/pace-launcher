@@ -177,6 +177,14 @@ public actor ClipboardStore {
         try deleteUnpinned(where: "1 = 1", [])
     }
 
+    /// Removes what deleted clips leave behind: the search index keeps the
+    /// trigrams of deleted text (with tombstones) until it is merged, and
+    /// the WAL keeps old pages while the connection stays open.
+    private func flushDeletes() {
+        try? db.execute("INSERT INTO clips_fts (clips_fts) VALUES ('optimize');")
+        try? db.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+    }
+
     private func deleteUnpinned(where condition: String, _ bindings: [SQLValue]) throws -> Int {
         let (count, images) = try db.transaction { () -> (Int, [String]) in
             let images = try db.query(
@@ -187,6 +195,7 @@ public actor ClipboardStore {
             try db.run("DELETE FROM clips WHERE pinned = 0 AND \(condition)", bindings)
             return (Int(count), images)
         }
+        if count > 0 { flushDeletes() }
         if let imagesDirectory {
             for hash in images {
                 for suffix in [".png", "-thumb.png"] {
@@ -201,6 +210,7 @@ public actor ClipboardStore {
         let image = try db.query("SELECT hash FROM clips WHERE id = ? AND kind = ?", [.integer(id), .text(ClipKind.image.rawValue)])
             .first?.string("hash")
         try db.run("DELETE FROM clips WHERE id = ?", [.integer(id)])
+        flushDeletes()
         if let image, let imagesDirectory {
             for suffix in [".png", "-thumb.png"] {
                 try? FileManager.default.removeItem(at: imagesDirectory.appending(path: image + suffix))

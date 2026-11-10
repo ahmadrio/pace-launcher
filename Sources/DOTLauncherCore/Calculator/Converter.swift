@@ -27,10 +27,6 @@ public enum Converter {
     /// right so "10 in in cm" converts inches.
     private static let separators = [" to ", " in ", " as ", " ke ", "=", "->", "→"]
 
-    /// Resolves a currency word ("$", "rupiah", "usd") to an ISO code.
-    /// Units are tried first, so "cup" stays a volume.
-    nonisolated(unsafe) static var currencyLookup: (String) -> String? = { _ in nil }
-
     /// nil when the input is not a conversion.
     public static func parse(_ input: String) -> Conversion? {
         let text = input.trimmingCharacters(in: .whitespaces)
@@ -42,6 +38,11 @@ public enum Converter {
             guard let source = source(in: left), let target = target(named: right) else { continue }
             return Conversion(amount: source.amount, from: source.target, to: target)
         }
+        // A currency amount alone ("$25", "100 usd") converts to the
+        // local currency; rare codes need a target.
+        if let source = source(in: text), case .currency = source.target, CurrencyNames.worksAlone(source.word) {
+            return Conversion(amount: source.amount, from: source.target, to: nil)
+        }
         return nil
     }
 
@@ -52,6 +53,15 @@ public enum Converter {
         else { return nil }
         let value = Measurement(value: conversion.amount, unit: from.dimension).converted(to: to.dimension).value
         return value.isFinite ? value : nil
+    }
+
+    /// Fills in the target of a currency amount typed alone: the local
+    /// currency, or USD when the amount already is local (EUR for USD).
+    public static func resolveCurrencyTarget(_ conversion: Conversion, localCurrency: String?) -> Conversion {
+        guard conversion.to == nil, case .currency(let from) = conversion.from else { return conversion }
+        let local = localCurrency ?? "USD"
+        let to = from != local ? local : (local == "USD" ? "EUR" : "USD")
+        return Conversion(amount: conversion.amount, from: conversion.from, to: .currency(to))
     }
 
     // MARK: - Parsing
@@ -70,18 +80,36 @@ public enum Converter {
         return ranges.sorted { $0.lowerBound > $1.lowerBound }
     }
 
-    /// "<amount> <unit>" on the left of the separator.
-    static func source(in text: String) -> (amount: Double, target: ConversionTarget)? {
+    /// "<amount> <unit>", "<amount> <currency>" or "<currency> <amount>"
+    /// on the left of the separator. Units are tried first ("cup").
+    static func source(in text: String) -> (amount: Double, target: ConversionTarget, word: String)? {
+        let text = text.trimmingCharacters(in: .whitespaces)
         if let (unit, rest) = MeasureUnit.trailing(in: text), let amount = Calculator.amount(rest) {
-            return (amount, .unit(unit))
+            return (amount, .unit(unit), unit.symbol)
+        }
+        // "25 usd", "25usd", "100 rupiah", "25$"
+        let trailing = text.reversed().prefix { !$0.isNumber && !$0.isWhitespace && $0 != ")" }
+        if !trailing.isEmpty {
+            let word = String(trailing.reversed())
+            if let code = CurrencyNames.code(for: word), let amount = Calculator.amount(String(text.dropLast(word.count))) {
+                return (amount, .currency(code), word)
+            }
+        }
+        // "$25", "rp 50000", "us$ 10", "€50"
+        let leading = text.prefix { !$0.isNumber && !$0.isWhitespace && $0 != "(" && $0 != "-" }
+        if !leading.isEmpty {
+            let word = String(leading)
+            if let code = CurrencyNames.code(for: word), let amount = Calculator.amount(String(text.dropFirst(word.count))) {
+                return (amount, .currency(code), word)
+            }
         }
         return nil
     }
 
-    /// The single unit on the right of the separator.
+    /// The single unit or currency on the right of the separator.
     static func target(named text: String) -> ConversionTarget? {
         if let unit = MeasureUnit.named(text) { return .unit(unit) }
-        if let code = currencyLookup(text.trimmingCharacters(in: .whitespaces)) { return .currency(code) }
+        if let code = CurrencyNames.code(for: text) { return .currency(code) }
         return nil
     }
 }

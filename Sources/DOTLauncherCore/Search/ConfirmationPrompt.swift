@@ -8,7 +8,8 @@ import Foundation
 public final class ConfirmationPrompt {
     private var confirmation: PressConfirmation
     private let now: @MainActor () -> Date
-    private let sleep: @MainActor (TimeInterval) async -> Void
+    /// Sleeps until the given time.
+    private let sleep: @MainActor (Date) async -> Void
     /// Hides the latest prompt once its first press ends (awaited by tests).
     private(set) var pendingHide: Task<Void, Never>?
 
@@ -16,7 +17,10 @@ public final class ConfirmationPrompt {
     public init(
         window: TimeInterval = 3,
         now: @escaping @MainActor () -> Date = { Date.now },
-        sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
+        sleep: @escaping @MainActor (Date) async -> Void = { date in
+            let delay = date.timeIntervalSinceNow
+            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+        }
     ) {
         confirmation = PressConfirmation(window: window)
         self.now = now
@@ -40,12 +44,14 @@ public final class ConfirmationPrompt {
             return true
         }
         show()
-        let window = window, sleep = sleep, now = now
+        // Timed from the press, however late the task starts.
+        let firstCheck = now().addingTimeInterval(window + 0.1)
+        let sleep = sleep, now = now
         pendingHide = Task { [weak self] in
-            await sleep(window + 0.1)
+            await sleep(firstCheck)
             // A newer press of the same id keeps the prompt until it ends too.
             while let self, self.confirmation.isArmed(id, at: now()) {
-                await sleep(0.2)
+                await sleep(now().addingTimeInterval(0.2))
             }
             if isShown() { hide() }
         }

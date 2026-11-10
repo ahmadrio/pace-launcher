@@ -2,16 +2,25 @@ import Foundation
 import Testing
 @testable import DOTLauncherCore
 
-/// Time that only moves when a sleep wakes: a sleep wakes at the time it
-/// was asked for, or now if the test already moved past it.
+/// Time that moves only when a test sets it; sleepers wake once it passes
+/// their time.
 @MainActor
 private final class FakeClock {
-    var now = Date(timeIntervalSince1970: 1_800_000_000)
+    private(set) var now = Date(timeIntervalSince1970: 1_800_000_000)
+    private var sleepers: [(until: Date, wake: UnsafeContinuation<Void, Never>)] = []
 
-    func sleep(_ seconds: TimeInterval) async {
-        let wake = now.addingTimeInterval(seconds)
-        await Task.yield()
-        now = max(now, wake)
+    func sleep(until date: Date) async {
+        guard date > now else { return }
+        await withUnsafeContinuation { sleepers.append((date, $0)) }
+    }
+
+    /// Moves the clock and wakes every sleeper that is due, then lets them run.
+    func set(_ date: Date) async {
+        now = date
+        let due = sleepers.filter { $0.until <= date }
+        sleepers.removeAll { $0.until <= date }
+        for sleeper in due { sleeper.wake.resume() }
+        for _ in 0..<50 { await Task.yield() }
     }
 }
 
@@ -32,7 +41,7 @@ struct ConfirmationPromptTests {
 
     init() {
         let clock = clock
-        prompt = ConfirmationPrompt(now: { clock.now }, sleep: { await clock.sleep($0) })
+        prompt = ConfirmationPrompt(now: { clock.now }, sleep: { await clock.sleep(until: $0) })
     }
 
     private func press(_ id: String = "log-out") -> Bool {
@@ -52,18 +61,20 @@ struct ConfirmationPromptTests {
         )
     }
 
-    @Test func `a stale press only shows the prompt again`() {
+    @Test func `a stale press only shows the prompt again`() async {
+        let start = clock.now
         #expect(press() == false)
         ui.shown = false // typing cleared it
-        clock.now += 1
+        await clock.set(start + 1)
         #expect(press() == false)
         #expect(ui.shows == 2)
         #expect(ui.hides == 0)
     }
 
-    @Test func `a confirmed press hides its prompt`() {
+    @Test func `a confirmed press hides its prompt`() async {
+        let start = clock.now
         #expect(press() == false)
-        clock.now += 1
+        await clock.set(start + 1)
         #expect(press() == true)
         #expect(ui.hides == 1)
         #expect(!ui.shown)
@@ -72,28 +83,35 @@ struct ConfirmationPromptTests {
     @Test func `the prompt goes when the first press ends`() async {
         let start = clock.now
         #expect(press() == false)
+        await clock.set(start + 2.9)
+        #expect(ui.hides == 0)
+        await clock.set(start + 3.2)
         await prompt.pendingHide?.value
         #expect(ui.hides == 1)
-        #expect(ui.hiddenAt.map { $0.timeIntervalSince(start) >= prompt.window } == true)
+        #expect(ui.hiddenAt == start + 3.2)
     }
 
     @Test func `a newer press keeps the prompt up`() async {
         let start = clock.now
         #expect(press() == false)
         let first = prompt.pendingHide
-        await Task.yield() // the first hide starts sleeping at start
-        ui.shown = false
-        clock.now += 1
+        ui.shown = false // typing cleared it
+        await clock.set(start + 1)
         #expect(press() == false) // arms again at start + 1
+        await clock.set(start + 3.2) // the first press's check
+        #expect(ui.hides == 0, "the newer press still counts")
+        await clock.set(start + 4.2)
         await first?.value
         await prompt.pendingHide?.value
-        #expect(ui.hides == 1)
-        #expect(ui.hiddenAt.map { $0.timeIntervalSince(start) >= 4 } == true)
+        #expect(ui.hides == 1, "hides \(ui.hides), shows \(ui.shows)")
+        #expect(ui.hiddenAt == start + 4.2)
     }
 
     @Test func `another prompt is never hidden`() async {
+        let start = clock.now
         #expect(press() == false)
         ui.shown = false // another message replaced it
+        await clock.set(start + 3.2)
         await prompt.pendingHide?.value
         #expect(ui.hides == 0)
     }

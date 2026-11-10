@@ -117,6 +117,16 @@ public enum SystemCommand: String, CaseIterable, Sendable {
 
     public var needsConfirmation: Bool { confirmationNotice != nil }
 
+    /// The HUD for a repeat that is dropped while the command still runs:
+    /// for Restart and Shut Down what is still running is macOS's dialog.
+    public var busyMessage: String {
+        switch self {
+        case .restart: "The restart dialog is already open."
+        case .shutDown: "The shutdown dialog is already open."
+        default: "\(title) is already running."
+        }
+    }
+
     /// Repeat runs wait for the running one (Toggle Dark Mode reads, then
     /// sets the appearance). Other commands ignore a repeat while running:
     /// a second Restart would raise macOS's dialog again after Cancel.

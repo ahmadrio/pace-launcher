@@ -25,6 +25,17 @@ public struct ScriptArgument: Sendable, Equatable {
     public let placeholder: String
     public let optional: Bool
     public let percentEncoded: Bool
+
+    /// The first field the keyboard can type into (text or password); nil
+    /// when the form only has dropdowns.
+    public static func firstTypingIndex(in arguments: [ScriptArgument]) -> Int? {
+        arguments.firstIndex { argument in
+            switch argument.kind {
+            case .text, .password: true
+            case .dropdown: false
+            }
+        }
+    }
 }
 
 /// The comment header of a script command. Reads both the community

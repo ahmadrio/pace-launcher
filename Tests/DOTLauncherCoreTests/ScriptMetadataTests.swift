@@ -97,4 +97,15 @@ struct ScriptMetadataTests {
         #expect(ANSI.strip("\u{1B}[1;32mbold green\u{1B}[0m") == "bold green")
         #expect(ANSI.strip("plain") == "plain")
     }
+
+    @Test func `first typing field`() {
+        func argument(_ kind: ScriptArgument.Kind) -> ScriptArgument {
+            ScriptArgument(kind: kind, placeholder: "", optional: false, percentEncoded: false)
+        }
+        let dropdown = argument(.dropdown([ScriptDropdownItem(title: "Red", value: "red")]))
+        #expect(ScriptArgument.firstTypingIndex(in: [dropdown, argument(.text)]) == 1)
+        #expect(ScriptArgument.firstTypingIndex(in: [argument(.password)]) == 0)
+        #expect(ScriptArgument.firstTypingIndex(in: [dropdown]) == nil)
+        #expect(ScriptArgument.firstTypingIndex(in: []) == nil)
+    }
 }

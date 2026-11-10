@@ -79,4 +79,10 @@ struct SystemCommandTests {
     @Test func `system commands that queue repeats`() {
         #expect(SystemCommand.allCases.filter(\.queuesRepeatRuns) == [.toggleDarkMode])
     }
+
+    @Test func `busy commands say what is still open`() {
+        #expect(SystemCommand.restart.busyMessage == "The restart dialog is already open.")
+        #expect(SystemCommand.shutDown.busyMessage == "The shutdown dialog is already open.")
+        #expect(SystemCommand.emptyTrash.busyMessage == "Empty Trash is already running.")
+    }
 }

@@ -44,6 +44,7 @@ final class LauncherModel {
         case notes
         case scriptOutput
         case scriptArguments
+        case quicklink
 
         var placeholder: String {
             switch self {
@@ -56,6 +57,7 @@ final class LauncherModel {
             case .notes: "Search notes…"
             case .scriptOutput: "Script output"
             case .scriptArguments: "Fill in the arguments below"
+            case .quicklink: "Type what to search for…"
             }
         }
 
@@ -70,6 +72,7 @@ final class LauncherModel {
             case .notes: "Notes"
             case .scriptOutput: "Script"
             case .scriptArguments: "Script"
+            case .quicklink: "Quicklink"
             }
         }
     }

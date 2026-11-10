@@ -61,7 +61,7 @@ private struct ResultList: View {
         case (.snippets, true): "No snippets yet. Press ⌘N to create one."
         case (.notes, true): "No notes yet"
         case (.chatHistory, true): "No saved chats yet"
-        case (.translate, true), (.ai, true), (.scriptOutput, _), (.scriptArguments, _): ""
+        case (.translate, true), (.ai, true), (.scriptOutput, _), (.scriptArguments, _), (.quicklink, _): ""
         case (_, false): "No results for “\(model.query)”"
         }
     }

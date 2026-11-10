@@ -290,6 +290,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.translator = translator
 
+        // Quicklinks: rows in root search, and a mode that asks for the text.
+        var activeQuicklink: Quicklink?
+        let openQuicklink: (Quicklink, String) -> Void = { [weak self] link, text in
+            if !QuicklinkOpener.open(link, query: text) {
+                self?.hud?.show("Could not open this quicklink.", isError: true)
+            }
+        }
+        search.quicklinks = { [weak self] in self?.settings.data.quicklinks ?? [] }
+        search.openQuicklink = openQuicklink
+        search.enterQuicklink = { link in
+            activeQuicklink = link
+            model.reset(to: .quicklink)
+        }
+        model.handlers[.quicklink] = LauncherModel.ModeHandler(
+            results: { query in
+                guard let link = activeQuicklink else { return [] }
+                let text = query.trimmingCharacters(in: .whitespaces)
+                guard !text.isEmpty else {
+                    return [LauncherResult(
+                        id: "quicklink-mode", title: "Type to search \(link.name)", subtitle: LauncherSearch.quicklinkSubtitle(for: link),
+                        icon: .symbol("link"), accessory: "Quicklink", actionTitle: "", action: .stay {}
+                    )]
+                }
+                return [LauncherResult(
+                    id: "quicklink-mode", title: "Search \(link.name) for “\(text)”", subtitle: LauncherSearch.quicklinkSubtitle(for: link),
+                    icon: .symbol("link"), accessory: "Quicklink", actionTitle: "Open",
+                    action: .run { openQuicklink(link, text) }
+                )]
+            }
+        )
+
         let chat = AIChatController(translator: translator, store: Self.openChatStore())
         /// True when AI Chats was opened with ⌘Y, so Esc goes back to the chat.
         var chatHistoryFromAI = false
@@ -508,6 +539,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if !old.includeClipboardInBackup, new.includeClipboardInBackup {
                 Task { await self.sync?.backupIfDue() }
+            }
+            if old.quicklinks != new.quicklinks {
+                self.search?.rebuild()
             }
             if old.shortcuts != new.shortcuts {
                 self.applyShortcuts()

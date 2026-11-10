@@ -9,6 +9,7 @@ final class LauncherSearch {
         case command(LauncherCommand)
         case snippet(Snippet)
         case script(ScriptCommand)
+        case quicklink(Quicklink)
     }
 
     /// Snippets to rank in root search, and how to show one as a row.
@@ -19,6 +20,11 @@ final class LauncherSearch {
     var scriptRow: ((ScriptCommand) -> LauncherResult)?
     /// Exchange rates for currency conversions. Set by the composition root.
     var rates: RatesService?
+    /// Saved URLs, how to open one (with the typed text, "" for none), and
+    /// how to ask for the text of one that takes it.
+    var quicklinks: () -> [Quicklink] = { [] }
+    var openQuicklink: ((Quicklink, String) -> Void)?
+    var enterQuicklink: ((Quicklink) -> Void)?
 
     private let indexer: AppIndexer
     private let usage: UsageStore?
@@ -56,6 +62,11 @@ final class LauncherSearch {
             candidates.append(SearchCandidate(id: id, title: script.metadata.title, aliases: [script.metadata.packageName].compactMap { $0 }))
             items[id] = .script(script)
         }
+        for link in quicklinks() {
+            let id = Self.usageID(of: link)
+            candidates.append(SearchCandidate(id: id, title: link.name, aliases: [link.keyword].compactMap { $0 }))
+            items[id] = .quicklink(link)
+        }
         for snippet in snippets() {
             let id = "snippet:" + snippet.id.uuidString
             candidates.append(SearchCandidate(id: id, title: snippet.name, aliases: [snippet.keyword].compactMap { $0 }))
@@ -77,7 +88,8 @@ final class LauncherSearch {
         // A conversion or calculation is always the first row; "Ask AI" is
         // always the last.
         let calculation = conversion(for: query) ?? calculation(for: query)
-        return [calculation].compactMap { $0 } + matches + [calculation == nil ? askAIRow(for: query) : nil].compactMap { $0 }
+        return [calculation, inlineQuicklink(for: query)].compactMap { $0 } + matches
+            + [calculation == nil ? askAIRow(for: query) : nil].compactMap { $0 }
     }
 
     /// Sends a root query to AI Chat. Set by the composition root.
@@ -178,8 +190,41 @@ final class LauncherSearch {
         )
     }
 
+    /// "gh dot launcher": search GitHub right away.
+    private func inlineQuicklink(for query: String) -> LauncherResult? {
+        guard let (link, text) = Quicklinks.match(query, in: quicklinks()) else { return nil }
+        return LauncherResult(
+            id: "quicklink-inline",
+            title: "Search \(link.name) for “\(text)”",
+            subtitle: Self.quicklinkSubtitle(for: link),
+            icon: .symbol("link"),
+            accessory: "Quicklink",
+            actionTitle: "Open",
+            action: .run { [weak self] in
+                self?.recordUse(Self.usageID(of: link))
+                self?.openQuicklink?(link, text)
+            }
+        )
+    }
+
+    private static func usageID(of link: Quicklink) -> String { "quicklink:" + link.id.uuidString }
+
+    /// "gh · github.com".
+    static func quicklinkSubtitle(for link: Quicklink) -> String {
+        [link.keyword, link.url(for: "")?.host()].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
     private func result(for item: Item, id: String) -> LauncherResult? {
         switch item {
+        case .quicklink(let link):
+            let action: LauncherResult.Action = link.takesQuery
+                ? .stay { [weak self] in self?.enterQuicklink?(link) }
+                : .run { [weak self] in self?.openQuicklink?(link, "") }
+            return LauncherResult(
+                id: id, title: link.name, subtitle: Self.quicklinkSubtitle(for: link), icon: .symbol("link"),
+                accessory: "Quicklink", actionTitle: link.takesQuery ? "Search" : "Open",
+                action: recordingUse(of: id, action)
+            )
         case .script(let script):
             guard let row = scriptRow?(script) else { return nil }
             return LauncherResult(

@@ -79,8 +79,12 @@ struct ScriptArgumentsView: View {
         // the window yet, and the search field keeps the keyboard. What was
         // typed meanwhile is then moved into the field.
         .task {
-            guard (try? await Task.sleep(for: .milliseconds(100))) != nil else { return }
-            focused = 0
+            guard (try? await Task.sleep(for: .milliseconds(100))) != nil,
+                  let first = ScriptArgument.firstTypingIndex(in: form.script?.metadata.arguments ?? [])
+            else { return }
+            // A dropdown needs Full Keyboard Access to take focus: start in
+            // the first field that can be typed into.
+            focused = first
             await onFocused()
         }
         .onExitCommand(perform: cancel)
@@ -98,6 +102,9 @@ struct ScriptArgumentsView: View {
                 .onSubmit(submit)
         case .password:
             SecureField(title, text: value)
+                // Not a password AutoFill field: its "Passwords…" popup took
+                // the first ↩ after typed-ahead text.
+                .textContentType(.oneTimeCode)
                 .textFieldStyle(.roundedBorder)
                 .focused($focused, equals: index)
                 .onSubmit(submit)

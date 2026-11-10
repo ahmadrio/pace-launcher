@@ -89,7 +89,7 @@ enum SystemCommandRunner {
         case .queued:
             Log.app.info("system command \(command.rawValue, privacy: .public) waits for its previous run")
         case .dropped:
-            Log.app.info("system command \(command.rawValue, privacy: .public) is already running")
+            Log.app.notice("system command \(command.rawValue, privacy: .public) is already running")
             onEnd(.alreadyRunning)
         }
     }
@@ -97,7 +97,13 @@ enum SystemCommandRunner {
     private static func launch(_ run: ScriptRun, for command: SystemCommand) {
         Log.app.info("system command \(command.rawValue, privacy: .public) started")
         start(run.source, for: command) { end in
-            Log.app.info("system command \(command.rawValue, privacy: .public) finished: \(String(describing: end), privacy: .public)")
+            // Anything but done is kept (.notice) so it can be read later;
+            // only the command id and osascript's ending are logged.
+            if end == .done {
+                Log.app.info("system command \(command.rawValue, privacy: .public) finished: done")
+            } else {
+                Log.app.notice("system command \(command.rawValue, privacy: .public) finished: \(String(describing: end), privacy: .public)")
+            }
             run.onEnd(end)
             if let next = scriptRuns.finish(command) { launch(next, for: command) }
         }

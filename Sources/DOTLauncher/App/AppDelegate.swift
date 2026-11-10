@@ -733,7 +733,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .canceled:
             break
         case .alreadyRunning:
-            hud?.show("\(command.title) is already running.", isError: false)
+            hud?.show(command.busyMessage, isError: false)
         case .timedOut:
             guard case .appleScript(_, let target) = command.action else { return }
             if command == .emptyTrash {

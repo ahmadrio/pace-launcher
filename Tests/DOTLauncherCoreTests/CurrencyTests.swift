@@ -138,4 +138,11 @@ struct CurrencyTests {
         #expect(shown(1_807_700) == "1.807.700")
         #expect(shown(0) == "0")
     }
+
+    @Test func `newer currency codes are known`() {
+        #expect(currencies(Converter.parse("10 xcg to usd")) == ("XCG", "USD"))
+        #expect(currencies(Converter.parse("10 zwg to usd")) == ("ZWG", "USD"))
+        #expect(currencies(Converter.parse("10 ved to usd")) == ("VED", "USD"))
+        #expect(currencies(Converter.parse("10 ang to usd")) == ("ANG", "USD"))
+    }
 }

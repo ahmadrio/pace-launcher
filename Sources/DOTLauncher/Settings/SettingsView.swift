@@ -162,8 +162,8 @@ private struct GeneralSettings: View {
                         set: { if !$0 { clipboard.cancelRetention() } }
                     ),
                     presenting: clipboard.pendingRetention
-                ) { _ in
-                    Button("Delete", role: .destructive) { clipboard.confirmRetention() }
+                ) { pending in
+                    Button("Delete", role: .destructive) { clipboard.confirmRetention(pending) }
                     Button("Cancel", role: .cancel) { clipboard.cancelRetention() }
                 } message: { pending in
                     Text("Unpinned clips not used within \(pending.retention.title) are deleted now.")

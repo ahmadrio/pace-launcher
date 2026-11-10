@@ -73,18 +73,24 @@ final class ClipboardMaintenance {
             return
         }
         Task {
-            let count = (try? await store.countUnpinned(lastUsedBefore: cutoff)) ?? 0
-            if count == 0 {
-                settings.data.clipboardRetention = retention
-            } else {
-                pendingRetention = PendingRetention(retention: retention, count: count)
+            do {
+                let count = try await store.countUnpinned(lastUsedBefore: cutoff)
+                if count == 0 {
+                    settings.data.clipboardRetention = retention
+                } else {
+                    pendingRetention = PendingRetention(retention: retention, count: count)
+                }
+            } catch {
+                // Without a count there is nothing to confirm: keep the old setting.
+                status = "Could not count the clips to delete."
+                Log.clipboard.error("counting clips for retention failed: \(String(describing: error), privacy: .public)")
             }
         }
     }
 
-    /// "Delete" in the confirmation: settings.onChange then prunes.
-    func confirmRetention() {
-        guard let pending = pendingRetention else { return }
+    /// "Delete" in the confirmation, with the choice the alert showed:
+    /// settings.onChange then prunes.
+    func confirmRetention(_ pending: PendingRetention) {
         pendingRetention = nil
         settings.data.clipboardRetention = pending.retention
     }

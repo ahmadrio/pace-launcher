@@ -28,6 +28,7 @@ public enum CurrencyNames {
         NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD
         SHP SLE SLL SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TVD TWD TZS UAH UGX USD UYU UZS VES
         VND VUV WST XAF XCD XDR XOF XPF YER ZAR ZMW ZWL
+        VED XCG ZWG
         """.split(whereSeparator: \.isWhitespace).map(String.init))
 
     /// The ISO code a symbol, name or code stands for.

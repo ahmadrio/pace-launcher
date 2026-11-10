@@ -33,7 +33,7 @@ final class HotKeyCenter {
         let action: () -> Void
     }
 
-    private static let signature: OSType = 0x444F_544C // "PACE"
+    private static let signature: OSType = 0x5041_4345 // "PACE"
 
     @ObservationIgnored private var registrations: [UInt32: Registration] = [:]
     @ObservationIgnored private var idsByName: [String: UInt32] = [:]

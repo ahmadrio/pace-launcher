@@ -177,6 +177,20 @@ private struct GeneralSettings: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            Divider()
+
+            Text("Emoji").font(.headline)
+            Picker("Skin tone", selection: $settings.data.emojiSkinTone) {
+                ForEach(EmojiSkinTone.allCases, id: \.self) { tone in
+                    Text(tone.title + (tone.modifier.map { " \($0)" } ?? "")).tag(tone)
+                }
+            }
+            .frame(maxWidth: 260)
+            .accessibilityIdentifier("emoji-skin-tone")
+            Text("Used for hand and person emoji. In the emoji picker, ⌘T switches it.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
         }
     }
 }

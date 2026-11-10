@@ -311,7 +311,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.translator = translator
 
         // Emoji picker: ⏎ pastes into the previous app (the clipboard is put
-        // back), ⌘C copies. Use is learned per emoji.
+        // back), ⌘C copies, ⌘T changes the skin tone. Use is learned per base
+        // emoji, so changing the tone keeps the order.
+        let settings = self.settings
         var emojiUsage: [String: Double] = [:]
         let recordEmojiUse: (String) -> Void = { id in
             do {
@@ -322,8 +324,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         model.handlers[.emoji] = LauncherModel.ModeHandler(
             results: { query in
-                EmojiCatalog.search(query, usage: emojiUsage, limit: 60).map { emoji in
-                    let id = "emoji:" + emoji.character
+                let tone = settings.data.emojiSkinTone
+                return EmojiCatalog.search(query, usage: emojiUsage, limit: 60).map { found in
+                    let id = "emoji:" + found.character
+                    let emoji = EmojiCatalog.toned(found, skinTone: tone)
                     return LauncherResult(
                         id: id, title: emoji.name, subtitle: emoji.keywords.joined(separator: ", "),
                         icon: .text(emoji.character), accessory: "Emoji", actionTitle: "Paste",
@@ -337,6 +341,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         })]
                     )
                 }
+            },
+            actions: {
+                [SecondaryAction(title: "Skin Tone", shortcut: .command("t"), action: .stay {
+                    let tone = settings.data.emojiSkinTone.next
+                    settings.data.emojiSkinTone = tone
+                    model.notice = "Skin tone: \(tone.title)" + (tone.modifier.map { " \($0)" } ?? "")
+                })]
             },
             entered: {
                 let now = Date.now

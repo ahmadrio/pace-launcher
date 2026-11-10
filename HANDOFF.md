@@ -52,6 +52,10 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-14-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-14.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-14-ledger.md`
+- **Tahap 15** selesai di branch `tahap-15` (10 Nov 2026), menunggu keputusan merge.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-15-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-15.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-15-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -71,7 +75,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 | **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings, Search Emoji, Lock Screen, Sleep, Sleep Displays, Start Screen Saver (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali selama HUD "Press … again" masih tampil, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan tetap memakai kombinasinya: menekannya memunculkan HUD "Script not found: <file>", dan begitu file kembali tombol yang sama menjalankannya lagi (folder skrip dipantau, termasuk folder yang baru muncul setelah DOT berjalan). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
 | **Tema** | Settings › Appearance: preset (Default, Midnight, Paper, Sunset, Graphite), warna aksen, kepadatan kaca, dan mode System/Light/Dark. Perubahan langsung terlihat. |
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
-| **Script commands** | Skrip apa pun dengan header `# @dot.title` atau `# @raycast.title` di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown; form langsung fokus ke isian pertama, Esc kembali ke pencarian) dan `needsConfirmation`. **Semua konfirmasi "tekan lagi"** (Log Out, baris skrip, form argumen, shortcut skrip lewat HUD) memakai `ConfirmationPrompt`: tekan kedua hanya berlaku selama pesannya masih tampil, dan pesan hilang tepat saat tekan pertama habis (3 detik); mengubah isian form setelah pesan muncul meminta konfirmasi ulang. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
+| **Script commands** | Skrip apa pun dengan header `# @dot.title` atau `# @raycast.title` di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown; form langsung fokus ke isian pertama, juga saat dibuka ulang lewat shortcut; huruf yang diketik tepat setelah ↩ ikut pindah ke isian itu; Esc kembali ke pencarian) dan `needsConfirmation`. **Semua konfirmasi "tekan lagi"** (Log Out, baris skrip, form argumen, shortcut skrip lewat HUD) memakai `ConfirmationPrompt` (Core, diuji dengan jam palsu): tekan kedua hanya berlaku selama pesannya masih tampil, dan pesan hilang tepat saat tekan pertama habis (3 detik); mengubah isian form setelah pesan muncul meminta konfirmasi ulang. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
 | **Sync iCloud** | Settings › Sync › "Store data in iCloud Drive" (**default mati**). Saat menyala: Snippets, Notes, Scripts, dan `settings.json` pindah ke iCloud Drive › DOT Launcher, dan clipboard di-backup tiap 6 jam (5 backup terbaru disimpan) dan saat app ditutup. Restore memakai dua kali tekan. |
 | Menu bar | Status izin dan shortcut, Launch at Login, Hide Menu Bar Icon, Settings…, Quit. |
 
@@ -96,7 +100,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 363 test Core (Swift Testing)
+make test     # 368 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -171,6 +175,6 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Minor yang ditunda di ledger tahap 14 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test).
+1. Minor yang ditunda di ledger tahap 15 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test, form dengan dropdown di isian pertama tidak mendapat fokus tanpa Full Keyboard Access).
 2. Restart, Shut Down, Empty Trash, Toggle Dark Mode: **perlu keputusan Pace** soal izin Automation (Apple Events ke loginwindow/Finder/System Events) atau Full Disk Access.
 3. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): skin tone per emoji. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).

@@ -353,7 +353,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .opened:
                 break
             case .openedInDefault(let missing):
-                self?.hud?.show("\(missing) not found; opened in the default browser.", isError: true)
+                self?.hud?.show("\(BrowserNames.displayName(for: missing)) not found; opened in the default browser.", isError: true)
             case .failed:
                 self?.hud?.show("Could not open this quicklink.", isError: true)
             }

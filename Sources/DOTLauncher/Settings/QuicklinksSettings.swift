@@ -118,7 +118,7 @@ struct QuicklinksSettings: View {
         var choices = QuicklinkOpener.browsers()
         if let saved = editor.draft?.browser, !choices.contains(where: { $0.bundleID == saved }) {
             let installed = NSWorkspace.shared.urlForApplication(withBundleIdentifier: saved) != nil
-            choices.append((installed ? QuicklinkOpener.name(of: saved) : saved + " (not found)", saved))
+            choices.append((installed ? QuicklinkOpener.name(of: saved) : BrowserNames.displayName(for: saved) + " (not found)", saved))
         }
         return choices
     }

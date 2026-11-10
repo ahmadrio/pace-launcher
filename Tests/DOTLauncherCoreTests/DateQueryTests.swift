@@ -163,3 +163,26 @@ struct DateDifferenceTests {
     }
 }
 
+struct ZoneCoverageTests {
+    @Test func `abbreviations that used to work still resolve`() {
+        let expected: [(String, String)] = [
+            ("pkt", "Asia/Karachi"), ("trt", "Europe/Istanbul"), ("brt", "America/Sao_Paulo"), ("irst", "Asia/Tehran"),
+            ("bdt", "Asia/Dhaka"), ("akdt", "America/Anchorage"), ("adt", "America/Halifax"), ("nst", "America/St_Johns"),
+            ("ndt", "America/St_Johns"), ("clt", "America/Santiago"), ("nzt", "Pacific/Auckland"),
+        ]
+        for (name, identifier) in expected {
+            #expect(TimeZoneNames.zone(for: name)?.zone.identifier == identifier, "\(name)")
+        }
+    }
+
+    @Test func `review focus examples`() {
+        #expect(evaluate("2026-12-25 - 2026-01-01") == .difference(358))
+        #expect(evaluate("2026-12-25 - 1") == nil)
+        guard case .time(_, _, let place, _)? = evaluate("time in bst") else {
+            Issue.record("expected a time")
+            return
+        }
+        #expect(place == "London (UTC)")
+    }
+}
+

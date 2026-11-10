@@ -113,5 +113,12 @@ struct QuicklinkTests {
         let link = Quicklink(name: "B", keyword: "b", url: "https://b.test/{query}", browser: "com.brave.Browser")
         #expect(try JSONDecoder().decode(Quicklink.self, from: JSONEncoder().encode(link)) == link)
     }
+
+    @Test func `browsers are named, not shown as bundle ids`() {
+        #expect(BrowserNames.displayName(for: "company.thebrowser.Browser") == "Arc")
+        #expect(BrowserNames.displayName(for: "com.google.Chrome") == "Google Chrome")
+        #expect(BrowserNames.displayName(for: "COM.APPLE.SAFARI") == "Safari")
+        #expect(BrowserNames.displayName(for: "com.example.coolbrowser") == "coolbrowser")
+    }
 }
 

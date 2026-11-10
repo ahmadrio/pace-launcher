@@ -29,7 +29,11 @@ public enum TimeZoneNames {
         let groups: [([String], String, String)] = [
             (["pt", "pst", "pdt"], "America/Los_Angeles", "Los Angeles"), (["mt", "mst", "mdt"], "America/Denver", "Denver"),
             (["ct", "cst", "cdt"], "America/Chicago", "Chicago"), (["et", "est", "edt"], "America/New_York", "New York"),
-            (["akst"], "America/Anchorage", "Anchorage"), (["hst"], "Pacific/Honolulu", "Honolulu"),
+            (["akst", "akdt"], "America/Anchorage", "Anchorage"), (["hst"], "Pacific/Honolulu", "Honolulu"),
+            (["adt"], "America/Halifax", "Halifax"), (["nst", "ndt"], "America/St_Johns", "St. John's"),
+            (["brt"], "America/Sao_Paulo", "São Paulo"), (["clt"], "America/Santiago", "Santiago"),
+            (["trt"], "Europe/Istanbul", "Istanbul"), (["irst"], "Asia/Tehran", "Tehran"),
+            (["pkt"], "Asia/Karachi", "Karachi"), (["bdt"], "Asia/Dhaka", "Dhaka"),
             (["bst"], "Europe/London", "London"), (["cet", "cest"], "Europe/Paris", "Paris"),
             (["eet", "eest"], "Europe/Athens", "Athens"), (["msk"], "Europe/Moscow", "Moscow"),
             (["ist"], "Asia/Kolkata", "Kolkata"), (["gst"], "Asia/Dubai", "Dubai"), (["ict"], "Asia/Bangkok", "Bangkok"),
@@ -37,7 +41,7 @@ public enum TimeZoneNames {
             (["sgt"], "Asia/Singapore", "Singapore"), (["hkt"], "Asia/Hong_Kong", "Hong Kong"),
             (["jst"], "Asia/Tokyo", "Tokyo"), (["kst"], "Asia/Seoul", "Seoul"),
             (["aest", "aedt"], "Australia/Sydney", "Sydney"), (["acst", "acdt"], "Australia/Adelaide", "Adelaide"),
-            (["awst"], "Australia/Perth", "Perth"), (["nzst", "nzdt"], "Pacific/Auckland", "Auckland"),
+            (["awst"], "Australia/Perth", "Perth"), (["nzst", "nzdt", "nzt"], "Pacific/Auckland", "Auckland"),
         ]
         var table: [String: (String, String)] = [:]
         for (names, identifier, city) in groups { for name in names { table[name] = (identifier, city) } }

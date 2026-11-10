@@ -48,9 +48,9 @@ enum QuicklinkOpener {
             .sorted { $0.0.localizedStandardCompare($1.0) == .orderedAscending }
     }
 
-    /// "Brave Browser", or the bundle id when the app is not installed.
+    /// "Brave Browser"; a known name or the id's last part when the app is not installed.
     static func name(of bundleID: String) -> String {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return bundleID }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return BrowserNames.displayName(for: bundleID) }
         return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
     }
 }

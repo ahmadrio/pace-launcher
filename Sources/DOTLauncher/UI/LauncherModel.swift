@@ -88,6 +88,8 @@ final class LauncherModel {
         var escape: (() -> Bool)?
         /// Called when the mode is entered.
         var entered: (() -> Void)?
+        /// Details of the selected row, shown beside the list.
+        var preview: ((LauncherResult) -> AnyView?)?
     }
 
     private(set) var mode = Mode.root

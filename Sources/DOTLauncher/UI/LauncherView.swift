@@ -26,6 +26,20 @@ struct LauncherView: View {
 
             if let content = model.customContent[model.mode] {
                 content()
+            } else if let preview = model.handlers[model.mode]?.preview, !model.results.isEmpty {
+                HStack(spacing: 0) {
+                    ResultList(model: model)
+                        .frame(width: 320)
+                    Divider().opacity(0.5)
+                    Group {
+                        if let selected = model.selected, let view = preview(selected) {
+                            view
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             } else {
                 ResultList(model: model)
             }

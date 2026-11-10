@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import DOTLauncherCore
 
 /// Connects the pasteboard monitor, the clip store, and the launcher's
@@ -9,8 +10,13 @@ final class ClipboardController {
     private let icons: IconCache
     private var appNames: [String: String] = [:]
     private var thumbnails: [String: NSImage] = [:]
+    /// The clips behind the rows currently listed, by row id.
+    private var listed: [String: ClipItem] = [:]
+    private let previewImages = PreviewImageLoader()
     /// Shows a one-line message in the panel footer.
     var onNotice: ((String) -> Void)?
+    /// Called after a pin or delete finishes, to refresh the list.
+    var onChange: (() -> Void)?
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
@@ -39,11 +45,22 @@ final class ClipboardController {
     func results(for query: String) async -> [LauncherResult] {
         do {
             let items = try await store.search(query, limit: 100)
+            listed = Dictionary(items.map { ("clip:\($0.id)", $0) }, uniquingKeysWith: { first, _ in first })
             return items.map(result(for:))
         } catch {
             Log.clipboard.error("clipboard search failed: \(String(describing: error), privacy: .public)")
             return []
         }
+    }
+
+    func preview(for result: LauncherResult) -> AnyView? {
+        guard let item = listed[result.id] else { return nil }
+        return AnyView(ClipPreviewView(
+            item: item,
+            imageURL: store.imageURL(for: item),
+            appName: item.sourceBundleID.flatMap(appName(for:)),
+            images: previewImages
+        ))
     }
 
     private func result(for item: ClipItem) -> LauncherResult {
@@ -71,12 +88,33 @@ final class ClipboardController {
             title: String(firstLine.prefix(200)),
             subtitle: missingImage ? "Image unavailable" : details.joined(separator: " · "),
             icon: icon(for: item),
-            accessory: kind,
+            accessory: item.pinned ? "Pinned" : kind,
             actionTitle: "Paste",
             action: missingImage
                 ? .stay { [weak self] in self?.onNotice?("Image unavailable") }
-                : .run { [weak self] in self?.paste(item) }
+                : .run { [weak self] in self?.paste(item) },
+            secondaryActions: [
+                SecondaryAction(title: item.pinned ? "Unpin" : "Pin", shortcut: .command("p"), action: .stay { [weak self] in
+                    self?.change { try await $0.setPinned(item.id, !item.pinned) }
+                }),
+                SecondaryAction(title: "Delete", shortcut: .delete, confirm: true, action: .stay { [weak self] in
+                    self?.change { try await $0.delete(item.id) }
+                }),
+            ]
         )
+    }
+
+    /// Runs a store change, then refreshes the list (the store is an actor,
+    /// so the refresh must wait for the change).
+    private func change(_ work: @escaping (ClipboardStore) async throws -> Void) {
+        Task {
+            do {
+                try await work(store)
+            } catch {
+                Log.clipboard.error("clip change failed: \(String(describing: error), privacy: .public)")
+            }
+            onChange?()
+        }
     }
 
     private func paste(_ item: ClipItem) {

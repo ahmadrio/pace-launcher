@@ -109,6 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let clipboardStore = Self.openClipboardStore()
         let clipboard = clipboardStore.map { ClipboardController(store: $0, icons: icons) }
         clipboard?.onNotice = { model.notice = $0 }
+        clipboard?.onChange = { model.refresh() }
 
         let snippets = SnippetLibrary(store: SnippetStore(directory: AppPaths.snippetsDirectory))
         let snippetRow: (Snippet) -> LauncherResult = { [weak self] snippet in
@@ -249,7 +250,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         model.search = { query in search.results(for: query) }
         model.handlers[.clipboard] = LauncherModel.ModeHandler(
-            results: { query in await clipboard?.results(for: query) ?? [] }
+            results: { query in await clipboard?.results(for: query) ?? [] },
+            preview: { result in clipboard?.preview(for: result) }
         )
 
         let translator = Translator()

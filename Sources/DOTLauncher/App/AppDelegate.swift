@@ -649,7 +649,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func systemCommands(model: LauncherModel) -> [LauncherCommand] {
         SystemCommand.allCases.map { command in
             let run = { [weak self] in
-                if !SystemCommandRunner.run(command) {
+                let stuck: @MainActor () -> Void = { [weak self] in
+                    self?.hud?.show("Could not \(command.title.lowercased()): DOT kept the keyboard focus.", isError: true)
+                }
+                if !SystemCommandRunner.run(command, onFocusStuck: stuck) {
                     self?.hud?.show("Allow Accessibility to lock or log out.", isError: true)
                 }
             }

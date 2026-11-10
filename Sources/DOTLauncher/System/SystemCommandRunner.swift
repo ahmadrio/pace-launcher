@@ -8,11 +8,37 @@ enum SystemCommandRunner {
     static var isDryRun: Bool { UserDefaults.standard.bool(forKey: "DOTSystemCommandDryRun") }
 
     /// False when the command posts keys and Accessibility is not granted.
+    /// `onFocusStuck` runs when DOT could not give up keyboard focus.
     @discardableResult
-    static func run(_ command: SystemCommand) -> Bool {
+    static func run(_ command: SystemCommand, onFocusStuck: @escaping @MainActor () -> Void = {}) -> Bool {
         if command.needsAccessibility, !KeyboardPaste.canPost {
             AccessibilityPermission.prompt()
             return false
+        }
+        if case .keys(let combo) = command.action {
+            // ⌃⌘Q and ⇧⌘Q are the frontmost app's Apple-menu shortcuts: if a
+            // DOT window (Settings, the panel) holds focus they reach DOT,
+            // which has no Apple menu, and nothing happens. Step aside first.
+            if NSApp.isActive || NSApp.keyWindow != nil { NSApp.hide(nil) }
+            Task {
+                for _ in 0..<20 where NSApp.isActive || NSApp.keyWindow != nil {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+                try? await Task.sleep(for: .milliseconds(80))
+                let released = !NSApp.isActive && NSApp.keyWindow == nil
+                if isDryRun {
+                    Log.app.info("system command \(command.rawValue, privacy: .public) (dry run, focus released: \(released))")
+                    return
+                }
+                guard released else {
+                    Log.app.notice("system command \(command.rawValue, privacy: .public) skipped: DOT kept the keyboard focus")
+                    onFocusStuck()
+                    return
+                }
+                Log.app.info("system command \(command.rawValue, privacy: .public)")
+                post(combo)
+            }
+            return true
         }
         if isDryRun {
             Log.app.info("system command \(command.rawValue, privacy: .public) (dry run)")
@@ -20,12 +46,8 @@ enum SystemCommandRunner {
         }
         Log.app.info("system command \(command.rawValue, privacy: .public)")
         switch command.action {
-        case .keys(let combo):
-            Task {
-                // Let the panel order out, so the keys reach macOS, not DOT.
-                try? await Task.sleep(for: .milliseconds(80))
-                post(combo)
-            }
+        case .keys:
+            break
         case .process(let path, let arguments):
             let process = Process()
             process.executableURL = URL(fileURLWithPath: path)

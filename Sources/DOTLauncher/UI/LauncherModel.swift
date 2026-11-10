@@ -128,6 +128,8 @@ final class LauncherModel {
     /// The search field, so the panel can give it focus on every show.
     @ObservationIgnored weak var searchField: NSTextField?
     @ObservationIgnored private var listTask: Task<Void, Never>?
+    /// The row to select again after the next refresh (set by `.stay`).
+    @ObservationIgnored private var keepSelectionID: String?
     @ObservationIgnored private var confirmation = PressConfirmation()
 
     var selected: LauncherResult? {
@@ -162,11 +164,18 @@ final class LauncherModel {
         }
     }
 
+    /// The kept row's index in `rows`, once; nil when there is none.
+    private func keptIndex(in rows: [LauncherResult]) -> Int? {
+        defer { keepSelectionID = nil }
+        guard let id = keepSelectionID else { return nil }
+        return rows.firstIndex { $0.id == id }
+    }
+
     func refresh() {
         if mode == .root {
             let started = ContinuousClock.now
             results = search(query)
-            selectedIndex = 0
+            selectedIndex = keptIndex(in: results) ?? 0
             let elapsed = started.duration(to: .now)
             // Debug level is never persisted; visible only with `make logs`.
             Log.panel.debug("query “\(self.query, privacy: .public)” → \(self.results.count) results, top: \(self.results.first?.title ?? "-", privacy: .public) in \(elapsed, privacy: .public)")
@@ -184,7 +193,7 @@ final class LauncherModel {
             let found = await provider(query)
             guard !Task.isCancelled, self.mode == mode, self.query == query else { return }
             results = found
-            selectedIndex = min(selectedIndex, max(found.count - 1, 0))
+            selectedIndex = keptIndex(in: found) ?? min(selectedIndex, max(found.count - 1, 0))
         }
     }
 
@@ -241,7 +250,12 @@ final class LauncherModel {
             close()
             work()
         case .stay(let work):
+            // A "press ↩ again" confirmation must land on the same row, so
+            // the refresh after it keeps that row selected.
+            let before = mode
+            keepSelectionID = selected?.id
             work()
+            if mode != before { keepSelectionID = nil }
             if handlers[mode]?.queryChanged == nil { refresh() }
         case .enter(let mode):
             reset(to: mode)

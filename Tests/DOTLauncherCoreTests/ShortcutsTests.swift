@@ -219,4 +219,13 @@ struct ShortcutsTests {
         let ids: [ShortcutID] = [.script("b.sh"), .window(.leftHalf), .script("a.sh"), .launcher, .launcher]
         #expect(Shortcuts.ordered(ids) == [.launcher, .window(.leftHalf), .script("a.sh"), .script("b.sh")])
     }
+
+    @Test func `the lock and log out combos are refused`() {
+        // DOT posts these to lock or log out; owning one would catch its own post.
+        for string in ["ctrl+cmd+q", "shift+cmd+q"] {
+            #expect(Shortcuts.validate(combo(string), for: .command(.lockScreen), current: [:], system: []) == .reservedByApps, "\(string)")
+        }
+        #expect(Shortcuts.resolve(["command.lock-screen": "ctrl+cmd+q"])[.command(.lockScreen)] == nil)
+    }
 }
+

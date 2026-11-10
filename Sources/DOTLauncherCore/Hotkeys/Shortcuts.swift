@@ -70,6 +70,8 @@ public enum Shortcuts {
         "shift+cmd+z", "shift+cmd+s", "shift+cmd+t", "shift+cmd+n", "shift+cmd+v",
         "cmd+r", "cmd+b", "cmd+i", "cmd+l", "cmd+g", "cmd+k", "cmd+d", "cmd+e", "cmd+u",
         "cmd+1", "cmd+2", "cmd+3", "cmd+4", "cmd+5", "cmd+6", "cmd+7", "cmd+8", "cmd+9",
+        // macOS lock and log out, which DOT posts for its system commands.
+        "ctrl+cmd+q", "shift+cmd+q",
     ]
 
     /// unknownKey, needsModifier or reservedByApps, else nil.

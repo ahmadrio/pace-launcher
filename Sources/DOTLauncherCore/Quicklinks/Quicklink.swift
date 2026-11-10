@@ -60,7 +60,8 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
         // while this keeps "bücher.de", only percent-encoded.
         let marked = url.replacingOccurrences(of: Self.placeholder, with: Self.marker, options: .caseInsensitive)
         guard let host = URL(string: marked)?.host(), !host.isEmpty else { return nil }
-        return host.removingPercentEncoding ?? host
+        // "{query}.slack.com" stays readable; the marker is internal.
+        return (host.removingPercentEncoding ?? host).replacingOccurrences(of: Self.marker, with: Self.placeholder)
     }
 
     public var takesQuery: Bool { url.range(of: Self.placeholder, options: .caseInsensitive) != nil }

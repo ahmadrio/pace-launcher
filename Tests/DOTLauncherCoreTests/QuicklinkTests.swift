@@ -96,5 +96,7 @@ struct QuicklinkTests {
     @Test func `readable hosts`() {
         #expect(Quicklink(name: "B", keyword: nil, url: "https://bücher.de/?q={query}").displayHost == "bücher.de")
         #expect(Quicklink.defaults[2].displayHost == "github.com")
+        #expect(Quicklink(name: "Slack", keyword: nil, url: "https://{query}.slack.com").displayHost == "{query}.slack.com")
+        #expect(Quicklink(name: "Vercel", keyword: nil, url: "https://{QUERY}.vercel.app/x").displayHost == "{query}.vercel.app")
     }
 }

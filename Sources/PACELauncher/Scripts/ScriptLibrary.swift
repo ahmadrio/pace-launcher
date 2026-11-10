@@ -58,11 +58,27 @@ final class ScriptLibrary {
         do {
             try Data(template.utf8).write(to: url)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
-            NSWorkspace.shared.open(url)
+            openForEditing(url)
         } catch {
             Log.app.error("could not create script: \(error.localizedDescription, privacy: .public)")
         }
         reload()
+    }
+
+    /// Opens a script in the default plain-text editor. The default app for
+    /// `.sh` is often a terminal, which would run the script instead.
+    private func openForEditing(_ url: URL) {
+        guard let editor = NSWorkspace.shared.urlForApplication(toOpen: .plainText) else {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+            return
+        }
+        NSWorkspace.shared.open([url], withApplicationAt: editor, configuration: NSWorkspace.OpenConfiguration()) { _, error in
+            guard let error else { return }
+            Task { @MainActor in
+                Log.app.error("could not open \(url.lastPathComponent, privacy: .public) in an editor: \(error.localizedDescription, privacy: .public)")
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
+        }
     }
 
     func openFolder() {

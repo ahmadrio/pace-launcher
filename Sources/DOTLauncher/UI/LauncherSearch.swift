@@ -136,10 +136,11 @@ final class LauncherSearch {
         guard let value = current.convert(conversion.amount, from: from, to: to) else { return nil }
         var subtitle = "\(trimmed) · Rates by ExchangeRate-API · \(Self.ratesDate.string(from: current.updated))"
         if current.isOutdated(now: .now) { subtitle += " · rates may be outdated" }
+        let digits = ConversionFormat.currencyDigits(for: value)
         return conversionRow(
-            title: ConversionFormat.display(value, maxFractionDigits: 2, significantDigits: nil, locale: locale) + " " + to,
+            title: ConversionFormat.display(value, maxFractionDigits: digits.maxFractionDigits, significantDigits: digits.significantDigits, locale: locale) + " " + to,
             subtitle: subtitle,
-            copied: ConversionFormat.copy(value, maxFractionDigits: 2, significantDigits: nil, locale: locale)
+            copied: ConversionFormat.copy(value, maxFractionDigits: digits.maxFractionDigits, significantDigits: digits.significantDigits, locale: locale)
         )
     }
 

@@ -125,4 +125,17 @@ struct CurrencyTests {
         #expect(Converter.parse("1 juta rupiah to usd")?.amount == 1_000_000)
         #expect(Converter.parse("1.500jt idr", locale: enID)?.amount == 1_500_000_000)
     }
+
+    @Test func `small currency amounts keep significant digits`() throws {
+        let enID = Locale(identifier: "en_ID")
+        func shown(_ value: Double) -> String {
+            let digits = ConversionFormat.currencyDigits(for: value)
+            return ConversionFormat.display(value, maxFractionDigits: digits.maxFractionDigits, significantDigits: digits.significantDigits, locale: enID)
+        }
+        let rupiah = try #require(try rates().convert(1, from: "IDR", to: "USD"))
+        #expect(shown(rupiah) == "0,0000553")
+        #expect(shown(0.5) == "0,5")
+        #expect(shown(1_807_700) == "1.807.700")
+        #expect(shown(0) == "0")
+    }
 }

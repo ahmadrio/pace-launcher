@@ -17,6 +17,15 @@ final class RatesService {
     @ObservationIgnored private let file: URL
     @ObservationIgnored private let url: URL
     @ObservationIgnored private var lastAttempt: Date?
+    /// No cookies or disk cache, and generic headers instead of the
+    /// system's languages and version.
+    @ObservationIgnored private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        configuration.httpAdditionalHeaders = ["Accept-Language": "en", "User-Agent": "DOTLauncher"]
+        return URLSession(configuration: configuration)
+    }()
 
     init(file: URL = AppPaths.exchangeRatesFile) {
         self.file = file
@@ -55,7 +64,7 @@ final class RatesService {
         }
         do {
             let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
             guard (response as? HTTPURLResponse)?.statusCode == 200,
                   let fresh = ExchangeRates.decode(data, fetchedAt: .now)
             else {

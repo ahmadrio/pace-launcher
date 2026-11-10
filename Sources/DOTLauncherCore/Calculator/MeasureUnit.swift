@@ -71,20 +71,28 @@ public struct MeasureUnit: Sendable, Hashable {
         (MeasureUnit(symbol: "MB", category: .data), ["mb", "megabyte", "megabytes"], []),
         (MeasureUnit(symbol: "GB", category: .data), ["gb", "gigabyte", "gigabytes"], []),
         (MeasureUnit(symbol: "TB", category: .data), ["tb", "terabyte", "terabytes"], []),
+        // Bits: a capital prefix and a small b ("Mb"); all lowercase ("mb") stays bytes.
+        (MeasureUnit(symbol: "kbit", category: .data), ["kbit", "kilobit", "kilobits"], ["Kb"]),
+        (MeasureUnit(symbol: "Mbit", category: .data), ["mbit", "megabit", "megabits"], ["Mb"]),
+        (MeasureUnit(symbol: "Gbit", category: .data), ["gbit", "gigabit", "gigabits"], ["Gb"]),
+        (MeasureUnit(symbol: "Tbit", category: .data), ["tbit", "terabit", "terabits"], ["Tb"]),
         (MeasureUnit(symbol: "KiB", category: .data), ["kib", "kibibyte", "kibibytes"], []),
         (MeasureUnit(symbol: "MiB", category: .data), ["mib", "mebibyte", "mebibytes"], []),
         (MeasureUnit(symbol: "GiB", category: .data), ["gib", "gibibyte", "gibibytes"], []),
         (MeasureUnit(symbol: "TiB", category: .data), ["tib", "tebibyte", "tebibytes"], []),
     ]
 
-    /// (alias, unit, exact) pairs, longest alias first, so "km" wins over "m".
+    /// (alias, unit, exact) pairs, longest alias first, so "km" wins over "m";
+    /// exact aliases before case-insensitive ones of the same length ("Mb" before "mb").
     static let aliasTable: [(alias: String, unit: MeasureUnit, exact: Bool)] = {
         var table: [(alias: String, unit: MeasureUnit, exact: Bool)] = []
         for entry in all {
             for alias in entry.aliases { table.append((alias, entry.unit, false)) }
             for alias in entry.exactAliases { table.append((alias, entry.unit, true)) }
         }
-        return table.sorted { $0.alias.count > $1.alias.count }
+        return table.sorted {
+            $0.alias.count != $1.alias.count ? $0.alias.count > $1.alias.count : ($0.exact && !$1.exact)
+        }
     }()
 
     /// The unit `word` names exactly (no extra text around it).
@@ -168,6 +176,10 @@ public struct MeasureUnit: Sendable, Hashable {
         case "MB": UnitInformationStorage.megabytes
         case "GB": UnitInformationStorage.gigabytes
         case "TB": UnitInformationStorage.terabytes
+        case "kbit": UnitInformationStorage.kilobits
+        case "Mbit": UnitInformationStorage.megabits
+        case "Gbit": UnitInformationStorage.gigabits
+        case "Tbit": UnitInformationStorage.terabits
         case "KiB": UnitInformationStorage.kibibytes
         case "MiB": UnitInformationStorage.mebibytes
         case "GiB": UnitInformationStorage.gibibytes

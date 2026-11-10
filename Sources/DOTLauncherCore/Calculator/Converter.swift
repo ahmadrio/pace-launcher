@@ -153,6 +153,12 @@ public enum ConversionFormat {
             .string(from: NSNumber(value: value)) ?? String(value)
     }
 
+    /// (2, nil) normally; (nil, 3) for a non-zero amount below 1, so
+    /// 0.0000553 does not show as 0.
+    public static func currencyDigits(for value: Double) -> (maxFractionDigits: Int?, significantDigits: Int?) {
+        value != 0 && abs(value) < 1 ? (nil, 3) : (2, nil)
+    }
+
     /// Without grouping, for pasting into other apps: "6213,71".
     public static func copy(_ value: Double, maxFractionDigits: Int?, significantDigits: Int?, locale: Locale) -> String {
         formatter(for: value, maxFractionDigits: maxFractionDigits, significantDigits: significantDigits, locale: locale, grouping: false)

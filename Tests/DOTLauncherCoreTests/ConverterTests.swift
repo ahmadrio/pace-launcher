@@ -102,4 +102,14 @@ struct ConverterTests {
         #expect(near(convert("1k km to mi"), 621.371))
         #expect(Converter.parse("1jt to kg") == nil)
     }
+
+    @Test func `bits use a capital prefix and a small b`() {
+        #expect(near(convert("1 Mb to MB"), 0.125))
+        #expect(near(convert("1 Gb to Mb"), 1000))
+        #expect(near(convert("100 Mbit to MB"), 12.5))
+        #expect(convert("1 mb to kb") == 1000)
+        #expect(convert("8 b to B") == 1)
+        #expect(MeasureUnit.named("Mb")?.symbol == "Mbit")
+        #expect(MeasureUnit.named("mb")?.symbol == "MB")
+    }
 }

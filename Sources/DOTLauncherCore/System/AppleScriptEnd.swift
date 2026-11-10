@@ -8,6 +8,8 @@ public enum AppleScriptEnd: Equatable, Sendable {
     /// The app took longer than the Apple Event timeout to answer (-1712);
     /// it may still be working (Finder emptying a large Trash).
     case timedOut
+    /// Not started: the same command was still running.
+    case alreadyRunning
     /// Anything else: osascript's last error line without its "12:40:
     /// execution error:" prefix (at most 120 characters), or the exit
     /// status when it printed nothing.

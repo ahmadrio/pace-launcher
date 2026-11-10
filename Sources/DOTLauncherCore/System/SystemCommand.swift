@@ -117,6 +117,11 @@ public enum SystemCommand: String, CaseIterable, Sendable {
 
     public var needsConfirmation: Bool { confirmationNotice != nil }
 
+    /// Repeat runs wait for the running one (Toggle Dark Mode reads, then
+    /// sets the appearance). Other commands ignore a repeat while running:
+    /// a second Restart would raise macOS's dialog again after Cancel.
+    public var queuesRepeatRuns: Bool { self == .toggleDarkMode }
+
     public var needsAccessibility: Bool {
         if case .keys = action { true } else { false }
     }

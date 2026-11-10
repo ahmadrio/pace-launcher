@@ -731,6 +731,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if command == .emptyTrash { hud?.show("Emptied the Trash.", isError: false) }
         case .canceled:
             break
+        case .alreadyRunning:
+            hud?.show("\(command.title) is already running.", isError: false)
         case .timedOut:
             // Finder may still be emptying a large Trash: not an error.
             guard case .appleScript(_, let target) = command.action else { return }

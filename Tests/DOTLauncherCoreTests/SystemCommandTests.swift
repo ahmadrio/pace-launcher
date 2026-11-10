@@ -75,4 +75,8 @@ struct SystemCommandTests {
         let text = info?["NSAppleEventsUsageDescription"] as? String
         #expect(text?.isEmpty == false)
     }
+
+    @Test func `system commands that queue repeats`() {
+        #expect(SystemCommand.allCases.filter(\.queuesRepeatRuns) == [.toggleDarkMode])
+    }
 }

@@ -34,7 +34,13 @@ struct EmojiCatalogTests {
         let empty = EmojiCatalog.search("", usage: ["🔥": 3, "😀": 1], limit: 10)
         #expect(empty.prefix(2).map(\.character) == ["🔥", "😀"])
         #expect(empty.count == 10)
-        let faces = EmojiCatalog.search("sleeping face", usage: ["😴": 5], limit: 30)
-        #expect(faces.first?.character == "😴")
+        // Usage lifts an emoji among others that match the query equally well.
+        func rank(of character: String, usage: [String: Double]) -> Int? {
+            EmojiCatalog.search("sl", usage: usage, limit: 50).firstIndex { $0.character == character }
+        }
+        let plain = rank(of: "😴", usage: [:])
+        let used = rank(of: "😴", usage: ["😴": 5])
+        #expect(plain != nil && used != nil)
+        #expect(used! < plain!)
     }
 }

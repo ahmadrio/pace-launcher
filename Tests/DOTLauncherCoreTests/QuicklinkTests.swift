@@ -83,4 +83,14 @@ struct QuicklinkTests {
         #expect(Quicklinks.problem(with: Quicklink(name: "X", keyword: nil, url: "https://exa mple.com"), existing: []) == urlMessage)
         #expect(Quicklinks.problem(with: Quicklink(name: "X", keyword: nil, url: "https://e.com/a b?q={query}"), existing: []) == urlMessage)
     }
+
+    @Test func `typed text is encoded once even when the template needs fixing`() {
+        #expect(Quicklink(name: "P", keyword: nil, url: "https://e.com/?a=b|c&q={query}").url(for: "a b")?.absoluteString
+            == "https://e.com/?a=b%7Cc&q=a%20b")
+        #expect(Quicklink(name: "S", keyword: nil, url: "https://example.com/søk/{query}").url(for: "café")?.absoluteString
+            == "https://example.com/s%C3%B8k/caf%C3%A9")
+        #expect(Quicklink(name: "F", keyword: nil, url: "https://e.com/?q={query}&lang=français").url(for: "dot launcher")?.absoluteString
+            == "https://e.com/?q=dot%20launcher&lang=fran%C3%A7ais")
+    }
 }
+

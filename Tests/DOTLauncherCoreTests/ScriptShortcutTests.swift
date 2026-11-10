@@ -102,10 +102,10 @@ struct ScriptShortcutTests {
         }
     }
 
-    @Test func `a missing folder is watched through its parent`() {
-        let existing: Set<String> = ["/tmp", "/x/extra"]
-        #expect(ScriptFolderEvents.watchPaths(for: ["/tmp/main", "/x/extra"], exists: existing.contains) == ["/tmp", "/x/extra"])
-        #expect(ScriptFolderEvents.watchPaths(for: ["/nowhere/main"], exists: existing.contains).isEmpty)
+    @Test func `missing folders are watched directly, never their parents`() {
+        // FSEvents reports a watched path's creation; watching a parent such as
+        // ~ for a missing extra folder would report every file in it.
+        #expect(ScriptFolderEvents.watchPaths(for: ["/tmp/main/", "/x/extra", "/tmp/main"]) == ["/tmp/main", "/x/extra"])
     }
 }
 

@@ -67,13 +67,22 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
         // Spaces mean a typo ("https://exa mple.com"); anything else Foundation
         // can make valid: "bücher.de" becomes punycode, "ø" and "|" are encoded.
         guard !url.contains(where: \.isWhitespace) else { return nil }
+        // Normalize the template with a plain marker where the text goes, then
+        // insert the encoded text: normalizing after inserting would encode
+        // its "%" again ("a b" → "a%2520b").
+        let marked = url.replacingOccurrences(of: Self.placeholder, with: Self.marker, options: .caseInsensitive)
+        guard let normalized = URL(string: marked)?.absoluteString else { return nil }
         let encoded = query.addingPercentEncoding(withAllowedCharacters: Self.unreserved) ?? ""
-        let filled = url.replacingOccurrences(of: Self.placeholder, with: encoded, options: .caseInsensitive)
-        guard let result = URL(string: filled), let scheme = result.scheme, !scheme.isEmpty else { return nil }
+        let filled = normalized.replacingOccurrences(of: Self.marker, with: encoded)
+        guard let result = URL(string: filled, encodingInvalidCharacters: false),
+              let scheme = result.scheme, !scheme.isEmpty
+        else { return nil }
         return result
     }
 
     private static let placeholder = "{query}"
+    /// Lowercase ASCII letters and digits only, so normalizing leaves it alone.
+    private static let marker = "dotlauncherquery7f3a"
     /// Only these stay as they are; "&", "#", "?", "/", "+", "=" and spaces are encoded.
     private static let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
 }

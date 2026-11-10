@@ -21,13 +21,13 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-6.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-6-ledger.md`
 - **Tahap 7** selesai dan sudah di-merge ke `main` (10 Nov 2026).
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-7-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-7.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-7-ledger.md`
 - **Tahap 8** selesai di branch `tahap-8` (10 Nov 2026), belum di-merge.
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-8-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-8.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-8-ledger.md`
-  - Desain: `docs/superpowers/specs/2026-11-10-tahap-7-design.md`
-  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-7.md`
-  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-7-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -43,7 +43,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 | **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, **Quicklinks**, Scripts, Sync. |
 | **Emoji** | Perintah "Search Emoji" (bisa diberi shortcut global): cari dengan nama atau kata sehari-hari (`cinta`, `ketawa`, `thanks`, `jepang`), ⏎ menempel ke app sebelumnya (clipboard dikembalikan), ⌘C menyalin. Emoji yang sering dipakai naik; tanpa ketikan, wajah dulu. Data dari properti Unicode Swift + bendera dari kode wilayah; tanpa skin tone dan emoji gabungan. |
 | **Quicklinks** | URL tersimpan dengan `{query}` (Settings › Quicklinks atau perintah "Create Quicklink"). Ketik `gh dot launcher` untuk langsung mencari di GitHub; keyword saja (`g`) tidak mengangkat quicklink di atas app, karena quicklink diranking dari namanya; memilih quicklink lewat namanya meminta teksnya dulu; quicklink tanpa `{query}` langsung dibuka. Teks di-percent-encode. Bawaan: Google (`g`), YouTube (`yt`), GitHub (`gh`), Google Maps (`maps`). Disimpan di `settings.json` (ikut sync); entri tulisan tangan tanpa `id` tetap terbaca (id diturunkan dari nama + URL), URL non-ASCII (`bücher.de`) diterima, spasi ditolak. |
-| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi begitu file kembali (folder skrip dipantau; folder Scripts utama yang baru muncul setelah DOT berjalan baru terpantau saat launcher atau Settings dibuka). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
+| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings, Search Emoji (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi begitu file kembali (folder skrip dipantau, termasuk folder yang baru muncul setelah DOT berjalan). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
 | **Tema** | Settings › Appearance: preset (Default, Midnight, Paper, Sunset, Graphite), warna aksen, kepadatan kaca, dan mode System/Light/Dark. Perubahan langsung terlihat. |
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
 | **Script commands** | Skrip apa pun dengan header `# @dot.title` atau `# @raycast.title` di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown) dan `needsConfirmation`. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
@@ -71,7 +71,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 324 test Core (Swift Testing)
+make test     # 325 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -123,7 +123,7 @@ make reset-tcc
 - **Uji quicklink tanpa membuka browser:** app penangkap kecil dengan skema `dott7://` mencatat URL yang diterima. LaunchServices menolak mengikat skema untuk app di folder sementara (`launch-disabled in-temp-dir`), jadi app itu didaftarkan dari `~/Library/Caches/dot-launcher-tests` lalu dicabut (`lsregister -u`) dan dihapus.
 - **`URL(string:)` longgar:** spasi di path di-encode diam-diam, host non-ASCII jadi punycode. Quicklink menolak template yang berisi spasi, lalu memakai parsing longgar (supaya `bücher.de` dan `|` diterima). `URL.host()` mengembalikan bentuk percent-encoded (`b%C3%BCcher.de`); URL yang dibuka memakai punycode (`absoluteString`).
 - **Nama emoji Unicode kadang kuno** ("HEAVY BLACK HEART"): `EmojiCatalog` memakai tabel kecil nama + kata kunci populer untuk sekitar 40 emoji.
-- **Folder skrip dipantau FSEvents** (`ScriptFolderWatcher`, jeda 0,5 detik, `UseCFTypes | FileEvents`). Folder yang belum ada dipantau lewat induknya; hanya path yang relevan (`ScriptFolderEvents.isRelevant`: tanpa komponen tersembunyi, maksimal kedalaman pemindai) memicu pembacaan ulang. Shortcut didaftarkan ulang hanya kalau kunci/judul skrip berubah (`ScriptShortcut.fingerprint`).
+- **Folder skrip dipantau FSEvents** (`ScriptFolderWatcher`, jeda 0,5 detik, `UseCFTypes | FileEvents`). Folder yang belum ada dipantau langsung (FSEvents melaporkan saat folder itu dibuat; induknya sengaja tidak dipantau karena untuk folder tambahan bisa berarti seluruh `~`); hanya path yang relevan (`ScriptFolderEvents.isRelevant`: tanpa komponen tersembunyi, maksimal kedalaman pemindai) memicu pembacaan ulang. Shortcut didaftarkan ulang hanya kalau kunci/judul skrip berubah (`ScriptShortcut.fingerprint`).
 - **Dokumen TextEdit uji:** `make new document with properties {name: …}` memunculkan dialog "You don't own the file" saat isinya diubah. Klik Cancel lalu tutup dengan `saving no`.
 - **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
 
@@ -140,5 +140,5 @@ make reset-tcc
 
 ## Langkah berikutnya
 1. Merge `tahap-8` ke `main` (keputusan Pace).
-2. Minor yang ditunda di ledger tahap 8 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap).
+2. Minor yang ditunda di ledger tahap 8 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap, shortcut skrip yang hilang tidak memberi tanda saat ditekan).
 3. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): skin tone untuk emoji, quicklink yang dibuka di browser tertentu, kalkulator tanggal/waktu (`now + 3 days`).

@@ -2,14 +2,14 @@ import Foundation
 
 /// Which file-system changes can change the scripts DOT finds.
 public enum ScriptFolderEvents {
-    /// What to watch for `folders`: each existing folder, or the parent of a
-    /// missing one (when the parent exists), so the folder's arrival is seen.
-    public static func watchPaths(for folders: [String], exists: (String) -> Bool) -> [String] {
+    /// What to watch for `folders`: the folders themselves, existing or not.
+    /// FSEvents reports a watched path being created, so a Scripts folder
+    /// that arrives later is seen without watching its parent (for a missing
+    /// extra folder that parent could be ~, with every file in it).
+    public static func watchPaths(for folders: [String]) -> [String] {
         var result: [String] = []
-        for folder in folders.map(normalized) {
-            let candidate = exists(folder) ? folder : (folder as NSString).deletingLastPathComponent
-            guard !candidate.isEmpty, exists(candidate), !result.contains(candidate) else { continue }
-            result.append(candidate)
+        for folder in folders.map(normalized) where !folder.isEmpty && !result.contains(folder) {
+            result.append(folder)
         }
         return result
     }

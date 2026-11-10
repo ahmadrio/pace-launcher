@@ -16,11 +16,11 @@ final class ScriptFolderWatcher {
         self.onChange = onChange
     }
 
-    /// Watches the folders, or the parent of one that does not exist yet;
-    /// does nothing when that is unchanged.
+    /// Watches the folders (also ones that do not exist yet); does nothing
+    /// when they are unchanged.
     func watch(_ folders: [URL]) {
         self.folders = folders.map(\.path)
-        let paths = ScriptFolderEvents.watchPaths(for: self.folders) { FileManager.default.fileExists(atPath: $0) }
+        let paths = ScriptFolderEvents.watchPaths(for: self.folders)
         guard paths != watched else { return }
         stop()
         watched = paths

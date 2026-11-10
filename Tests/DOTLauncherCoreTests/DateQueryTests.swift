@@ -186,3 +186,16 @@ struct ZoneCoverageTests {
     }
 }
 
+struct CityWordTests {
+    @Test func `words after a time are not cities`() {
+        for input in ["5pm to wake", "5pm in center", "9:00 ke phoenix"] {
+            #expect(evaluate(input) == nil, "\(input)")
+        }
+        guard case .time(_, let zone, _, _)? = evaluate("time in phoenix") else {
+            Issue.record("expected a time")
+            return
+        }
+        #expect(zone.identifier == "America/Phoenix")
+    }
+}
+

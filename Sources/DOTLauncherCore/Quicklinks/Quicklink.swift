@@ -40,7 +40,9 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
         name = try container.decode(String.self, forKey: .name)
         url = try container.decode(String.self, forKey: .url)
         keyword = try container.decodeIfPresent(String.self, forKey: .keyword)
-        browser = try? container.decodeIfPresent(String.self, forKey: .browser)
+        // "" or spaces (hand-written) mean the default browser.
+        let browser = (try? container.decodeIfPresent(String.self, forKey: .browser)) ?? nil
+        self.browser = browser?.trimmingCharacters(in: .whitespaces).isEmpty == false ? browser : nil
         // A hand-written id that is not a UUID ("wiki") counts as no id.
         id = (try? container.decodeIfPresent(UUID.self, forKey: .id)) ?? Self.derivedID(name: name, url: url)
     }

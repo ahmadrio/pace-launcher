@@ -11,19 +11,30 @@ enum QuicklinkOpener {
         case failed
     }
 
+    /// `onLateFallback` runs (on the main actor) when the chosen browser
+    /// fails to launch after `.opened` was returned; the link has then been
+    /// opened in the default browser.
     @discardableResult
-    static func open(_ link: Quicklink, query: String) -> Outcome {
+    static func open(_ link: Quicklink, query: String,
+                     onLateFallback: @escaping @MainActor @Sendable (String) -> Void = { _ in }) -> Outcome {
         guard let url = link.url(for: query) else {
             Log.app.notice("quicklink \(link.name, privacy: .public) has a URL that can't be built")
             return .failed
         }
         if let browser = link.browser {
-            if let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser) {
-                // Completes asynchronously (off the main actor); a failure is only logged.
+            // A stale LaunchServices record can point at an app that is gone.
+            if let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser),
+               FileManager.default.fileExists(atPath: app.path) {
+                // Completes asynchronously (off the main actor). On failure,
+                // open the default browser instead and say so.
                 let log = Log.app
+                let name = name(of: browser)
                 NSWorkspace.shared.open([url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration()) { _, error in
-                    if let error {
-                        log.error("opening a quicklink in \(browser, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+                    guard let error else { return }
+                    log.error("opening a quicklink in \(browser, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+                    Task { @MainActor in
+                        NSWorkspace.shared.open(url)
+                        onLateFallback(name)
                     }
                 }
                 Log.app.info("opened quicklink \(link.name, privacy: .public) in \(browser, privacy: .public)")
@@ -40,9 +51,11 @@ enum QuicklinkOpener {
     /// Apps that open https:// links here, by name (for the "Open with" picker).
     static func browsers() -> [(name: String, bundleID: String)] {
         guard let probe = URL(string: "https://example.com") else { return [] }
+        var seen = Set<String>()
         return NSWorkspace.shared.urlsForApplications(toOpen: probe)
             .compactMap { url -> (String, String)? in
-                guard let id = Bundle(url: url)?.bundleIdentifier else { return nil }
+                // Two copies of one browser share an id: list it once.
+                guard let id = Bundle(url: url)?.bundleIdentifier, seen.insert(id.lowercased()).inserted else { return nil }
                 return (FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: ""), id)
             }
             .sorted { $0.0.localizedStandardCompare($1.0) == .orderedAscending }

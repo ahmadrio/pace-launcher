@@ -116,7 +116,8 @@ struct QuicklinksSettings: View {
     /// Installed browsers, plus the saved one when it is not installed here.
     private var browserChoices: [(name: String, bundleID: String)] {
         var choices = QuicklinkOpener.browsers()
-        if let saved = editor.draft?.browser, !choices.contains(where: { $0.bundleID == saved }) {
+        if let saved = editor.draft?.browser,
+           !choices.contains(where: { $0.bundleID.caseInsensitiveCompare(saved) == .orderedSame }) {
             let installed = NSWorkspace.shared.urlForApplication(withBundleIdentifier: saved) != nil
             choices.append((installed ? QuicklinkOpener.name(of: saved) : BrowserNames.displayName(for: saved) + " (not found)", saved))
         }
@@ -137,7 +138,9 @@ struct QuicklinksSettings: View {
             Picker("Open with", selection: Binding(get: { editor.draft?.browser ?? "" }, set: { editor.draft?.browser = $0.isEmpty ? nil : $0 })) {
                 Text("Default browser").tag("")
                 ForEach(browserChoices, id: \.bundleID) { browser in
-                    Text(browser.name).tag(browser.bundleID)
+                    // Tag with the saved spelling when only the case differs, so it stays selected.
+                    Text(browser.name).tag(browser.bundleID.caseInsensitiveCompare(editor.draft?.browser ?? "") == .orderedSame
+                        ? (editor.draft?.browser ?? browser.bundleID) : browser.bundleID)
                 }
             }
             .accessibilityIdentifier("quicklink-browser")

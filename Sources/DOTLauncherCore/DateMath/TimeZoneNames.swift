@@ -6,12 +6,15 @@ public enum TimeZoneNames {
     /// "est" → (America/New_York, "New York", showsOffset). Nil when unknown.
     /// `showsOffset`: an abbreviation stands for its city's clock (summer
     /// time included), so the label adds the real offset.
-    public static func zone(for name: String) -> (zone: TimeZone, place: String, showsOffset: Bool)? {
+    /// `allowingWordCities: false` skips cities whose name is an everyday
+    /// word ("wake", "center"), for "5pm to wake" style input.
+    public static func zone(for name: String, allowingWordCities: Bool = true) -> (zone: TimeZone, place: String, showsOffset: Bool)? {
         let key = name.split(whereSeparator: \.isWhitespace).joined(separator: " ").lowercased()
         guard !key.isEmpty else { return nil }
         if let (identifier, place) = fixed[key], let zone = TimeZone(identifier: identifier) { return (zone, place, false) }
         if let (identifier, city) = abbreviations[key], let zone = TimeZone(identifier: identifier) { return (zone, city, true) }
-        if let identifier = cities[key], let zone = TimeZone(identifier: identifier) { return (zone, titleCase(key), false) }
+        if allowingWordCities || !cityWords.contains(key),
+           let identifier = cities[key], let zone = TimeZone(identifier: identifier) { return (zone, titleCase(key), false) }
         if let (identifier, place) = aliases[key], let zone = TimeZone(identifier: identifier) { return (zone, place, false) }
         return nil
     }
@@ -47,6 +50,12 @@ public enum TimeZoneNames {
         for (names, identifier, city) in groups { for name in names { table[name] = (identifier, city) } }
         return table
     }()
+
+    /// Zone cities that are also everyday words.
+    private static let cityWords: Set<String> = [
+        "wake", "center", "reunion", "resolute", "easter", "palmer", "troll", "midway", "phoenix", "jersey",
+        "casey", "davis", "mawson", "vostok", "eucla", "macquarie", "south", "north",
+    ]
 
     private static let aliases: [String: (String, String)] = [
         "nyc": ("America/New_York", "New York"), "sf": ("America/Los_Angeles", "San Francisco"),

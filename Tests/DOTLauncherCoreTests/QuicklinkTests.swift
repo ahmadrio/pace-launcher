@@ -120,5 +120,12 @@ struct QuicklinkTests {
         #expect(BrowserNames.displayName(for: "COM.APPLE.SAFARI") == "Safari")
         #expect(BrowserNames.displayName(for: "com.example.coolbrowser") == "coolbrowser")
     }
+
+    @Test func `blank browsers mean the default`() throws {
+        for value in ["\"\"", "\"  \""] {
+            let json = #"{"quicklinks": [{"name": "A", "url": "https://a.test", "browser": "# + value + "}]}"
+            #expect(try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8)).quicklinks.first?.browser == nil)
+        }
+    }
 }
 

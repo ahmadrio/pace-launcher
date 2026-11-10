@@ -127,11 +127,11 @@ public enum DateQuery {
             hour = hour % 12 + (meridiem == "pm" ? 12 : 0)
         }
         guard (0...23).contains(hour), (0...59).contains(minute),
-              let target = TimeZoneNames.zone(for: String(match.5))
+              let target = TimeZoneNames.zone(for: String(match.5), allowingWordCities: false)
         else { return nil }
         var source = calendar
         if let name = match.4 {
-            guard let zone = TimeZoneNames.zone(for: String(name)) else { return nil }
+            guard let zone = TimeZoneNames.zone(for: String(name), allowingWordCities: false) else { return nil }
             source.timeZone = zone.zone
         }
         // That time today, in the source zone.

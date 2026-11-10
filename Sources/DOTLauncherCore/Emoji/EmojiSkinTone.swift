@@ -28,6 +28,13 @@ public enum EmojiSkinTone: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// One emoji's own tone, in the order ⌘⇧T steps through: nil (follow
+    /// the default tone), then Default … Dark, then nil again.
+    public static func cycleOverride(_ current: EmojiSkinTone?) -> EmojiSkinTone? {
+        guard let current else { return .default }
+        return current == .dark ? nil : current.next
+    }
+
     /// The following tone, wrapping from Dark back to Default.
     public var next: EmojiSkinTone {
         let all = Self.allCases

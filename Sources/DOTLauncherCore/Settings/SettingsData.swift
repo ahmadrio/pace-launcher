@@ -17,11 +17,18 @@ public struct SettingsData: Codable, Sendable, Equatable {
     public var quicklinks: [Quicklink] = Quicklink.defaults
     /// Applied to hand and person emoji when they are pasted.
     public var emojiSkinTone = EmojiSkinTone.default
+    /// Emoji with a tone of their own, by the catalog's base character.
+    public var emojiSkinTones: [String: EmojiSkinTone] = [:]
 
     public init() {}
 
+    /// The tone to paste `emoji` in: its own, or the default one.
+    public func skinTone(for emoji: Emoji) -> EmojiSkinTone {
+        emojiSkinTones[emoji.character] ?? emojiSkinTone
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts, clipboardRetention, quicklinks, emojiSkinTone
+        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts, clipboardRetention, quicklinks, emojiSkinTone, emojiSkinTones
     }
 
     /// Missing keys keep their defaults, so older or newer files still load.
@@ -40,6 +47,9 @@ public struct SettingsData: Codable, Sendable, Equatable {
         // of resetting every setting.
         clipboardRetention = (try? container.decodeIfPresent(ClipboardRetention.self, forKey: .clipboardRetention)) ?? defaults.clipboardRetention
         emojiSkinTone = (try? container.decodeIfPresent(EmojiSkinTone.self, forKey: .emojiSkinTone)) ?? defaults.emojiSkinTone
+        // Unknown tones are dropped; anything that is not a map gives none.
+        let tones = (try? container.decodeIfPresent([String: String].self, forKey: .emojiSkinTones)) ?? nil
+        emojiSkinTones = (tones ?? [:]).compactMapValues(EmojiSkinTone.init(rawValue:))
         // A broken entry is skipped; an unreadable list or a missing key
         // gives the starter quicklinks. Either way the other settings load.
         let links = (try? container.decodeIfPresent([Lossy<Quicklink>].self, forKey: .quicklinks))

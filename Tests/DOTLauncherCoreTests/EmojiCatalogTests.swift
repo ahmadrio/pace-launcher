@@ -96,4 +96,23 @@ struct EmojiCatalogTests {
             #expect(EmojiCatalog.toned(emoji, skinTone: .medium).character == character, "\(character)")
         }
     }
+
+    @Test func `which emoji can be toned`() {
+        func can(_ character: String) -> Bool { EmojiCatalog.canTone(Emoji(character: character, name: "x", keywords: [])) }
+        #expect(can("👍"))
+        #expect(can("☝️"))
+        for character in ["❤️", "👪", "🇮🇩"] {
+            #expect(!can(character), "\(character)")
+        }
+    }
+
+    @Test func `per-emoji tones cycle`() {
+        var tone: EmojiSkinTone?
+        var seen: [EmojiSkinTone?] = []
+        for _ in 0..<8 {
+            tone = EmojiSkinTone.cycleOverride(tone)
+            seen.append(tone)
+        }
+        #expect(seen == [.default, .light, .mediumLight, .medium, .mediumDark, .dark, nil, .default])
+    }
 }

@@ -49,6 +49,11 @@ public enum EmojiCatalog {
         return Emoji(character: String(base) + modifier, name: emoji.name, keywords: emoji.keywords)
     }
 
+    /// True for hand and person emoji that have skin-tone forms.
+    public static func canTone(_ emoji: Emoji) -> Bool {
+        toned(emoji, skinTone: .medium) != emoji
+    }
+
     /// Modifier bases with no standard toned form (👪 👯 🤼): apps that
     /// draw their own emoji would show the base plus a colour swatch.
     private static let untonedBases: Set<UInt32> = [0x1F46A, 0x1F46F, 0x1F93C]

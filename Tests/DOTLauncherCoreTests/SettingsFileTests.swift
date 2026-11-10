@@ -129,6 +129,31 @@ struct SettingsFileTests {
         #expect(copy.emojiSkinTone == .mediumDark)
     }
 
+    @Test func `per-emoji tones override the default`() {
+        var data = SettingsData()
+        data.emojiSkinTone = .medium
+        data.emojiSkinTones = ["👍": .dark, "👏": .default]
+        func tone(_ character: String) -> EmojiSkinTone { data.skinTone(for: Emoji(character: character, name: "x", keywords: [])) }
+        #expect(tone("👍") == .dark)
+        #expect(tone("👋") == .medium)
+        #expect(tone("👏") == .default)
+    }
+
+    @Test func `per-emoji tones load leniently`() throws {
+        func decode(_ json: String) throws -> SettingsData {
+            try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8))
+        }
+        #expect(try decode(#"{"emojiSkinTones": {"👍": "dark", "👋": "purple"}}"#).emojiSkinTones == ["👍": .dark])
+        let broken = try decode(#"{"emojiSkinTones": 3, "showMenuBarIcon": false}"#)
+        #expect(broken.emojiSkinTones.isEmpty)
+        #expect(!broken.showMenuBarIcon)
+        #expect(try decode("{}").emojiSkinTones.isEmpty)
+        var data = SettingsData()
+        data.emojiSkinTones = ["☝️": .mediumLight]
+        let copy = try JSONDecoder().decode(SettingsData.self, from: JSONEncoder().encode(data))
+        #expect(copy.emojiSkinTones == ["☝️": .mediumLight])
+    }
+
     @Test func `quicklinks without or with duplicate ids load`() throws {
         func decode(_ json: String) throws -> SettingsData {
             try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8))

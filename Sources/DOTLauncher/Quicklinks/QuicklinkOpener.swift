@@ -12,11 +12,11 @@ enum QuicklinkOpener {
     }
 
     /// `onLateFallback` runs (on the main actor) when the chosen browser
-    /// fails to launch after `.opened` was returned; the link has then been
-    /// opened in the default browser.
+    /// fails to launch after `.opened` was returned, with the browser's name
+    /// and whether the default browser then opened the link.
     @discardableResult
     static func open(_ link: Quicklink, query: String,
-                     onLateFallback: @escaping @MainActor @Sendable (String) -> Void = { _ in }) -> Outcome {
+                     onLateFallback: @escaping @MainActor @Sendable (_ browser: String, _ opened: Bool) -> Void = { _, _ in }) -> Outcome {
         guard let url = link.url(for: query) else {
             Log.app.notice("quicklink \(link.name, privacy: .public) has a URL that can't be built")
             return .failed
@@ -33,8 +33,7 @@ enum QuicklinkOpener {
                     guard let error else { return }
                     log.error("opening a quicklink in \(browser, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
                     Task { @MainActor in
-                        NSWorkspace.shared.open(url)
-                        onLateFallback(name)
+                        onLateFallback(name, NSWorkspace.shared.open(url))
                     }
                 }
                 Log.app.info("opened quicklink \(link.name, privacy: .public) in \(browser, privacy: .public)")

@@ -10,6 +10,9 @@ struct LauncherCommand {
     let symbol: String
     let actionTitle: String
     let action: LauncherResult.Action
+    /// False when the action records its own use, e.g. only once it
+    /// really runs (Log Out's first ↩ only asks to press again).
+    var recordsUse = true
 
     var usageID: String { "cmd:" + id }
 }

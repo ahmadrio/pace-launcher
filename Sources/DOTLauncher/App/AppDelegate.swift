@@ -96,13 +96,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let windowCommands = CommandCatalog.windowCommands { action in
             windows.perform(action, on: panelController.targetApp)
         }
+        // One store, so root search, the emoji picker and Log Out learn
+        // from each other's state.
+        let usage = Self.openUsageStore()
         // Every built-in command, rebuilt on each call so subtitles that
         // show state stay fresh. Search and command shortcuts share it.
         let commandList: () -> [LauncherCommand] = { [weak self] in
             [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat(), CommandCatalog.aiChatHistory(), CommandCatalog.searchEmoji()] + windowCommands
                 + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
                 + CommandCatalog.quicklinkCommands(create: { self?.settingsWindow?.show(addQuicklink: true) })
-                + (self?.systemCommands(model: model) ?? [])
+                + (self?.systemCommands(model: model, usage: usage) ?? [])
                 + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
                 + CommandCatalog.scriptCommands(create: { self?.scriptLibrary.createTemplate() }, openFolder: { self?.scriptLibrary.openFolder() })
                 + CommandCatalog.appCommands(
@@ -111,8 +114,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     openSettings: { self?.settingsWindow?.show() }
                 )
         }
-        // One store, so root search and the emoji picker learn from each other's state.
-        let usage = Self.openUsageStore()
         let search = LauncherSearch(
             indexer: indexer, usage: usage, icons: icons,
             commands: commandList
@@ -363,8 +364,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Quicklinks: rows in root search, and a mode that asks for the text.
         var activeQuicklink: Quicklink?
         let openQuicklink: (Quicklink, String) -> Void = { [weak self] link, text in
-            let lateFallback: @MainActor @Sendable (String) -> Void = { [weak self] name in
-                self?.hud?.show("\(name) could not open it; opened in the default browser.", isError: true)
+            let lateFallback: @MainActor @Sendable (String, Bool) -> Void = { [weak self] name, opened in
+                self?.hud?.show(opened ? "\(name) could not open it; opened in the default browser." : "Could not open this quicklink.", isError: true)
             }
             switch QuicklinkOpener.open(link, query: text, onLateFallback: lateFallback) {
             case .opened:
@@ -656,8 +657,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         snippetEditor?.open(snippet)
     }
 
+    private static let logOutNotice = "Press ↩ again to log out"
+
     /// Lock, sleep, screen saver and log out. Log Out asks for a second ↩.
-    private func systemCommands(model: LauncherModel) -> [LauncherCommand] {
+    private func systemCommands(model: LauncherModel, usage: UsageStore?) -> [LauncherCommand] {
         SystemCommand.allCases.map { command in
             let run = { [weak self] in
                 let stuck: @MainActor () -> Void = { [weak self] in
@@ -670,17 +673,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let action: LauncherResult.Action = command.needsConfirmation
                 ? .stay { [weak self] in
                     guard let self else { return }
+                    // The second ↩ counts only while its notice is shown:
+                    // typing, moving or reopening the panel clears the
+                    // notice, and with it the first press.
+                    if model.notice != Self.logOutNotice { self.logOutConfirmation.reset() }
                     guard self.logOutConfirmation.press(command.rawValue, at: .now) else {
-                        model.notice = "Press ↩ again to log out"
+                        model.notice = Self.logOutNotice
                         return
                     }
                     model.close()
+                    // Use is learned when it runs, not on the first ↩.
+                    do {
+                        try usage?.recordUse(of: "cmd:" + command.rawValue)
+                    } catch {
+                        Log.apps.error("could not record usage: \(String(describing: error), privacy: .public)")
+                    }
                     run()
                 }
                 : .run(run)
             return LauncherCommand(
                 id: command.rawValue, title: command.title, subtitle: command.subtitle, aliases: command.aliases,
-                symbol: command.symbol, actionTitle: command.needsConfirmation ? "Log Out" : "Run", action: action
+                symbol: command.symbol, actionTitle: command.needsConfirmation ? "Log Out" : "Run", action: action,
+                recordsUse: !command.needsConfirmation
             )
         }
     }

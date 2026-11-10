@@ -11,7 +11,8 @@ enum SystemCommandRunner {
     /// `onFocusStuck` runs when DOT could not give up keyboard focus.
     @discardableResult
     static func run(_ command: SystemCommand, onFocusStuck: @escaping @MainActor () -> Void = {}) -> Bool {
-        if command.needsAccessibility, !KeyboardPaste.canPost {
+        // A dry run posts nothing, so it needs no permission (and no prompt).
+        if command.needsAccessibility, !isDryRun, !KeyboardPaste.canPost {
             AccessibilityPermission.prompt()
             return false
         }

@@ -280,7 +280,7 @@ final class LauncherSearch {
                 icon: .symbol(command.symbol),
                 accessory: "Command",
                 actionTitle: command.actionTitle,
-                action: recordingUse(of: id, command.action)
+                action: command.recordsUse ? recordingUse(of: id, command.action) : command.action
             )
         }
     }

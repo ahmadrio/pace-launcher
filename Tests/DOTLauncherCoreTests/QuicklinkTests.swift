@@ -127,5 +127,11 @@ struct QuicklinkTests {
             #expect(try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8)).quicklinks.first?.browser == nil)
         }
     }
+
+    @Test func `browsers are trimmed`() throws {
+        let json = #"{"quicklinks": [{"name": "A", "url": "https://a.test", "browser": " com.apple.Safari \n"}, {"name": "B", "url": "https://b.test", "browser": "\n\t"}]}"#
+        let links = try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8)).quicklinks
+        #expect(links.map(\.browser) == ["com.apple.Safari", nil])
+    }
 }
 

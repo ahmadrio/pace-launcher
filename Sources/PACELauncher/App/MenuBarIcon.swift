@@ -2,11 +2,13 @@ import AppKit
 
 /// The menu bar icon: the app icon's bold "P" with three speed lines, drawn as
 /// a template image so macOS tints it for light and dark menu bars.
+/// AppKit may run an image's drawing handler on any thread, so the drawing
+/// is nonisolated and uses only fonts and Core Graphics.
 enum MenuBarIcon {
-    static let size = NSSize(width: 21, height: 16)
+    nonisolated static let size = NSSize(width: 21, height: 16)
 
     static func image() -> NSImage {
-        let image = NSImage(size: size, flipped: false) { _ in
+        let image = NSImage(size: size, flipped: false) { @Sendable _ in
             guard let context = NSGraphicsContext.current?.cgContext else { return false }
             draw(in: context)
             return true
@@ -17,7 +19,7 @@ enum MenuBarIcon {
     }
 
     /// Draws the icon in black on a canvas of `size` points.
-    static func draw(in context: CGContext) {
+    nonisolated static func draw(in context: CGContext) {
         let base = NSFont.systemFont(ofSize: 17, weight: .black)
         let font = base.fontDescriptor.withDesign(.rounded).flatMap { NSFont(descriptor: $0, size: 17) } ?? base
         var character: UniChar = 0x50 // "P"

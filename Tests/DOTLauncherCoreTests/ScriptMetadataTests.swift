@@ -108,4 +108,14 @@ struct ScriptMetadataTests {
         #expect(ScriptArgument.firstTypingIndex(in: [dropdown]) == nil)
         #expect(ScriptArgument.firstTypingIndex(in: []) == nil)
     }
+
+    @Test func `script headers in all three spellings`() throws {
+        #expect(ScriptMetadata.parse("# @pace.title A")?.title == "A")
+        #expect(ScriptMetadata.parse("# @dot.title B")?.title == "B")
+        #expect(ScriptMetadata.parse("# @raycast.title C")?.title == "C")
+        let confirm = try #require(ScriptMetadata.parse("# @pace.title A\n# @pace.needsConfirmation true"))
+        #expect(confirm.needsConfirmation)
+        // The app's own spelling wins over the older ones.
+        #expect(ScriptMetadata.parse("# @raycast.title C\n# @dot.title B\n# @pace.title A")?.title == "A")
+    }
 }

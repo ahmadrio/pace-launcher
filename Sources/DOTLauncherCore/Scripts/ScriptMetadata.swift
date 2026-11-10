@@ -39,7 +39,8 @@ public struct ScriptArgument: Sendable, Equatable {
 }
 
 /// The comment header of a script command. Reads both the community
-/// `@raycast.key value` convention and DOT's own `@dot.key value`.
+/// `@raycast.key value` convention, the app's own `@pace.key value`, and
+/// `@dot.key value` from when it was called DOT Launcher.
 public struct ScriptMetadata: Sendable, Equatable {
     public let title: String
     public let mode: ScriptMode
@@ -56,6 +57,7 @@ public struct ScriptMetadata: Sendable, Equatable {
     public static func parse(_ source: String) -> ScriptMetadata? {
         var raycast: [String: String] = [:]
         var dot: [String: String] = [:]
+        var pace: [String: String] = [:]
 
         for line in source.split(separator: "\n", omittingEmptySubsequences: false).prefix(60) {
             var text = line.trimmingCharacters(in: .whitespaces)
@@ -68,16 +70,21 @@ public struct ScriptMetadata: Sendable, Equatable {
             }
             text = text.trimmingCharacters(in: .whitespaces)
 
-            for (prefix, isDot) in [("@raycast.", false), ("@dot.", true)] where text.hasPrefix(prefix) {
+            for prefix in ["@raycast.", "@dot.", "@pace."] where text.hasPrefix(prefix) {
                 let rest = text.dropFirst(prefix.count)
                 let key = String(rest.prefix { !$0.isWhitespace })
                 let value = rest.dropFirst(key.count).trimmingCharacters(in: .whitespaces)
                 guard !key.isEmpty else { continue }
-                if isDot { dot[key] = value } else { raycast[key] = value }
+                switch prefix {
+                case "@pace.": pace[key] = value
+                case "@dot.": dot[key] = value
+                default: raycast[key] = value
+                }
             }
         }
 
-        let fields = raycast.merging(dot) { _, dotValue in dotValue }
+        // The app's own spelling wins: @pace., then the older @dot., then @raycast.
+        let fields = raycast.merging(dot) { _, newer in newer }.merging(pace) { _, newer in newer }
         guard let title = fields["title"], !title.isEmpty else { return nil }
 
         func optional(_ key: String) -> String? {

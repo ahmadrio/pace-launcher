@@ -8,6 +8,8 @@
 	<string>PACE Launcher</string>
 	<key>CFBundleExecutable</key>
 	<string>PACELauncher</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>io.github.ahmadrio.PACELauncher</string>
 	<key>CFBundleInfoDictionaryVersion</key>

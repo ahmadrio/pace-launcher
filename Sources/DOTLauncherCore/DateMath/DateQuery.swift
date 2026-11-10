@@ -7,6 +7,8 @@ public enum DateQuery {
         case date(Date, withTime: Bool)
         /// Until: days into the future; since: days into the past (both ≥ 0).
         case days(Int)
+        /// Days between two dates (absolute).
+        case difference(Int)
         case time(Date, zone: TimeZone, place: String, dayChanged: Bool)
     }
 
@@ -18,6 +20,7 @@ public enum DateQuery {
         calendar.timeZone = timeZone
         return arithmetic(text, now: now, calendar: calendar)
             ?? countdown(text, now: now, calendar: calendar)
+            ?? difference(text, now: now, calendar: calendar)
             ?? zoneTime(text, now: now, calendar: calendar)
     }
 
@@ -27,6 +30,12 @@ public enum DateQuery {
         case .days(let days):
             switch days {
             case 0: return ("Today", "0")
+            case 1: return ("1 day", "1")
+            default: return ("\(days) days", "\(days)")
+            }
+        case .difference(let days):
+            switch days {
+            case 0: return ("Same day", "0")
             case 1: return ("1 day", "1")
             default: return ("\(days) days", "\(days)")
             }
@@ -161,7 +170,7 @@ public enum DateQuery {
         guard let match = text.wholeMatch(of: /(?:days?|hari) (until|till|to|since|menuju|sampai|sejak) (.+)/) else { return nil }
         let past = match.1 == "since" || match.1 == "sejak"
         let today = calendar.startOfDay(for: now)
-        guard let target = day(String(match.2), today: today, past: past, calendar: calendar),
+        guard let target = day(String(match.2), today: today, year: past ? .last : .next, calendar: calendar),
               let days = calendar.dateComponents([.day], from: today, to: target).day
         else { return nil }
         let count = past ? -days : days
@@ -180,10 +189,35 @@ public enum DateQuery {
         return table
     }()
 
+    // MARK: - Differences
+
+    /// "17 aug - 1 jan", "days between 1 jan and 17 aug": absolute days.
+    /// Dates without a year are in the current year.
+    private static func difference(_ text: String, now: Date, calendar: Calendar) -> Result? {
+        let first: String, second: String
+        if let match = text.wholeMatch(of: /(?:days? between|hari antara) (.+) (?:and|dan) (.+)/) {
+            (first, second) = (String(match.1), String(match.2))
+        } else {
+            // Spaces around "-" are required, so "2025-1" stays arithmetic.
+            let parts = text.components(separatedBy: " - ")
+            guard parts.count == 2 else { return nil }
+            (first, second) = (parts[0], parts[1])
+        }
+        let today = calendar.startOfDay(for: now)
+        guard let a = day(first, today: today, year: .current, calendar: calendar),
+              let b = day(second, today: today, year: .current, calendar: calendar),
+              let days = calendar.dateComponents([.day], from: a, to: b).day
+        else { return nil }
+        return .difference(abs(days))
+    }
+
+    /// Which year a date without one is in.
+    private enum YearRule { case next, last, current }
+
     /// A day written as a base word, "2026-12-25", "17 aug [2027]" or
-    /// "aug 17[,] [2027]". Without a year: the next one (or the last one
-    /// when counting since).
-    private static func day(_ text: String, today: Date, past: Bool, calendar: Calendar) -> Date? {
+    /// "aug 17[,] [2027]". Without a year: the next one, the last one, or
+    /// this year's, as `year` says. 29 Feb steps to a year that has one.
+    private static func day(_ text: String, today: Date, year rule: YearRule, calendar: Calendar) -> Date? {
         if let (date, _) = base(text, now: today, calendar: calendar) { return calendar.startOfDay(for: date) }
         var year: Int?, month: Int?, dayOfMonth: Int?
         if let iso = text.wholeMatch(of: /(\d{4})-(\d{1,2})-(\d{1,2})/) {
@@ -202,8 +236,13 @@ public enum DateQuery {
         }
         if let year { return date(in: year) }
         let thisYear = calendar.component(.year, from: today)
-        guard let candidate = date(in: thisYear) else { return nil }
-        if past { return candidate <= today ? candidate : date(in: thisYear - 1) }
-        return candidate >= today ? candidate : date(in: thisYear + 1)
+        switch rule {
+        case .current:
+            return date(in: thisYear)
+        case .next:
+            return (thisYear...thisYear + 8).lazy.compactMap { date(in: $0) }.first { $0 >= today }
+        case .last:
+            return stride(from: thisYear, through: thisYear - 8, by: -1).lazy.compactMap { date(in: $0) }.first { $0 <= today }
+        }
     }
 }

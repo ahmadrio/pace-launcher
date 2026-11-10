@@ -137,3 +137,29 @@ struct ZoneAbbreviationTests {
     }
 }
 
+struct DateDifferenceTests {
+    @Test func `differences between two dates`() {
+        #expect(evaluate("17 aug - 1 jan") == .difference(228))
+        #expect(evaluate("1 jan - 17 aug") == .difference(228))
+        #expect(evaluate("2026-12-25 - today") == .difference(45))
+        #expect(evaluate("17 aug 2027 - 17 aug 2026") == .difference(365))
+        #expect(evaluate("days between 1 jan and 17 aug") == .difference(228))
+        #expect(evaluate("hari antara 1 januari dan 17 agustus") == .difference(228))
+        #expect(evaluate("today - today") == .difference(0))
+        #expect(DateQuery.display(.difference(0), locale: Locale(identifier: "en_US"), timeZone: jakarta) == ("Same day", "0"))
+        #expect(DateQuery.display(.difference(228), locale: Locale(identifier: "en_US"), timeZone: jakarta) == ("228 days", "228"))
+    }
+
+    @Test func `differences need two dates`() {
+        for input in ["25 - 1", "2025-1", "17 aug - bananas", "17 aug -1 jan", "days between 1 jan"] {
+            #expect(evaluate(input) == nil, "\(input)")
+        }
+        #expect(evaluate("today - 1 day") == .date(wib(2026, 11, 9), withTime: false))
+    }
+
+    @Test func `29 february without a year`() {
+        #expect(evaluate("days until 29 feb") == .days(476))
+        #expect(evaluate("days since 29 feb") == .days(985))
+    }
+}
+

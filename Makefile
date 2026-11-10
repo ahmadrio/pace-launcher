@@ -4,7 +4,7 @@ BUILT_APP := build/$(APP_NAME)
 INSTALLED_APP := $(HOME)/Applications/$(APP_NAME)
 BUNDLE_ID := io.github.ahmadrio.PACELauncher
 
-.PHONY: test app run install logs reset-tcc clean
+.PHONY: test app run install logs reset-tcc signing-identity clean
 
 test:
 	swift test
@@ -27,6 +27,10 @@ run: install
 
 logs:
 	log stream --style compact --level debug --predicate 'subsystem == "$(BUNDLE_ID)"'
+
+# One-time: create the self-signed identity every build is signed with.
+signing-identity:
+	scripts/make-signing-identity.sh
 
 reset-tcc:
 	tccutil reset Accessibility $(BUNDLE_ID)

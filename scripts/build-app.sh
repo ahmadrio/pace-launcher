@@ -7,9 +7,11 @@ CONFIG="${1:-debug}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EXEC="PACELauncher"
 APP="$ROOT/build/PACE Launcher.app"
-# Apple Development certificate. A stable identity keeps the Accessibility
-# grant valid across rebuilds; ad-hoc signing would reset it every build.
-IDENTITY="${PACE_SIGN_IDENTITY:-96BC64B93D995484ACC406BD7C5AB427661AAB96}"
+# The self-signed "PACE Launcher Signing" identity (scripts/make-signing-identity.sh).
+# Every build uses it, so users keep their privacy permissions across updates;
+# ad-hoc signing would reset them on every build.
+DEFAULT_IDENTITY="E34315F9FD60682C6904263E093FCE4288A4D64A"
+IDENTITY="${PACE_SIGN_IDENTITY:-$DEFAULT_IDENTITY}"
 
 cd "$ROOT"
 
@@ -19,7 +21,7 @@ BIN="$(swift build -c "$CONFIG" --show-bin-path)/$EXEC"
 test -x "$BIN" || { echo "binary not found: $BIN" >&2; exit 1; }
 
 echo "==> assembling $APP"
-rm -rf "$APP"
+rm -rf "${APP:?}"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$EXEC"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
@@ -31,11 +33,21 @@ fi
 
 echo "==> signing"
 xattr -cr "$APP"
-codesign --force --sign "$IDENTITY" --timestamp=none "$APP"
-codesign --verify --strict --verbose=1 "$APP"
-if ! codesign -d -r- "$APP" 2>&1 | grep -q 'certificate leaf'; then
-  echo "designated requirement is not certificate based; TCC grants will not survive rebuilds" >&2
+if [[ "$IDENTITY" != "-" ]] && security find-identity -p codesigning | grep -qiF -- "$IDENTITY"; then
+  codesign --force --sign "$IDENTITY" --timestamp=none "$APP"
+  codesign --verify --strict --verbose=1 "$APP"
+  if ! codesign -d -r- "$APP" 2>&1 | grep -Eq 'certificate (leaf|root)'; then
+    echo "designated requirement is not certificate based; TCC grants will not survive rebuilds" >&2
+    exit 1
+  fi
+elif [[ "$CONFIG" == "release" ]]; then
+  echo "signing identity $IDENTITY not found; see docs/RELEASING.md" >&2
   exit 1
+else
+  echo "warning: signing identity $IDENTITY not found; signing ad-hoc." >&2
+  echo "warning: privacy permissions (Accessibility, Input Monitoring) reset on every build." >&2
+  codesign --force --sign - --timestamp=none "$APP"
+  codesign --verify --strict --verbose=1 "$APP"
 fi
 
 echo "==> done: $APP"

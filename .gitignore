@@ -4,3 +4,6 @@ build/
 .swiftpm/
 .remember/
 *.app
+*.p12
+*.pem
+*.key

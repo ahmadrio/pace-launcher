@@ -2,7 +2,7 @@
 
 Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di paket Pro. Awalnya dibuat untuk dipakai sendiri; kini disiapkan untuk rilis publik (open source, GitHub Releases).
 
-## Status (10 Nov 2026)
+## Status (11 Nov 2026)
 - **Tahap 1 dan 2** selesai dan sudah di-merge ke `main`.
 - **Tahap 3** selesai dan sudah di-merge ke `main` (10 Nov 2026).
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-3-design.md`
@@ -84,7 +84,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-22-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-22.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-22-ledger.md`
-- **Tahap 23** (jendela sambutan, izin, cek update) selesai di branch `tahap-23`, belum di-merge (11 Nov 2026).
+- **Tahap 23** (jendela sambutan, izin, cek update) selesai dan sudah di-merge ke `main` (11 Nov 2026).
   - Desain: `docs/superpowers/specs/2026-11-11-tahap-23-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-11-tahap-23.md`
   - Ledger: `docs/superpowers/plans/2026-11-11-tahap-23-ledger.md`

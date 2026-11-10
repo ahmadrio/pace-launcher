@@ -5,6 +5,7 @@ import SwiftUI
 /// so the app the user was in stays frontmost.
 final class PanelController: NSObject, NSWindowDelegate {
     private static let size = NSSize(width: 720, height: 460)
+    private static let cornerRadius: CGFloat = 24
 
     let model: LauncherModel
     private let panel: LauncherPanel
@@ -29,10 +30,21 @@ final class PanelController: NSObject, NSWindowDelegate {
         hosting.autoresizingMask = [.width, .height]
 
         let glass = NSGlassEffectView(frame: NSRect(origin: .zero, size: Self.size))
-        glass.cornerRadius = 24
+        glass.cornerRadius = Self.cornerRadius
         glass.contentView = hosting
         hosting.frame = glass.bounds
-        panel.contentView = glass
+        glass.autoresizingMask = [.width, .height]
+
+        // A panel that can become key gets a system rim that cuts the glass
+        // corners with a jagged, tighter curve, unless the content is
+        // clipped to the same rounded shape.
+        let container = NSView(frame: glass.frame)
+        container.wantsLayer = true
+        container.layer?.cornerRadius = Self.cornerRadius
+        container.layer?.cornerCurve = .continuous
+        container.layer?.masksToBounds = true
+        container.addSubview(glass)
+        panel.contentView = container
         // Glass density (tint) and light/dark come from the theme.
         theme.register(panel, glass: glass, content: hosting)
         panel.delegate = self

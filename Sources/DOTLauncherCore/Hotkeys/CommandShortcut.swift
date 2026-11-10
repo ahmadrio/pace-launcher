@@ -11,6 +11,10 @@ public enum CommandShortcut: String, CaseIterable, Sendable {
     case createSnippet = "create-snippet"
     case settings
     case searchEmoji = "search-emoji"
+    case lockScreen = "lock-screen"
+    case sleep
+    case sleepDisplays = "sleep-displays"
+    case screenSaver = "screen-saver"
 
     public var title: String {
         switch self {
@@ -24,6 +28,10 @@ public enum CommandShortcut: String, CaseIterable, Sendable {
         case .createSnippet: "Create Snippet"
         case .settings: "Settings"
         case .searchEmoji: "Search Emoji"
+        case .lockScreen: "Lock Screen"
+        case .sleep: "Sleep"
+        case .sleepDisplays: "Sleep Displays"
+        case .screenSaver: "Start Screen Saver"
         }
     }
 }

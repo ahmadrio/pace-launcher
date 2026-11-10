@@ -52,10 +52,12 @@ public enum Shortcuts {
     }
 
     /// Standard shortcuts every app relies on. A global hotkey wins over
-    /// app menus, so taking ⌘V would break paste everywhere.
+    /// app menus, so taking ⌘V would break paste everywhere. ⌘Space is not
+    /// here: it is Spotlight's (a macOS shortcut, checked separately) and
+    /// the usual launcher shortcut once Spotlight's is turned off.
     private static let reservedCommandKeys: Set<String> = [
         "cmd+c", "cmd+v", "cmd+x", "cmd+z", "cmd+a", "cmd+s", "cmd+q", "cmd+w", "cmd+n", "cmd+t", "cmd+o",
-        "cmd+p", "cmd+f", "cmd+h", "cmd+m", "cmd+tab", "cmd+space", "cmd+comma",
+        "cmd+p", "cmd+f", "cmd+h", "cmd+m", "cmd+tab", "cmd+comma",
         "shift+cmd+z", "shift+cmd+s",
     ]
 

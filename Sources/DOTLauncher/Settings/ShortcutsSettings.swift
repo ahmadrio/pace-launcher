@@ -129,7 +129,7 @@ struct ShortcutsSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Click a shortcut, then press the new keys. Esc cancels, ⌫ removes it. Clipboard and window shortcuts left at their defaults turn off while Maccy or Rectangle runs.")
+            Text("Click a shortcut, then press the new keys. Esc cancels, ⌫ removes it. Clipboard and window shortcuts left at their defaults turn off while Maccy or Rectangle runs. To use ⌘Space, first turn off Spotlight's shortcut in System Settings › Keyboard › Keyboard Shortcuts › Spotlight.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -173,6 +173,7 @@ private struct ShortcutRow: View {
         switch recorder.hotKeys.status(of: id.title) {
         case .unavailable: return "Couldn't register: another app uses it"
         case .disabled(let reason): return reason.prefix(1).uppercased() + reason.dropFirst()
+        case .shared: return "Shared with another app that may also react"
         case .registered, nil: return nil
         }
     }
@@ -199,9 +200,10 @@ private struct ShortcutRow: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.red)
             } else if let status {
+                // Shared still works, so it is a note, not a warning.
                 Text(status)
                     .font(.system(size: 11))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(recorder.hotKeys.status(of: id.title) == .shared ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
             }
         }
     }

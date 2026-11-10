@@ -10,6 +10,10 @@ import Observation
 final class HotKeyCenter {
     enum Status: Equatable {
         case registered
+        /// Registered alongside another app that also listens for the combo
+        /// (macOS keeps ⌘Space even with Spotlight's shortcut off). Works,
+        /// but that app may react too.
+        case shared
         case unavailable(OSStatus)
         case disabled(String)
     }
@@ -63,11 +67,23 @@ final class HotKeyCenter {
         let id = nextID
         nextID += 1
         var ref: EventHotKeyRef?
-        let status = RegisterEventHotKey(
+        var status = RegisterEventHotKey(
             combo.keyCode, combo.carbonModifiers,
             EventHotKeyID(signature: Self.signature, id: id),
             GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &ref
         )
+        var shared = false
+        if status == OSStatus(eventHotKeyExistsErr) {
+            // Someone else listens for this combo without claiming it
+            // exclusively (macOS does so for ⌘Space even when Spotlight's
+            // shortcut is off). Listen alongside it instead of failing.
+            status = RegisterEventHotKey(
+                combo.keyCode, combo.carbonModifiers,
+                EventHotKeyID(signature: Self.signature, id: id),
+                GetApplicationEventTarget(), 0, &ref
+            )
+            shared = status == noErr
+        }
 
         guard status == noErr else {
             Log.hotkeys.notice("\(name, privacy: .public) \(combo.displayString, privacy: .public) not registered: \(status)")
@@ -76,8 +92,8 @@ final class HotKeyCenter {
 
         registrations[id] = Registration(combo: combo, ref: ref, action: action)
         idsByName[name] = id
-        Log.hotkeys.info("\(name, privacy: .public) registered as \(combo.displayString, privacy: .public)")
-        return record(Entry(name: name, combo: combo, status: .registered))
+        Log.hotkeys.info("\(name, privacy: .public) registered as \(combo.displayString, privacy: .public)\(shared ? " (shared)" : "", privacy: .public)")
+        return record(Entry(name: name, combo: combo, status: shared ? .shared : .registered))
     }
 
     /// Records a hotkey that is intentionally not registered, so the status

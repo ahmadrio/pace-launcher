@@ -127,6 +127,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         for entry in hotKeys.entries {
             let state = switch entry.status {
             case .registered: ""
+            case .shared: " — shared with another app"
             case .unavailable(let code): " — in use by another app (\(code))"
             case .disabled(let reason): " — \(reason)"
             }

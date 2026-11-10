@@ -582,7 +582,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         var gated: [(id: ShortcutID, combo: KeyCombo, blocker: GatedHotKey.Blocker)] = []
         var registered: [ShortcutID: KeyCombo] = [:]
         for id in ShortcutID.allCases where shortcutActions[id] != nil {
-            if hotKeys.status(of: id.title) == .registered, let combo = hotKeys.combo(of: id.title) {
+            let status = hotKeys.status(of: id.title)
+            if status == .registered || status == .shared, let combo = hotKeys.combo(of: id.title) {
                 registered[id] = combo
             }
             guard let combo = resolved[id] else { continue }

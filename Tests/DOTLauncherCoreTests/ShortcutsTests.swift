@@ -115,13 +115,21 @@ struct ShortcutsTests {
 
     @Test func `standard app shortcuts are refused`() {
         let current = Shortcuts.resolve([:])
-        for string in ["cmd+c", "cmd+v", "cmd+shift+z", "cmd+q", "cmd+w", "cmd+tab", "cmd+space", "cmd+comma", "cmd+shift+s"] {
+        for string in ["cmd+c", "cmd+v", "cmd+shift+z", "cmd+q", "cmd+w", "cmd+tab", "cmd+comma", "cmd+shift+s"] {
             #expect(Shortcuts.validate(combo(string), for: .command(.translate), current: current, system: []) == .reservedByApps, "\(string)")
         }
         for string in ["cmd+shift+c", "cmd+opt+v", "ctrl+opt+v", "ctrl+cmd+c"] {
             #expect(Shortcuts.validate(combo(string), for: .command(.translate), current: current, system: []) == nil, "\(string)")
         }
         #expect(ShortcutProblem.reservedByApps.message == "Apps use this shortcut (copy, paste, …).")
+    }
+
+    @Test func `command space works once Spotlight's shortcut is off`() {
+        // ⌘Space belongs to Spotlight, not to apps: with Spotlight's
+        // shortcut turned off it is the classic launcher shortcut.
+        let current = Shortcuts.resolve([:])
+        #expect(Shortcuts.validate(combo("cmd+space"), for: .launcher, current: current, system: []) == nil)
+        #expect(Shortcuts.validate(combo("cmd+space"), for: .launcher, current: current, system: [combo("cmd+space")]) == .usedByMacOS)
     }
 
     @Test func `swapping two combos releases both before registering`() {

@@ -176,6 +176,24 @@ final class LauncherModel {
         return rows.firstIndex { $0.id == id }
     }
 
+    /// Text typed into the search field while the arguments form was still
+    /// taking the keyboard goes into the form's focused field, as if typed
+    /// there. Waits up to 0.1 s for the field to take the keyboard; a form
+    /// that cannot take it (a dropdown first) leaves the text where it is.
+    func moveTypedAhead() async {
+        for _ in 0..<10 {
+            if let editor = searchField?.window?.firstResponder as? NSTextView, editor.isFieldEditor,
+               (editor.delegate as? NSTextField) !== searchField {
+                let typed = query
+                guard !typed.isEmpty else { return }
+                query = ""
+                editor.insertText(typed, replacementRange: NSRange(location: NSNotFound, length: 0))
+                return
+            }
+            guard (try? await Task.sleep(for: .milliseconds(10))) != nil else { return }
+        }
+    }
+
     func refresh() {
         if mode == .root {
             let started = ContinuousClock.now

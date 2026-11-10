@@ -14,8 +14,12 @@ final class ScriptArgumentForm {
     }
     /// Shown under the fields (missing values, confirmation prompt).
     var message: String?
+    /// Bumped on every prepare, so the form view (and its focus) starts over
+    /// even when a form was already open.
+    private(set) var preparation = 0
 
     func prepare(_ script: ScriptCommand) {
+        preparation += 1
         self.script = script
         values = script.metadata.arguments.map { argument in
             if case .dropdown(let items) = argument.kind { return items.first?.value ?? "" }
@@ -47,6 +51,8 @@ struct ScriptArgumentsView: View {
     let form: ScriptArgumentForm
     let submit: () -> Void
     let cancel: () -> Void
+    /// Runs once the first field has the keyboard (moves typed-ahead text).
+    let onFocused: () async -> Void
 
     @FocusState private var focused: Int?
 
@@ -68,11 +74,13 @@ struct ScriptArgumentsView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        // On the next turn: when the form first appears its fields are not
-        // in the window yet, and the search field keeps the keyboard.
+        // A moment later: when the form first appears its fields are not in
+        // the window yet, and the search field keeps the keyboard. What was
+        // typed meanwhile is then moved into the field.
         .task {
-            try? await Task.sleep(for: .milliseconds(100))
+            guard (try? await Task.sleep(for: .milliseconds(100))) != nil else { return }
             focused = 0
+            await onFocused()
         }
         .onExitCommand(perform: cancel)
     }

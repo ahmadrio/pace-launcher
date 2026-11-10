@@ -251,7 +251,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if panelController.isVisible, model.mode == .root { model.refresh() }
         }
         model.customContent[.scriptArguments] = {
-            AnyView(ScriptArgumentsView(form: argumentForm, submit: { scriptActions.submitArguments() }, cancel: { model.reset(to: .root) }))
+            AnyView(ScriptArgumentsView(
+                form: argumentForm, submit: { scriptActions.submitArguments() }, cancel: { model.reset(to: .root) },
+                onFocused: { await model.moveTypedAhead() }
+            ).id(argumentForm.preparation))
         }
         model.handlers[.scriptArguments] = LauncherModel.ModeHandler(
             submit: { scriptActions.submitArguments() },

@@ -87,7 +87,7 @@ final class LauncherSearch {
         }
         // A conversion or calculation is always the first row; "Ask AI" is
         // always the last.
-        let calculation = conversion(for: query) ?? calculation(for: query)
+        let calculation = conversion(for: query) ?? dateRow(for: query) ?? calculation(for: query)
         return [calculation, inlineQuicklink(for: query)].compactMap { $0 } + matches
             + [calculation == nil ? askAIRow(for: query) : nil].compactMap { $0 }
     }
@@ -167,6 +167,25 @@ final class LauncherSearch {
             action: .run {
                 TextPaster.copy(copied)
                 Log.panel.info("copied a conversion result")
+            }
+        )
+    }
+
+    /// "now + 3 days", "days until 17 aug", "time in tokyo".
+    private func dateRow(for query: String) -> LauncherResult? {
+        guard let result = DateQuery.evaluate(query, now: .now, timeZone: .current) else { return nil }
+        let shown = DateQuery.display(result, locale: .current, timeZone: .current)
+        let isTime = if case .time = result { true } else { false }
+        return LauncherResult(
+            id: "date",
+            title: shown.title,
+            subtitle: query.trimmingCharacters(in: .whitespaces),
+            icon: .symbol(isTime ? "clock" : "calendar"),
+            accessory: "Date",
+            actionTitle: "Copy",
+            action: .run {
+                TextPaster.copy(shown.copy)
+                Log.panel.info("copied a date result")
             }
         )
     }

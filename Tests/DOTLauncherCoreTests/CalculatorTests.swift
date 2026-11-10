@@ -62,3 +62,25 @@ struct CalculatorTests {
         #expect(Calculator.format(value, decimalSeparator: separator) == expected)
     }
 }
+
+struct NumberShorthandTests {
+    @Test func `shorthand words multiply`() {
+        #expect(Calculator.evaluate("1jt + 500rb") == 1_500_000)
+        #expect(Calculator.evaluate("10k * 3") == 30_000)
+        #expect(Calculator.evaluate("1,5 juta + 1") == 1_500_001)
+        #expect(Calculator.evaluate("2 miliar / 1000") == 2_000_000)
+        #expect(Calculator.evaluate("1 thousand + 1") == 1001)
+        #expect(Calculator.evaluate("1JT + 1") == 1_000_001)
+    }
+
+    @Test func `shorthand alone is not a calculation`() {
+        #expect(Calculator.evaluate("10k") == nil)
+        #expect(Calculator.amount("10k") == 10_000)
+    }
+
+    @Test func `shorthand needs a whole word`() {
+        #expect(Calculator.evaluate("10kg + 1") == nil)
+        #expect(Calculator.evaluate("2 e") == nil)
+        #expect(Calculator.evaluate("10 kb + 1") == nil)
+    }
+}

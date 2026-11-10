@@ -119,6 +119,11 @@ public enum Converter {
     static func amount(_ text: String, locale: Locale) -> Double? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         if let grouped = groupedNumber(trimmed, locale: locale) { return grouped }
+        // "1.500jt" in en_ID is 1.500 juta; the calculator alone would read 1,5.
+        if let (number, multiplier) = NumberShorthand.split(trimmed),
+           let grouped = groupedNumber(number, locale: locale) {
+            return grouped * multiplier
+        }
         return Calculator.amount(trimmed)
     }
 

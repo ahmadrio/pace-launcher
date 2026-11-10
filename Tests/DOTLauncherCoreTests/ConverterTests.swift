@@ -94,4 +94,12 @@ struct ConverterTests {
         #expect(ConversionFormat.copy(6213.7119, maxFractionDigits: nil, significantDigits: 6, locale: enID) == "6213,71")
         #expect(ConversionFormat.copy(1_807_700, maxFractionDigits: 2, significantDigits: nil, locale: enUS) == "1807700")
     }
+
+    @Test func `units win over shorthand`() {
+        #expect(near(convert("10k to c"), -263.15))
+        #expect(near(convert("1 m to ft"), 3.28084))
+        #expect(near(convert("10kg to lb"), 22.0462))
+        #expect(near(convert("1k km to mi"), 621.371))
+        #expect(Converter.parse("1jt to kg") == nil)
+    }
 }

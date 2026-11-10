@@ -32,7 +32,20 @@ enum CalcLexer {
                     }
                     index += 1
                 }
-                guard let value = Double(literal) else { return nil }
+                guard var value = Double(literal) else { return nil }
+                // "10k", "1 juta": a shorthand word right after the number scales it.
+                var end = index
+                while end < characters.count, characters[end].isWhitespace { end += 1 }
+                var word = ""
+                while end < characters.count, characters[end].isLetter {
+                    word.append(characters[end])
+                    end += 1
+                }
+                let endsWord = end == characters.count || !characters[end].isNumber
+                if endsWord, let multiplier = NumberShorthand.multiplier(for: word) {
+                    value *= multiplier
+                    index = end
+                }
                 tokens.append(.number(value))
             } else if character.isLetter || character == "π" {
                 var name = ""

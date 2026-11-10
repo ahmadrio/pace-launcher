@@ -116,4 +116,13 @@ struct CurrencyTests {
             return
         }
     }
+
+    @Test func `currency amounts accept shorthand`() {
+        let enID = Locale(identifier: "en_ID")
+        #expect(Converter.parse("10k usd to idr")?.amount == 10_000)
+        #expect(Converter.parse("rp 50rb", locale: enID)?.amount == 50_000)
+        #expect(Converter.parse("1,5jt idr", locale: enID)?.amount == 1_500_000)
+        #expect(Converter.parse("1 juta rupiah to usd")?.amount == 1_000_000)
+        #expect(Converter.parse("1.500jt idr", locale: enID)?.amount == 1_500_000_000)
+    }
 }

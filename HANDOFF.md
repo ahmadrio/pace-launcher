@@ -8,7 +8,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-3-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-3.md`
   - Ledger (semua `Ruling:`): `docs/superpowers/plans/2026-11-10-tahap-3-ledger.md`
-- **Tahap 4** selesai di branch **`tahap-4`** dan belum di-merge ke `main`.
+- **Tahap 4** selesai dan sudah di-merge ke `main` (10 Nov 2026).
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-4-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-4.md`
   - Ledger (semua `Ruling:` dan minor yang ditunda): `docs/superpowers/plans/2026-11-10-tahap-4-ledger.md`
@@ -101,7 +101,7 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Review akhir branch `tahap-4`, lalu merge ke `main`.
-2. Kalkulator: konversi unit dan kurs.
-3. Shortcut untuk command lain (Translate, AI Chat, Notes).
-4. Batas ukuran riwayat clipboard (opsional).
+1. Kalkulator: konversi unit dan kurs.
+2. Shortcut untuk command lain (Translate, AI Chat, Notes).
+3. Batas ukuran riwayat clipboard (opsional).
+4. Minor yang ditunda dari review tahap 4 (lihat ledger), terutama siklus `generation` di AI chat dan menolak ⌘C/⌘V sebagai hotkey global.

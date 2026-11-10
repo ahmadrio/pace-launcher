@@ -95,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let commandList: () -> [LauncherCommand] = { [weak self] in
             [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat(), CommandCatalog.aiChatHistory()] + windowCommands
                 + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
+                + CommandCatalog.quicklinkCommands(create: { self?.settingsWindow?.show(addQuicklink: true) })
                 + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
                 + CommandCatalog.scriptCommands(create: { self?.scriptLibrary.createTemplate() }, openFolder: { self?.scriptLibrary.openFolder() })
                 + CommandCatalog.appCommands(

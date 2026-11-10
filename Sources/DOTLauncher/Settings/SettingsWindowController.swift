@@ -11,6 +11,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let sync: SyncController
     private let shortcuts: ShortcutRecorder
     private let clipboard: ClipboardMaintenance
+    private let quicklinks: QuicklinkEditor
     private var window: NSWindow?
 
     init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController, sync: SyncController, shortcuts: ShortcutRecorder, clipboard: ClipboardMaintenance) {
@@ -20,12 +21,15 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         self.sync = sync
         self.shortcuts = shortcuts
         self.clipboard = clipboard
+        quicklinks = QuicklinkEditor(settings: settings)
     }
 
     var isVisible: Bool { window?.isVisible ?? false }
 
-    func show(section: SettingsSection = .general) {
-        model.section = section
+    /// `addQuicklink` opens Quicklinks with an empty form ("Create Quicklink").
+    func show(section: SettingsSection = .general, addQuicklink: Bool = false) {
+        model.section = addQuicklink ? .quicklinks : section
+        if addQuicklink { quicklinks.startAdding() }
         // Shortcuts › Scripts lists what is on disk now.
         scripts.reload()
         let window = window ?? makeWindow()
@@ -56,7 +60,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.delegate = self
         shortcuts.window = window
-        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync, shortcuts: shortcuts, clipboard: clipboard))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync, shortcuts: shortcuts, clipboard: clipboard, quicklinks: quicklinks))
         if !window.setFrameUsingName("DOTSettingsWindow") {
             window.center()
         }

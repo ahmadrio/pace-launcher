@@ -3,7 +3,7 @@ import Observation
 import SwiftUI
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case general, appearance, shortcuts, snippets, scripts, sync
+    case general, appearance, shortcuts, snippets, quicklinks, scripts, sync
 
     var id: String { rawValue }
 
@@ -13,6 +13,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .appearance: "Appearance"
         case .shortcuts: "Shortcuts"
         case .snippets: "Snippets"
+        case .quicklinks: "Quicklinks"
         case .scripts: "Scripts"
         case .sync: "Sync"
         }
@@ -24,6 +25,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .appearance: "paintpalette"
         case .shortcuts: "keyboard"
         case .snippets: "text.quote"
+        case .quicklinks: "link"
         case .scripts: "terminal"
         case .sync: "icloud"
         }
@@ -44,6 +46,7 @@ struct SettingsView: View {
     let sync: SyncController
     let shortcuts: ShortcutRecorder
     let clipboard: ClipboardMaintenance
+    let quicklinks: QuicklinkEditor
 
     var body: some View {
         HStack(spacing: 0) {
@@ -97,6 +100,8 @@ struct SettingsView: View {
             ScriptsSettings(scripts: scripts)
         case .snippets:
             SnippetSettings(settings: settings, autoExpand: autoExpand)
+        case .quicklinks:
+            QuicklinksSettings(settings: settings, editor: quicklinks)
         case .sync:
             SyncSettings(sync: sync, settings: settings)
         }

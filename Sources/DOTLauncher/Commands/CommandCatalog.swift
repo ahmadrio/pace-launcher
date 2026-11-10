@@ -118,6 +118,20 @@ enum CommandCatalog {
         ]
     }
 
+    static func quicklinkCommands(create: @escaping () -> Void) -> [LauncherCommand] {
+        [
+            LauncherCommand(
+                id: "create-quicklink",
+                title: "Create Quicklink",
+                subtitle: "Save a URL to open from here",
+                aliases: ["new quicklink", "link"],
+                symbol: "link.badge.plus",
+                actionTitle: "Create",
+                action: .run(create)
+            ),
+        ]
+    }
+
     static func noteCommands(open: @escaping () -> Void, create: @escaping () -> Void) -> [LauncherCommand] {
         [
             LauncherCommand(

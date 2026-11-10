@@ -76,7 +76,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-20-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-20.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-20-ledger.md`
-- **Tahap 21** (ganti nama ke PACE Launcher) selesai di branch `tahap-21` (10 Nov 2026), menunggu keputusan merge.
+- **Tahap 21** (ganti nama ke PACE Launcher) selesai dan sudah di-merge ke `main` (10 Nov 2026).
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-21-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-21.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-21-ledger.md`

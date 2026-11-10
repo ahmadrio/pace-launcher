@@ -10,14 +10,16 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let autoExpand: AutoExpandController
     private let sync: SyncController
     private let shortcuts: ShortcutRecorder
+    private let clipboard: ClipboardMaintenance
     private var window: NSWindow?
 
-    init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController, sync: SyncController, shortcuts: ShortcutRecorder) {
+    init(settings: SettingsStore, scripts: ScriptLibrary, autoExpand: AutoExpandController, sync: SyncController, shortcuts: ShortcutRecorder, clipboard: ClipboardMaintenance) {
         self.settings = settings
         self.scripts = scripts
         self.autoExpand = autoExpand
         self.sync = sync
         self.shortcuts = shortcuts
+        self.clipboard = clipboard
     }
 
     var isVisible: Bool { window?.isVisible ?? false }
@@ -52,7 +54,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.delegate = self
         shortcuts.window = window
-        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync, shortcuts: shortcuts))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync, shortcuts: shortcuts, clipboard: clipboard))
         if !window.setFrameUsingName("DOTSettingsWindow") {
             window.center()
         }

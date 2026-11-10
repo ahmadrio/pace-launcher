@@ -11,11 +11,13 @@ public struct SettingsData: Codable, Sendable, Equatable {
     /// Global shortcuts by `ShortcutID.rawValue`; "" means none, and a
     /// missing id means the default.
     public var shortcuts: [String: String] = [:]
+    /// How long unpinned clips are kept.
+    public var clipboardRetention = ClipboardRetention.forever
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts
+        case showMenuBarIcon, theme, autoExpandEnabled, autoExpandExcludedBundleIDs, includeClipboardInBackup, shortcuts, clipboardRetention
     }
 
     /// Missing keys keep their defaults, so older or newer files still load.
@@ -30,6 +32,9 @@ public struct SettingsData: Codable, Sendable, Equatable {
         includeClipboardInBackup = try container.decodeIfPresent(Bool.self, forKey: .includeClipboardInBackup)
             ?? defaults.includeClipboardInBackup
         shortcuts = try container.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? defaults.shortcuts
+        // An unknown value (from a newer version) keeps the default instead
+        // of resetting every setting.
+        clipboardRetention = (try? container.decodeIfPresent(ClipboardRetention.self, forKey: .clipboardRetention)) ?? defaults.clipboardRetention
     }
 }
 

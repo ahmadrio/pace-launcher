@@ -29,6 +29,19 @@ struct SettingsFileTests {
         #expect(SettingsFile(url: folder.url.appending(path: "settings.json")).load().shortcuts == [:])
     }
 
+    @Test func `retention defaults to forever and round-trips`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        try folder.write("settings.json", #"{"showMenuBarIcon": false}"#)
+        let file = SettingsFile(url: folder.url.appending(path: "settings.json"))
+        #expect(file.load().clipboardRetention == .forever)
+
+        var data = file.load()
+        data.clipboardRetention = .month
+        try file.save(data)
+        #expect(file.load().clipboardRetention == .month)
+    }
+
     @Test func `shortcuts round-trip`() throws {
         let folder = TemporaryFolder()
         defer { folder.remove() }

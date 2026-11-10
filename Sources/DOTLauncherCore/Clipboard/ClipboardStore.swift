@@ -135,6 +135,39 @@ public actor ClipboardStore {
         try db.run("UPDATE clips SET pinned = ? WHERE id = ?", [.integer(pinned ? 1 : 0), .integer(id)])
     }
 
+    /// Removes unpinned clips last used before `cutoff`, with their image
+    /// files. Returns how many were removed.
+    @discardableResult
+    public func prune(lastUsedBefore cutoff: Date) throws -> Int {
+        try deleteUnpinned(where: "last_used_at < ?", [.real(cutoff.timeIntervalSince1970)])
+    }
+
+    /// Removes every unpinned clip (Clear History).
+    @discardableResult
+    public func clearUnpinned() throws -> Int {
+        try deleteUnpinned(where: "1 = 1", [])
+    }
+
+    private func deleteUnpinned(where condition: String, _ bindings: [SQLValue]) throws -> Int {
+        let (count, images) = try db.transaction { () -> (Int, [String]) in
+            let images = try db.query(
+                "SELECT hash FROM clips WHERE pinned = 0 AND kind = 'image' AND \(condition)", bindings
+            ).compactMap { $0.string("hash") }
+            let count = try db.query("SELECT COUNT(*) AS n FROM clips WHERE pinned = 0 AND \(condition)", bindings)
+                .first?.int("n") ?? 0
+            try db.run("DELETE FROM clips WHERE pinned = 0 AND \(condition)", bindings)
+            return (Int(count), images)
+        }
+        if let imagesDirectory {
+            for hash in images {
+                for suffix in [".png", "-thumb.png"] {
+                    try? FileManager.default.removeItem(at: imagesDirectory.appending(path: hash + suffix))
+                }
+            }
+        }
+        return count
+    }
+
     public func delete(_ id: Int64) throws {
         let image = try db.query("SELECT hash FROM clips WHERE id = ? AND kind = ?", [.integer(id), .text(ClipKind.image.rawValue)])
             .first?.string("hash")

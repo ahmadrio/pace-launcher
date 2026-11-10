@@ -67,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcutActions: [ShortcutID: () -> Void] = [:]
     /// True while Settings records a shortcut: hotkeys stay released.
     private var shortcutsPaused = false
+    private var clipboardMaintenance: ClipboardMaintenance?
     /// Blockers the user chose to ignore ("Enable anyway").
     private var overriddenBlockers: Set<GatedHotKey.Blocker> = []
 
@@ -444,7 +445,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.shortcutsPaused = paused
             if paused { hotKeys.unregisterAll() } else { self.applyShortcuts() }
         }
-        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand, sync: sync, shortcuts: recorder)
+        let maintenance = ClipboardMaintenance(store: clipboardStore, settings: settings)
+        maintenance.onChange = {
+            if panelController.isVisible, model.mode == .clipboard { model.refresh() }
+        }
+        maintenance.start()
+        self.clipboardMaintenance = maintenance
+        let settingsWindow = SettingsWindowController(settings: settings, scripts: scriptLibrary, autoExpand: autoExpand, sync: sync, shortcuts: recorder, clipboard: maintenance)
         self.settingsWindow = settingsWindow
         panelController.canHideApp = { !settingsWindow.isVisible }
         settings.onChange = { [weak self] old, new in
@@ -464,6 +471,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if old.shortcuts != new.shortcuts {
                 self.applyShortcuts()
+            }
+            if old.clipboardRetention != new.clipboardRetention {
+                self.clipboardMaintenance?.prune()
             }
         }
         sync.start()

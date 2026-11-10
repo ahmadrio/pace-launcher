@@ -43,6 +43,7 @@ struct SettingsView: View {
     let autoExpand: AutoExpandController
     let sync: SyncController
     let shortcuts: ShortcutRecorder
+    let clipboard: ClipboardMaintenance
 
     var body: some View {
         HStack(spacing: 0) {
@@ -87,7 +88,7 @@ struct SettingsView: View {
     @ViewBuilder private var detail: some View {
         switch model.section {
         case .general:
-            GeneralSettings(settings: settings)
+            GeneralSettings(settings: settings, clipboard: clipboard)
         case .appearance:
             AppearanceSettings(settings: settings)
         case .shortcuts:
@@ -104,6 +105,7 @@ struct SettingsView: View {
 
 private struct GeneralSettings: View {
     let settings: SettingsStore
+    let clipboard: ClipboardMaintenance
 
     var body: some View {
         @Bindable var settings = settings
@@ -130,6 +132,28 @@ private struct GeneralSettings: View {
                         AccessibilityPermission.prompt()
                         AccessibilityPermission.openSettings()
                     }
+                }
+            }
+
+            Divider()
+
+            Text("Clipboard History").font(.headline)
+            Picker("Keep history", selection: $settings.data.clipboardRetention) {
+                ForEach(ClipboardRetention.allCases, id: \.self) { retention in
+                    Text(retention.title).tag(retention)
+                }
+            }
+            .frame(maxWidth: 260)
+            Text("Older clips are removed every hour. Pinned clips are always kept.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            HStack {
+                Button("Clear History…") { clipboard.pressClear() }
+                    .accessibilityIdentifier("clear-clipboard-history")
+                if let status = clipboard.status {
+                    Text(status)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                 }
             }
         }

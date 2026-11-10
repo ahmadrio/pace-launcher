@@ -40,7 +40,7 @@ struct ShortcutsTests {
         #expect(ShortcutID.command(.aiChatHistory).title == "AI Chat History")
         #expect(CommandShortcut.allCases.map(\.title) == [
             "Translate", "AI Chat", "AI Chat History", "Open Notes", "Create Note",
-            "Search Notes", "Search Snippets", "Create Snippet", "Settings",
+            "Search Notes", "Search Snippets", "Create Snippet", "Settings", "Search Emoji",
         ])
     }
 

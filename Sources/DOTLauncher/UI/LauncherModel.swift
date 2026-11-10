@@ -45,6 +45,7 @@ final class LauncherModel {
         case scriptOutput
         case scriptArguments
         case quicklink
+        case emoji
 
         var placeholder: String {
             switch self {
@@ -58,6 +59,7 @@ final class LauncherModel {
             case .scriptOutput: "Script output"
             case .scriptArguments: "Fill in the arguments below"
             case .quicklink: "Type what to search for…"
+            case .emoji: "Search emoji…"
             }
         }
 
@@ -73,6 +75,7 @@ final class LauncherModel {
             case .scriptOutput: "Script"
             case .scriptArguments: "Script"
             case .quicklink: "Quicklink"
+            case .emoji: "Emoji"
             }
         }
     }

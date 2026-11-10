@@ -10,6 +10,7 @@ public enum CommandShortcut: String, CaseIterable, Sendable {
     case searchSnippets = "search-snippets"
     case createSnippet = "create-snippet"
     case settings
+    case searchEmoji = "search-emoji"
 
     public var title: String {
         switch self {
@@ -22,6 +23,7 @@ public enum CommandShortcut: String, CaseIterable, Sendable {
         case .searchSnippets: "Search Snippets"
         case .createSnippet: "Create Snippet"
         case .settings: "Settings"
+        case .searchEmoji: "Search Emoji"
         }
     }
 }

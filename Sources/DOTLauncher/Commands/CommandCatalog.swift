@@ -174,6 +174,18 @@ enum CommandCatalog {
         )
     }
 
+    static func searchEmoji() -> LauncherCommand {
+        LauncherCommand(
+            id: "search-emoji",
+            title: "Search Emoji",
+            subtitle: "Paste an emoji into any app",
+            aliases: ["emoji", "emoticon", "emoji picker"],
+            symbol: "face.smiling",
+            actionTitle: "Open",
+            action: .enter(.emoji)
+        )
+    }
+
     static func aiChatHistory() -> LauncherCommand {
         LauncherCommand(
             id: "ai-chat-history",

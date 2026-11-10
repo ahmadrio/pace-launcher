@@ -97,7 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Every built-in command, rebuilt on each call so subtitles that
         // show state stay fresh. Search and command shortcuts share it.
         let commandList: () -> [LauncherCommand] = { [weak self] in
-            [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat(), CommandCatalog.aiChatHistory()] + windowCommands
+            [CommandCatalog.clipboardHistory(), CommandCatalog.translate(), CommandCatalog.aiChat(), CommandCatalog.aiChatHistory(), CommandCatalog.searchEmoji()] + windowCommands
                 + CommandCatalog.snippetCommands(create: { self?.editSnippet(nil) })
                 + CommandCatalog.quicklinkCommands(create: { self?.settingsWindow?.show(addQuicklink: true) })
                 + CommandCatalog.noteCommands(open: { self?.notesWindow?.show() }, create: { self?.notesWindow?.showNew() })
@@ -108,8 +108,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     openSettings: { self?.settingsWindow?.show() }
                 )
         }
+        // One store, so root search and the emoji picker learn from each other's state.
+        let usage = Self.openUsageStore()
         let search = LauncherSearch(
-            indexer: indexer, usage: Self.openUsageStore(), icons: icons,
+            indexer: indexer, usage: usage, icons: icons,
             commands: commandList
         )
         let clipboardStore = Self.openClipboardStore()
@@ -304,6 +306,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             entered: { translate.reset() }
         )
         self.translator = translator
+
+        // Emoji picker: ⏎ pastes into the previous app (the clipboard is put
+        // back), ⌘C copies. Use is learned per emoji.
+        var emojiUsage: [String: Double] = [:]
+        model.handlers[.emoji] = LauncherModel.ModeHandler(
+            results: { query in
+                EmojiCatalog.search(query, usage: emojiUsage, limit: 60).map { emoji in
+                    let id = "emoji:" + emoji.character
+                    return LauncherResult(
+                        id: id, title: emoji.name, subtitle: emoji.keywords.joined(separator: ", "),
+                        icon: .text(emoji.character), accessory: "Emoji", actionTitle: "Paste",
+                        action: .run {
+                            try? usage?.recordUse(of: id)
+                            TextPaster.paste(emoji.character, monitor: clipboard?.monitor)
+                        },
+                        secondaryActions: [SecondaryAction(title: "Copy", shortcut: .command("c"), action: .run {
+                            try? usage?.recordUse(of: id)
+                            TextPaster.copy(emoji.character)
+                        })]
+                    )
+                }
+            },
+            entered: {
+                let now = Date.now
+                var used: [String: Double] = [:]
+                for emoji in EmojiCatalog.all {
+                    let frecency = usage?.frecency(for: "emoji:" + emoji.character, now: now) ?? 0
+                    if frecency > 0 { used[emoji.character] = frecency }
+                }
+                emojiUsage = used
+            }
+        )
 
         // Quicklinks: rows in root search, and a mode that asks for the text.
         var activeQuicklink: Quicklink?

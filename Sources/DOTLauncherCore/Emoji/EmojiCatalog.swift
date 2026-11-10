@@ -18,7 +18,7 @@ public struct Emoji: Sendable, Equatable, Identifiable {
 }
 
 public enum EmojiCatalog {
-    /// Single-character emoji in Unicode order, then country flags by name.
+    /// Single-character emoji (faces first), then country flags by name.
     public static let all: [Emoji] = scalarEmoji() + flags()
 
     /// Ranked by name and keywords; emoji used often rank higher. With no
@@ -45,7 +45,10 @@ public enum EmojiCatalog {
     private static func scalarEmoji() -> [Emoji] {
         let popular = Dictionary(popularTable.map { ($0.emoji.unicodeScalars.first!.value, $0) }) { first, _ in first }
         var result: [Emoji] = []
-        for range in [0x2000...0x2BFF, 0x1F000...0x1FAFF] {
+        // Faces first, then other pictures, then symbols: plain Unicode order
+        // would open the picker on ™ and arrows.
+        let ranges = [0x1F600...0x1F64F, 0x1F900...0x1FAFF, 0x1F300...0x1F5FF, 0x1F680...0x1F8FF, 0x1F000...0x1F2FF, 0x2000...0x2BFF]
+        for range in ranges {
             for value in range {
                 guard let scalar = Unicode.Scalar(UInt32(value)) else { continue }
                 let properties = scalar.properties

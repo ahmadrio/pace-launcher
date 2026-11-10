@@ -31,7 +31,7 @@ Sama seperti tahap 7:
   - Bendera negara dibentuk dari daftar kode wilayah, dengan nama Inggris dan Indonesia, misalnya "Flag: Indonesia", "Flag: Japan" (kata kunci "Jepang").
   - Tidak termasuk huruf regional indicator, modifier warna kulit, dan emoji gabungan.
 - **Nama:** nama Unicode ditulis seperti kalimat ("Grinning face"). Sekitar 40 emoji yang paling sering dipakai mendapat nama yang lebih umum dan kata kunci Inggris + Indonesia, misalnya ❤️ "Red heart" (love, cinta), 😂 (lol, ketawa), dan 🙏 "Folded hands" (thanks, terima kasih).
-- **Pencarian:** fuzzy berdasarkan nama dan kata kunci, dan emoji yang sering dipakai naik urutannya. Tanpa ketikan, daftar dimulai dari emoji yang baru dipakai, lalu emoji lain sesuai urutan Unicode.
+- **Pencarian:** fuzzy berdasarkan nama dan kata kunci, dan emoji yang sering dipakai naik urutannya. Tanpa ketikan, daftar dimulai dari emoji yang baru dipakai, lalu emoji wajah, gambar lain, dan simbol. Urutan Unicode murni akan dimulai dari ™ dan panah.
 - **Aksi:**
   - ⏎ menempelkan emoji ke app sebelumnya, lalu clipboard dikembalikan seperti semula, sama seperti snippet.
   - ⌘C menyalin emoji ke clipboard.

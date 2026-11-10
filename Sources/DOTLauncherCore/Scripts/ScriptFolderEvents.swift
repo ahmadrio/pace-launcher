@@ -34,10 +34,19 @@ public enum ScriptFolderEvents {
     /// it; a missing path gets its parent resolved.
     public static func resolved(_ path: String) -> String {
         let path = normalized(path)
-        if let real = realPath(path) { return real }
-        let parent = (path as NSString).deletingLastPathComponent
-        guard parent != path, let realParent = realPath(parent) else { return path }
-        return (realParent as NSString).appendingPathComponent((path as NSString).lastPathComponent)
+        // Walk up to the deepest folder that exists, resolve it, then put
+        // the missing components back.
+        var existing = path
+        var missing: [String] = []
+        while true {
+            if let real = realPath(existing) {
+                return missing.reversed().reduce(real) { ($0 as NSString).appendingPathComponent($1) }
+            }
+            let parent = (existing as NSString).deletingLastPathComponent
+            guard !parent.isEmpty, parent != existing else { return path }
+            missing.append((existing as NSString).lastPathComponent)
+            existing = parent
+        }
     }
 
     private static func realPath(_ path: String) -> String? {

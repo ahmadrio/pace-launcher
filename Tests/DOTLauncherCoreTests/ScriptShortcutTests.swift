@@ -122,5 +122,16 @@ struct ScriptShortcutTests {
         #expect(ScriptFolderEvents.isRelevant(resolved + "/a.sh", folders: [ScriptFolderEvents.resolved(link)]))
         #expect(ScriptFolderEvents.resolved("/nowhere/at/all") == "/nowhere/at/all")
     }
+
+    @Test func `deeply missing folders resolve through the deepest existing one`() throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        let real = folder.url.appending(path: "real")
+        try FileManager.default.createDirectory(at: real, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: folder.url.appending(path: "link"), withDestinationURL: real)
+        let resolved = ScriptFolderEvents.resolved(folder.url.appending(path: "link").path + "/a/b")
+        #expect(resolved.hasSuffix("/real/a/b"))
+        #expect(resolved.hasPrefix("/private"))
+    }
 }
 

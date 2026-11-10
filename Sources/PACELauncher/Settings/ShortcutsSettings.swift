@@ -1,0 +1,239 @@
+import AppKit
+import PACELauncherCore
+import Observation
+import SwiftUI
+
+/// Records a new global shortcut from the next key press in Settings.
+/// PACE's own hotkeys are paused meanwhile, so a combo PACE already uses
+/// (⌥Space) reaches the recorder instead of opening the launcher.
+@Observable
+final class ShortcutRecorder {
+    private(set) var recording: ShortcutID?
+    /// Modifiers held down while recording ("⌃⌥"), shown on the button.
+    private(set) var heldModifiers = ""
+    /// The last refusal per shortcut, shown under its row.
+    private(set) var problems: [ShortcutID: String] = [:]
+
+    @ObservationIgnored let settings: SettingsStore
+    @ObservationIgnored let hotKeys: HotKeyCenter
+    /// Names other shortcuts in "Already used by …" (scripts by their title).
+    @ObservationIgnored var titleOf: (ShortcutID) -> String = { $0.title }
+    /// true while recording: the app releases or re-applies its hotkeys.
+    @ObservationIgnored private let pause: (Bool) -> Void
+    @ObservationIgnored private var monitor: Any?
+    /// The Settings window: only its key presses are recorded, and leaving
+    /// it stops recording (SettingsWindowController calls `stop()`).
+    @ObservationIgnored weak var window: NSWindow?
+    /// Counts recordings, so a late check never stops a newer one.
+    @ObservationIgnored private var attempt = 0
+
+    init(settings: SettingsStore, hotKeys: HotKeyCenter, pause: @escaping (Bool) -> Void) {
+        self.settings = settings
+        self.hotKeys = hotKeys
+        self.pause = pause
+    }
+
+    var current: [ShortcutID: KeyCombo] { Shortcuts.resolve(settings.data.shortcuts) }
+
+    func start(_ id: ShortcutID) {
+        stop()
+        problems[id] = nil
+        recording = id
+        pause(true)
+        // Recording listens to the Settings window only, so make sure it
+        // is the one receiving keys.
+        NSApp.activate()
+        window?.makeKeyAndOrderFront(nil)
+        // macOS may refuse to activate PACE (the click came through
+        // Accessibility, or another app kept focus). Then keys go elsewhere
+        // and resign-key never fires: give up instead of leaving PACE's
+        // hotkeys paused.
+        attempt += 1
+        let thisAttempt = attempt
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard let self, self.attempt == thisAttempt, self.recording != nil, self.window?.isKeyWindow != true else { return }
+            Log.hotkeys.notice("shortcut recording cancelled: Settings did not get keyboard focus")
+            self.stop()
+        }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
+            // Keys typed in other PACE windows (Notes, the snippet editor)
+            // pass through untouched.
+            guard let self, self.recording != nil, event.window === self.window else { return event }
+            if event.type == .flagsChanged {
+                self.heldModifiers = Self.symbols(for: event.modifierFlags)
+                return event
+            }
+            self.heldModifiers = ""
+            self.handle(event)
+            return nil
+        }
+    }
+
+    /// Ends recording (if any) and re-applies the hotkeys.
+    func stop() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+        heldModifiers = ""
+        guard recording != nil else { return }
+        recording = nil
+        pause(false)
+    }
+
+    func reset(_ id: ShortcutID) {
+        stop()
+        choose(id.defaultCombo, for: id)
+    }
+
+    private func handle(_ event: NSEvent) {
+        guard let id = recording else { return }
+        let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        switch (event.keyCode, flags.isEmpty) {
+        case (53, true):  // Esc cancels
+            stop()
+        case (51, true):  // ⌫ removes the shortcut
+            if choose(nil, for: id) { stop() }
+        default:
+            var modifiers: UInt32 = 0
+            if flags.contains(.command) { modifiers |= KeyCombo.command }
+            if flags.contains(.shift) { modifiers |= KeyCombo.shift }
+            if flags.contains(.option) { modifiers |= KeyCombo.option }
+            if flags.contains(.control) { modifiers |= KeyCombo.control }
+            if choose(KeyCombo(keyCode: UInt32(event.keyCode), carbonModifiers: modifiers), for: id) { stop() }
+        }
+    }
+
+    /// "⌃⌥⇧⌘" in macOS order.
+    private static func symbols(for flags: NSEvent.ModifierFlags) -> String {
+        var text = ""
+        if flags.contains(.control) { text += "⌃" }
+        if flags.contains(.option) { text += "⌥" }
+        if flags.contains(.shift) { text += "⇧" }
+        if flags.contains(.command) { text += "⌘" }
+        return text
+    }
+
+    /// Saves `combo` for `id` unless it is refused. Returns true when saved.
+    @discardableResult
+    private func choose(_ combo: KeyCombo?, for id: ShortcutID) -> Bool {
+        if let problem = Shortcuts.validate(combo, for: id, current: current, system: HotKeyCenter.enabledSystemShortcuts()) {
+            problems[id] = problem.message(naming: titleOf)
+            return false
+        }
+        problems[id] = nil
+        settings.data.shortcuts = Shortcuts.saved(combo, for: id, in: settings.data.shortcuts)
+        return true
+    }
+}
+
+struct ShortcutsSettings: View {
+    let recorder: ShortcutRecorder
+    let scripts: ScriptLibrary
+
+    private var scriptRows: [ScriptShortcut.Row] {
+        ScriptShortcut.rows(scripts: scripts.scripts, mainFolder: AppPaths.scriptsDirectory, saved: recorder.settings.data.shortcuts)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Click a shortcut, then press the new keys. Esc cancels, ⌫ removes it. Script commands can have shortcuts too. Clipboard and window shortcuts left at their defaults turn off while Maccy or Rectangle runs. To use ⌘Space, first turn off Spotlight's shortcut in System Settings › Keyboard › Keyboard Shortcuts › Spotlight.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ForEach([ShortcutID.Group.launcher, .commands, .scripts, .window], id: \.self) { group in
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(Self.title(of: group)).font(.headline)
+                    if group == .scripts {
+                        if scriptRows.isEmpty {
+                            Text("No script commands yet. Add them in the Scripts section.")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(scriptRows, id: \.id.rawValue) { row in
+                            ShortcutRow(id: row.id, title: row.title, detail: row.detail, isMissing: row.isMissing, recorder: recorder)
+                        }
+                    } else {
+                        ForEach(ShortcutID.allCases.filter { $0.group == group }, id: \.rawValue) { id in
+                            ShortcutRow(id: id, title: id.title, recorder: recorder)
+                        }
+                    }
+                }
+            }
+        }
+        .onDisappear { recorder.stop() }
+    }
+
+    private static func title(of group: ShortcutID.Group) -> String {
+        switch group {
+        case .launcher: "Launcher"
+        case .commands: "Commands"
+        case .scripts: "Scripts"
+        case .window: "Window"
+        }
+    }
+}
+
+private struct ShortcutRow: View {
+    let id: ShortcutID
+    let title: String
+    var detail: String?
+    var isMissing = false
+    let recorder: ShortcutRecorder
+
+    private var combo: KeyCombo? { recorder.current[id] }
+    private var isRecording: Bool { recorder.recording == id }
+
+    private var label: String {
+        if isRecording { return recorder.heldModifiers.isEmpty ? "Press a shortcut…" : recorder.heldModifiers + "…" }
+        return combo?.displayString ?? "None"
+    }
+
+    /// Why a saved shortcut is not working right now, if it is not.
+    private var status: String? {
+        guard !isRecording, recorder.recording == nil, combo != nil else { return nil }
+        switch recorder.hotKeys.status(of: id.rawValue) {
+        case .unavailable: return "Couldn't register: another app uses it"
+        case .disabled(let reason): return reason.prefix(1).uppercased() + reason.dropFirst()
+        case .shared: return "Shared with another app that may also react"
+        case .registered, nil: return nil
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text(title)
+                if let detail {
+                    Text(detail)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button {
+                    if isRecording { recorder.stop() } else { recorder.start(id) }
+                } label: {
+                    Text(label)
+                        .frame(minWidth: 130)
+                }
+                .disabled(isMissing)
+                .accessibilityIdentifier("shortcut-" + id.rawValue)
+                if combo != id.defaultCombo, !isRecording {
+                    // Scripts have no default, so going back means removing it.
+                    Button(id.defaultCombo == nil && id.group == .scripts ? "Remove" : "Reset") { recorder.reset(id) }
+                        .accessibilityIdentifier("reset-" + id.rawValue)
+                }
+            }
+            if let problem = recorder.problems[id] {
+                Text(problem)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+            } else if let status {
+                // Shared still works, so it is a note, not a warning.
+                Text(status)
+                    .font(.system(size: 11))
+                    .foregroundStyle(recorder.hotKeys.status(of: id.rawValue) == .shared ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
+            }
+        }
+    }
+}

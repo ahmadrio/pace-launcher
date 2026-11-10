@@ -1,0 +1,65 @@
+import PACELauncherCore
+import Foundation
+import Observation
+
+/// The live settings, saved to `settings.json` in the active data folder on
+/// every change.
+@Observable
+final class SettingsStore {
+    var data: SettingsData {
+        didSet {
+            guard data != oldValue else { return }
+            if !isLoading { save() }
+            onChange?(oldValue, data)
+        }
+    }
+
+    /// Called after every change (old, new), including reloads.
+    @ObservationIgnored var onChange: ((SettingsData, SettingsData) -> Void)?
+    @ObservationIgnored private var file: SettingsFile
+    @ObservationIgnored private var isLoading = false
+
+    init() {
+        file = SettingsFile(url: AppPaths.settingsFile)
+        data = file.load()
+        migrateLegacyDefaults()
+    }
+
+    /// After iCloud finishes downloading settings.json, read it.
+    func reloadIfDownloaded() {
+        guard isWaitingForDownload, !file.isWaitingForDownload else { return }
+        reload()
+    }
+
+    /// True while settings.json in iCloud is only a placeholder: changes
+    /// are not saved then, so the real file is never replaced by defaults.
+    var isWaitingForDownload: Bool { file.isWaitingForDownload }
+
+    /// Re-reads settings.json, e.g. after the data folder moved.
+    func reload() {
+        file = SettingsFile(url: AppPaths.settingsFile)
+        isLoading = true
+        data = file.load()
+        isLoading = false
+    }
+
+    private func save() {
+        guard !file.isWaitingForDownload else {
+            Log.app.notice("settings not saved: settings.json is still downloading from iCloud")
+            return
+        }
+        do {
+            try file.save(data)
+        } catch {
+            Log.app.error("could not save settings: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Stage 2 kept the menu bar icon choice in UserDefaults; move it once.
+    private func migrateLegacyDefaults() {
+        let key = "showMenuBarIcon"
+        guard let legacy = UserDefaults.standard.object(forKey: key) as? Bool else { return }
+        data.showMenuBarIcon = legacy
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+}

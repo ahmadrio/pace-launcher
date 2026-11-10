@@ -17,26 +17,26 @@ let testingPluginFlags: [SwiftSetting] =
         : []
 
 let package = Package(
-    name: "DOTLauncher",
+    name: "PACELauncher",
     platforms: [.macOS(.v27)],
     products: [
-        .executable(name: "DOTLauncher", targets: ["DOTLauncher"]),
+        .executable(name: "PACELauncher", targets: ["PACELauncher"]),
     ],
     targets: [
         // Pure logic, no AppKit. Everything here is unit tested.
         .target(
-            name: "DOTLauncherCore",
+            name: "PACELauncherCore",
             swiftSettings: upcoming
         ),
         // The menu bar app: AppKit + SwiftUI, main actor by default.
         .executableTarget(
-            name: "DOTLauncher",
-            dependencies: ["DOTLauncherCore"],
+            name: "PACELauncher",
+            dependencies: ["PACELauncherCore"],
             swiftSettings: [.defaultIsolation(MainActor.self)] + upcoming
         ),
         .testTarget(
-            name: "DOTLauncherCoreTests",
-            dependencies: ["DOTLauncherCore"],
+            name: "PACELauncherCoreTests",
+            dependencies: ["PACELauncherCore"],
             swiftSettings: upcoming + testingPluginFlags
         ),
     ],

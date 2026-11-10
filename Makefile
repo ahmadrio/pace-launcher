@@ -1,8 +1,8 @@
 CONFIG ?= debug
-APP_NAME := DOT Launcher.app
+APP_NAME := PACE Launcher.app
 BUILT_APP := build/$(APP_NAME)
 INSTALLED_APP := $(HOME)/Applications/$(APP_NAME)
-BUNDLE_ID := com.pace.DOTLauncher
+BUNDLE_ID := io.github.ahmadrio.PACELauncher
 
 .PHONY: test app run install logs reset-tcc clean
 
@@ -15,9 +15,9 @@ app:
 # Always launch the installed bundle with `open`: running the raw binary
 # makes the terminal the responsible process for TCC and breaks permissions.
 install: app
-	-pkill -x DOTLauncher
+	-pkill -x PACELauncher
 	@# Wait for the old instance to exit, or `open` may target the dying process.
-	@for i in $$(seq 50); do pgrep -x DOTLauncher >/dev/null || break; sleep 0.1; done
+	@for i in $$(seq 50); do pgrep -x PACELauncher >/dev/null || break; sleep 0.1; done
 	mkdir -p "$(HOME)/Applications"
 	rm -rf "$(INSTALLED_APP)"
 	ditto "$(BUILT_APP)" "$(INSTALLED_APP)"

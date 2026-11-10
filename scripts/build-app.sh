@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Builds DOT Launcher with SwiftPM and wraps it in a signed .app bundle.
+# Builds PACE Launcher with SwiftPM and wraps it in a signed .app bundle.
 # Usage: scripts/build-app.sh [debug|release]
 set -euo pipefail
 
 CONFIG="${1:-debug}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-EXEC="DOTLauncher"
-APP="$ROOT/build/DOT Launcher.app"
+EXEC="PACELauncher"
+APP="$ROOT/build/PACE Launcher.app"
 # Apple Development certificate. A stable identity keeps the Accessibility
 # grant valid across rebuilds; ad-hoc signing would reset it every build.
-IDENTITY="${DOT_SIGN_IDENTITY:-96BC64B93D995484ACC406BD7C5AB427661AAB96}"
+IDENTITY="${PACE_SIGN_IDENTITY:-96BC64B93D995484ACC406BD7C5AB427661AAB96}"
 
 cd "$ROOT"
 

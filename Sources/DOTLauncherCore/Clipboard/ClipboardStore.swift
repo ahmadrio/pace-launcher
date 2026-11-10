@@ -171,6 +171,12 @@ public actor ClipboardStore {
         try deleteUnpinned(where: "last_used_at < ?", [.real(cutoff.timeIntervalSince1970)])
     }
 
+    /// How many clips `prune(lastUsedBefore:)` would remove now.
+    public func countUnpinned(lastUsedBefore cutoff: Date) throws -> Int {
+        Int(try db.query("SELECT COUNT(*) AS n FROM clips WHERE pinned = 0 AND last_used_at < ?", [.real(cutoff.timeIntervalSince1970)])
+            .first?.int("n") ?? 0)
+    }
+
     /// Removes every unpinned clip (Clear History).
     @discardableResult
     public func clearUnpinned() throws -> Int {

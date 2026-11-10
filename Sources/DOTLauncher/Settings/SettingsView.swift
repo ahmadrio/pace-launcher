@@ -138,7 +138,10 @@ private struct GeneralSettings: View {
             Divider()
 
             Text("Clipboard History").font(.headline)
-            Picker("Keep history", selection: $settings.data.clipboardRetention) {
+            Picker("Keep history", selection: Binding(
+                get: { settings.data.clipboardRetention },
+                set: { clipboard.choose($0) }
+            )) {
                 ForEach(ClipboardRetention.allCases, id: \.self) { retention in
                     Text(retention.title).tag(retention)
                 }
@@ -147,6 +150,19 @@ private struct GeneralSettings: View {
             Text("Older clips are removed every hour. Pinned clips are always kept.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
+                .alert(
+                    clipboard.pendingRetention.map { $0.count == 1 ? "Delete 1 clip?" : "Delete \($0.count) clips?" } ?? "",
+                    isPresented: Binding(
+                        get: { clipboard.pendingRetention != nil },
+                        set: { if !$0 { clipboard.cancelRetention() } }
+                    ),
+                    presenting: clipboard.pendingRetention
+                ) { _ in
+                    Button("Delete", role: .destructive) { clipboard.confirmRetention() }
+                    Button("Cancel", role: .cancel) { clipboard.cancelRetention() }
+                } message: { pending in
+                    Text("Unpinned clips not used within \(pending.retention.title) are deleted now.")
+                }
             HStack {
                 Button("Clear History…") { clipboard.pressClear() }
                     .accessibilityIdentifier("clear-clipboard-history")

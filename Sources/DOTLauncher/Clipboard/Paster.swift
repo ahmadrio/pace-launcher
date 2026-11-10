@@ -36,12 +36,14 @@ enum Paster {
         if item.kind == .image {
             guard let imageURL, let png = try? Data(contentsOf: imageURL) else { return false }
             pasteboard.clearContents()
-            // PNG for modern apps, TIFF for the ones that only read that.
-            pasteboard.declareTypes([.png, .tiff], owner: nil)
-            pasteboard.setData(png, forType: .png)
-            if let tiff = NSImage(data: png)?.tiffRepresentation {
-                pasteboard.setData(tiff, forType: .tiff)
-            }
+            // PNG for modern apps; TIFF for the ones that only read that,
+            // built only if one asks (≈60 MB for a 5K image).
+            let pasteItem = NSPasteboardItem()
+            pasteItem.setData(png, forType: .png)
+            let provider = LazyTIFFProvider(png: png)
+            pasteItem.setDataProvider(provider, forTypes: [.tiff])
+            LazyTIFFProvider.current = provider
+            pasteboard.writeObjects([pasteItem])
             return true
         }
 
@@ -61,5 +63,27 @@ enum Paster {
             pasteboard.setString(item.text, forType: .string)
         }
         return true
+    }
+}
+
+/// Makes the TIFF copy of a pasted image when an app asks for it. Kept
+/// alive until the pasteboard no longer needs it.
+private final class LazyTIFFProvider: NSObject, NSPasteboardItemDataProvider {
+    static var current: LazyTIFFProvider?
+    private let png: Data
+
+    init(png: Data) {
+        self.png = png
+    }
+
+    nonisolated func pasteboard(_ pasteboard: NSPasteboard?, item: NSPasteboardItem, provideDataForType type: NSPasteboard.PasteboardType) {
+        guard type == .tiff, let tiff = NSImage(data: png)?.tiffRepresentation else { return }
+        item.setData(tiff, forType: .tiff)
+    }
+
+    nonisolated func pasteboardFinishedWithDataProvider(_ pasteboard: NSPasteboard) {
+        MainActor.assumeIsolated {
+            if Self.current === self { Self.current = nil }
+        }
     }
 }

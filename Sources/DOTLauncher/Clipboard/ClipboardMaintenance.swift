@@ -9,6 +9,14 @@ final class ClipboardMaintenance {
     /// The last Clear History message, shown under the button.
     private(set) var status: String?
 
+    /// A shorter "Keep history" waiting for the user to confirm deleting clips.
+    struct PendingRetention: Equatable {
+        let retention: ClipboardRetention
+        let count: Int
+    }
+
+    private(set) var pendingRetention: PendingRetention?
+
     @ObservationIgnored private let store: ClipboardStore?
     @ObservationIgnored private let settings: SettingsStore
     @ObservationIgnored private var confirmation = PressConfirmation()
@@ -53,6 +61,36 @@ final class ClipboardMaintenance {
                 Log.clipboard.error("clipboard pruning failed: \(String(describing: error), privacy: .public)")
             }
         }
+    }
+
+    /// The Keep history picker: a choice that would delete clips waits for
+    /// confirmation; anything else applies at once. (Changes that arrive in
+    /// settings.json, e.g. from sync, still prune right away.)
+    func choose(_ retention: ClipboardRetention) {
+        guard retention != settings.data.clipboardRetention else { return }
+        guard let store, let cutoff = retention.cutoff(now: .now) else {
+            settings.data.clipboardRetention = retention
+            return
+        }
+        Task {
+            let count = (try? await store.countUnpinned(lastUsedBefore: cutoff)) ?? 0
+            if count == 0 {
+                settings.data.clipboardRetention = retention
+            } else {
+                pendingRetention = PendingRetention(retention: retention, count: count)
+            }
+        }
+    }
+
+    /// "Delete" in the confirmation: settings.onChange then prunes.
+    func confirmRetention() {
+        guard let pending = pendingRetention else { return }
+        pendingRetention = nil
+        settings.data.clipboardRetention = pending.retention
+    }
+
+    func cancelRetention() {
+        pendingRetention = nil
     }
 
     /// Clear History: the first press arms, a second within 3 s clears.

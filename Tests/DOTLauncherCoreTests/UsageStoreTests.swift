@@ -48,7 +48,9 @@ struct UsageStoreTests {
 
     @Test func `persists across reopening the database file`() throws {
         let path = FileManager.default.temporaryDirectory.appending(path: "usage-\(UUID().uuidString).sqlite").path
-        defer { try? FileManager.default.removeItem(atPath: path) }
+        defer {
+            for file in [path, path + "-wal", path + "-shm"] { try? FileManager.default.removeItem(atPath: file) }
+        }
 
         try UsageStore(database: SQLiteDatabase(path: path)).recordUse(of: "a", at: now)
         let reopened = try UsageStore(database: SQLiteDatabase(path: path))

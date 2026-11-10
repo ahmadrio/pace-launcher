@@ -9,11 +9,12 @@ final class ClipboardController {
     private let store: ClipboardStore
     private let icons: IconCache
     private var appNames: [String: String] = [:]
-    private var thumbnails: [String: NSImage] = [:]
+    /// Bounded: scrolling a long history must not keep every thumbnail.
+    private var thumbnails = RecentCache<String, NSImage>(capacity: 300)
     /// The clips behind the rows currently listed, by row id.
     private var listed: [String: ClipItem] = [:]
     /// `ClipStats.summary` by clip hash: counting a long clip is O(n).
-    private var textSummaries: [String: String] = [:]
+    private var textSummaries = RecentCache<String, String>(capacity: 300)
     private let previewImages = PreviewImageLoader()
     /// Shows a one-line message in the panel footer.
     var onNotice: ((String) -> Void)?
@@ -57,8 +58,8 @@ final class ClipboardController {
 
     func preview(for result: LauncherResult) -> AnyView? {
         guard let item = listed[result.id] else { return nil }
-        let summary = textSummaries[item.hash] ?? ClipStats.summary(for: item.text)
-        textSummaries[item.hash] = summary
+        let summary = textSummaries.value(for: item.hash) ?? ClipStats.summary(for: item.text)
+        textSummaries.insert(summary, for: item.hash)
         return AnyView(ClipPreviewView(
             item: item,
             imageURL: store.imageURL(for: item),
@@ -137,9 +138,9 @@ final class ClipboardController {
 
     private func icon(for item: ClipItem) -> LauncherResult.Icon {
         if item.kind == .image {
-            if let cached = thumbnails[item.hash] { return .image(cached) }
+            if let cached = thumbnails.value(for: item.hash) { return .image(cached) }
             guard let url = store.thumbnailURL(for: item), let thumbnail = NSImage(contentsOf: url) else { return .symbol("photo") }
-            thumbnails[item.hash] = thumbnail
+            thumbnails.insert(thumbnail, for: item.hash)
             return .image(thumbnail)
         }
         if item.kind == .files, let first = item.text.split(separator: "\n").first {

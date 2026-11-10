@@ -41,6 +41,10 @@ check_app() {
   [[ "$(lipo -archs "$app/Contents/MacOS/PACELauncher")" == "arm64" ]] || fail "$app: not an arm64 build"
   [[ "$(plutil -extract CFBundleShortVersionString raw "$app/Contents/Info.plist")" == "$VERSION" ]] \
     || fail "$app: version is not $VERSION"
+  # The checkout path (with the builder's user name) must not ship.
+  if grep -qF -- "$ROOT" <<<"$(strings -a "$app/Contents/MacOS/PACELauncher")"; then
+    fail "$app: the binary contains the build folder path $ROOT"
+  fi
 }
 
 echo "==> checking $APP"

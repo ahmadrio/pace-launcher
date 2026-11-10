@@ -16,6 +16,11 @@ let testingPluginFlags: [SwiftSetting] =
         ? [.unsafeFlags(["-plugin-path", testingPluginDir])]
         : []
 
+// Builds record source paths (for example in Swift's "unimplemented
+// initializer" traps). Map the checkout folder to "." so a release never
+// carries the builder's home folder.
+let prefixMap: [SwiftSetting] = [.unsafeFlags(["-file-prefix-map", "\(Context.packageDirectory)=."])]
+
 let package = Package(
     name: "PACELauncher",
     platforms: [.macOS(.v27)],
@@ -26,13 +31,13 @@ let package = Package(
         // Pure logic, no AppKit. Everything here is unit tested.
         .target(
             name: "PACELauncherCore",
-            swiftSettings: upcoming
+            swiftSettings: upcoming + prefixMap
         ),
         // The menu bar app: AppKit + SwiftUI, main actor by default.
         .executableTarget(
             name: "PACELauncher",
             dependencies: ["PACELauncherCore"],
-            swiftSettings: [.defaultIsolation(MainActor.self)] + upcoming
+            swiftSettings: [.defaultIsolation(MainActor.self)] + upcoming + prefixMap
         ),
         .testTarget(
             name: "PACELauncherCoreTests",

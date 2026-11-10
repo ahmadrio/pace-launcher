@@ -67,3 +67,22 @@ struct KeywordExpanderTests {
         #expect(expander.type("q") == nil)
     }
 }
+
+struct AutoExpandRuleTests {
+    @Test func `runs while typing in another app`() {
+        #expect(AutoExpandRule.allows(frontmostBundleID: "com.apple.TextEdit", dotIsFrontmost: false, dotHasKeyWindow: false, excluded: []))
+    }
+
+    @Test func `never runs while a DOT panel has keyboard focus`() {
+        // DOT's panels are non-activating: the app behind stays frontmost.
+        #expect(!AutoExpandRule.allows(frontmostBundleID: "com.apple.finder", dotIsFrontmost: false, dotHasKeyWindow: true, excluded: []))
+    }
+
+    @Test func `never runs while DOT is frontmost`() {
+        #expect(!AutoExpandRule.allows(frontmostBundleID: "com.pace.DOTLauncher", dotIsFrontmost: true, dotHasKeyWindow: false, excluded: []))
+    }
+
+    @Test func `never runs in an excluded app`() {
+        #expect(!AutoExpandRule.allows(frontmostBundleID: "com.apple.Terminal", dotIsFrontmost: false, dotHasKeyWindow: false, excluded: ["com.apple.Terminal"]))
+    }
+}

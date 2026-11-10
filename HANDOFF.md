@@ -47,7 +47,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 180 test Core (Swift Testing)
+make test     # 184 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -64,6 +64,7 @@ make reset-tcc
 - **Liquid Glass mengabaikan `appearance` NSView/NSWindow.** Mode Light/Dark dipaksa lewat `.environment(\.colorScheme)` di `ThemedRoot` ditambah tint kaca eksplisit. Tint aksen juga harus dibaca di `body` agar langsung berubah.
 - **CGEventTap di Swift 6:** `CGEvent` tidak Sendable. Event diklasifikasi menjadi `TapEvent` di callback nonisolated, baru diteruskan ke main actor. Event yang dikirim DOT sendiri (backspace, ⌘V) dikenali dari PID-nya.
 - **Auto-expand:** ⌘V harus dikirim langsung setelah backspace, tanpa jeda. Dengan jeda 140 ms, teks yang diketik setelah keyword muncul sebelum snippet (`x ;addr y` → `x  yJl. …`).
+- **"Di DOT sendiri" tidak bisa dicek dari app terdepan.** Panel DOT (launcher, Notes, editor snippet) non-activating, jadi app di belakangnya tetap terdepan. `AutoExpandRule` juga menolak saat DOT punya jendela key (`NSApp.keyWindow`).
 - **Skrip:** `ScriptRun` disimpan di registry statis. Kalau hanya dipegang referensi weak, run langsung hilang dan HUD tidak pernah muncul. Pembacaan environment login shell memakai deadline sebelum membaca output.
 - **SQLite backup:** salinan dari database WAL diubah ke `journal_mode=DELETE`, dan file `-shm` sisa dihapus, supaya backup berupa satu file. Backup ditulis dulu di folder lokal, lalu dipindah ke iCloud.
 - **Placeholder iCloud** (`.nama.icloud`) dikenali oleh store, oleh daftar backup, dan oleh migrasi. Placeholder tidak pernah disalin dan tidak pernah hilang dari daftar ("Downloading…"). Nama yang placeholder-nya ada dianggap **sudah terpakai**, karena file baru di path item yang di-evict akan menggantikan isinya di iCloud. `settings.json` tidak disimpan selama yang ada baru placeholder-nya.
@@ -81,7 +82,6 @@ make reset-tcc
 
 ## Belum diuji / batasan yang diketahui
 - **Sync dengan iCloud Drive asli sudah dicek sekali (10 Nov 2026, izin Pace, data di-backup dulu):** nyala → file pindah ke iCloud dan ter-upload (`ubiquitousItemIsUploaded`), backup clipboard utuh (21 clip, `integrity_check` ok), snippet/note tetap muncul, quit menulis backup, relaunch tanpa pertanyaan restore. Mati → file kembali identik, backup tetap di iCloud sampai "Delete iCloud Backups" ditekan. Setelahnya data dan iCloud dikembalikan seperti semula.
-- **Auto-expand juga aktif di kolom pencarian DOT sendiri.** Mengetik keyword snippet (`;addr`) di launcher langsung mengembangkannya, jadi snippet tidak bisa dicari lewat keyword-nya. Belum diperbaiki.
 - Placeholder dari "Optimize Mac Storage" yang asli dan edit dari iPhone/Files belum diuji. Perilakunya hanya disimulasikan dengan mengganti nama file.
 - Auto-expand berjalan tanpa izin Input Monitoring baru di Mac ini. Di Mac lain, izin itu mungkin perlu diberikan (Settings › Snippets menampilkan statusnya).
 - Paste memakai `kVK_ANSI_V`, jadi bisa meleset di layout keyboard non-QWERTY.
@@ -89,7 +89,6 @@ make reset-tcc
 - Clipboard belum mendukung gambar dan belum punya preview. Shortcut belum bisa diubah lewat UI. Kalkulator belum mendukung unit/kurs.
 
 ## Langkah berikutnya
-1. Matikan auto-expand saat panel DOT sendiri yang aktif (lihat batasan di atas).
-2. Riwayat AI chat yang persisten.
-3. Clipboard: gambar, preview, pin/hapus dari panel.
-4. Ubah shortcut lewat Settings.
+1. Riwayat AI chat yang persisten.
+2. Clipboard: gambar, preview, pin/hapus dari panel.
+3. Ubah shortcut lewat Settings.

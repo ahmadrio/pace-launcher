@@ -56,10 +56,13 @@ final class AutoExpandController {
         if now.timeIntervalSince(lastKeystroke) > 5 { expander.reset() }
         lastKeystroke = now
 
-        // Never in DOT itself or in excluded apps.
         let front = NSWorkspace.shared.frontmostApplication
-        if front?.processIdentifier == getpid()
-            || settings.data.autoExpandExcludedBundleIDs.contains(front?.bundleIdentifier ?? "") {
+        guard AutoExpandRule.allows(
+            frontmostBundleID: front?.bundleIdentifier,
+            dotIsFrontmost: front?.processIdentifier == getpid(),
+            dotHasKeyWindow: NSApp.keyWindow != nil,
+            excluded: settings.data.autoExpandExcludedBundleIDs
+        ) else {
             expander.reset()
             return
         }

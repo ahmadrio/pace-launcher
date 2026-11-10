@@ -7,7 +7,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-APP="$ROOT/build/PACE Launcher.app"
+APP="$ROOT/build/app.noindex/PACE Launcher.app"
 OUT="$ROOT/build/release"
 
 fail() { echo "error: $*" >&2; exit 1; }

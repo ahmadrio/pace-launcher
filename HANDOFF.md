@@ -180,6 +180,8 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   - Kunci privatnya **hanya** ada di login keychain Pace. Kalau hilang, rilis berikutnya butuh sertifikat baru dan semua pengguna memberi izin ulang sekali. Cara membuat cadangan `.p12` ada di `docs/RELEASING.md`.
   - Tanpa sertifikat itu (misalnya kontributor lain), `make run` menandatangani ad-hoc dengan peringatan, dan `make release` berhenti.
   - Build `make run` (di `~/Applications`) dan rilis GitHub (di `/Applications`) memakai bundle ID yang sama. Jangan pasang keduanya sekaligus.
+  - **Hasil build ada di `build/app.noindex/`** (sejak 11 Nov 2026): folder `.noindex` diabaikan Spotlight, jadi build tidak muncul di samping app yang terpasang. Dulu `build/PACE Launcher.app` muncul di Spotlight sebagai app kedua (dilaporkan Pace).
+  - **Sejak 11 Nov 2026 Pace memakai rilis v1.0.0 dari `/Applications` dengan data asli.** Uji UI dengan `make run` (folder uji) mematikan app itu dan memasang salinan kedua di `~/Applications`: setelah uji, hapus salinan uji dan kunci uji, lalu buka lagi `/Applications/PACE Launcher.app`.
   - Kalau izin bermasalah, jalankan `make reset-tcc`.
 - **`hdiutil create/attach/detach` deprecated di macOS 27:** `package-release.sh` memakai `diskutil image create from`, `diskutil image attach`, dan `diskutil eject`. `hdiutil verify` masih dipakai.
 - **zsh:** `log` adalah builtin zsh, jadi pakai `/usr/bin/log`. `FileManager` mengubah `/var` menjadi `/private/var`. Glob yang tidak cocok (`rm -f build/release/.partial-*`) membatalkan **seluruh** perintah `rm` (nomatch).

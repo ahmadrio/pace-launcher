@@ -6,7 +6,9 @@ set -euo pipefail
 CONFIG="${1:-debug}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EXEC="PACELauncher"
-APP="$ROOT/build/PACE Launcher.app"
+# In a .noindex folder: Spotlight and Launchpad skip it, so the build never
+# shows up next to the installed app.
+APP="$ROOT/build/app.noindex/PACE Launcher.app"
 # The self-signed "PACE Launcher Signing" identity (scripts/make-signing-identity.sh).
 # Every build uses it, so users keep their privacy permissions across updates;
 # ad-hoc signing would reset them on every build.

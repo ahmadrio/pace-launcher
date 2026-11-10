@@ -1,6 +1,6 @@
 CONFIG ?= debug
 APP_NAME := PACE Launcher.app
-BUILT_APP := build/$(APP_NAME)
+BUILT_APP := build/app.noindex/$(APP_NAME)
 INSTALLED_APP := $(HOME)/Applications/$(APP_NAME)
 BUNDLE_ID := io.github.ahmadrio.PACELauncher
 

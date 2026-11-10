@@ -35,7 +35,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.autoExpandStatus = autoExpandStatus
         super.init()
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "command.square", accessibilityDescription: "PACE Launcher")
+            button.image = MenuBarIcon.image()
         }
         menu.delegate = self
         statusItem.menu = menu

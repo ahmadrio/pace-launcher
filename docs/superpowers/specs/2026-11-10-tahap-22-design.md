@@ -51,3 +51,6 @@ Template baru dibuka dengan editor teks default macOS (app untuk teks biasa, bia
 - Tidak ada file cadangan `.p12` otomatis; cara ekspor ditulis di catatan rilis.
 - DMG sederhana (tanpa gambar latar), tidak ditandatangani.
 - Panduan dalam bahasa Inggris karena UI app berbahasa Inggris dan pembacanya pengguna GitHub.
+
+## Tambahan atas permintaan Pace (10 Nov 23:53)
+Ikon menu bar dibuat ulang agar senada dengan ikon app: huruf "P" tebal dengan tiga garis kecepatan, sebagai template image yang otomatis berwarna gelap atau terang mengikuti menu bar. Menggantikan simbol `command.square`.

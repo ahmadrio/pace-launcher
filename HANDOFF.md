@@ -243,6 +243,7 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   - memastikan tidak ada kunci privat di DMG, dan checksum lolos `shasum -c`
 - **Sertifikat** dibuat dengan izin Pace (10 Nov 23:46) lewat `scripts/make-signing-identity.sh`. Tidak ada dialog keychain yang muncul.
 - **Dokumen:** `docs/INSTALL.md` (untuk pengguna: checksum, pasang, Open Anyway, izin, update, uninstall, build dari source) dan `docs/RELEASING.md` (untuk Pace: sertifikat, cadangan, langkah rilis, tag `v<versi>`).
+- **Ikon menu bar baru** (permintaan Pace, 10 Nov 23:53): huruf P dengan tiga garis kecepatan seperti ikon app, digambar saat render di `App/MenuBarIcon.swift` sebagai template image (otomatis putih atau hitam mengikuti menu bar). Menggantikan simbol `command.square`.
 - **"Create Script Command"** kini membuka template di editor teks default (TextEdit di Mac Pace); kalau tidak ada editor, file ditunjukkan di Finder.
 - **Build rilis sudah dicoba dari DMG** di folder uji (panel dan pencarian jalan), lalu dicopot lagi. App tetap tidak terpasang di Mac Pace.
 - **Belum diuji:** alur Gatekeeper sungguhan (unduhan ber-quarantine → "Open Anyway") di macOS 27. Teks di `INSTALL.md` mengikuti perilaku macOS 15+, dan Pace akan mengujinya saat memasang dari GitHub.

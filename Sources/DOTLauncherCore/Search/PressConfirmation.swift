@@ -3,7 +3,8 @@ import Foundation
 /// "Press again to confirm" without a dialog: the first press of an id arms
 /// it, a second press of the same id within `window` seconds confirms.
 public struct PressConfirmation {
-    private let window: TimeInterval
+    /// How long a first press counts, in seconds.
+    public let window: TimeInterval
     private var armedAt: Date?
     public private(set) var armedID: String?
 
@@ -12,7 +13,7 @@ public struct PressConfirmation {
     }
 
     public mutating func press(_ id: String, at date: Date) -> Bool {
-        if armedID == id, let armedAt, date.timeIntervalSince(armedAt) < window {
+        if isArmed(id, at: date) {
             reset()
             return true
         }
@@ -32,7 +33,9 @@ public struct PressConfirmation {
     /// True while a press of `id` would confirm.
     public func isArmed(_ id: String, at date: Date) -> Bool {
         guard armedID == id, let armedAt else { return false }
-        return date.timeIntervalSince(armedAt) < window
+        // A clock that stepped back ends the arm rather than stretching it.
+        let elapsed = date.timeIntervalSince(armedAt)
+        return elapsed >= 0 && elapsed < window
     }
 
     public mutating func reset() {

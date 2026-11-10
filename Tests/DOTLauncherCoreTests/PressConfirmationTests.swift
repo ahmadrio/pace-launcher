@@ -34,7 +34,6 @@ struct PressConfirmationTests {
 
     @Test func `a second press counts only while its notice shows`() {
         var confirmation = PressConfirmation()
-        let t0 = Date(timeIntervalSinceReferenceDate: 800_000_000)
         #expect(confirmation.press("log-out", at: t0, stillShown: false) == false)
         #expect(confirmation.press("log-out", at: t0 + 1, stillShown: true) == true)
         #expect(confirmation.press("log-out", at: t0 + 2, stillShown: false) == false)
@@ -45,11 +44,20 @@ struct PressConfirmationTests {
 
     @Test func `the arm ends after three seconds`() {
         var confirmation = PressConfirmation()
-        let t0 = Date(timeIntervalSinceReferenceDate: 800_000_000)
         #expect(confirmation.press("a", at: t0) == false)
         #expect(confirmation.isArmed("a", at: t0 + 2.9))
         #expect(!confirmation.isArmed("b", at: t0 + 1))
         #expect(!confirmation.isArmed("a", at: t0 + 3))
         #expect(confirmation.press("a", at: t0 + 3.1, stillShown: true) == false)
+    }
+
+    @Test func `a clock that steps back ends the arm`() {
+        var confirmation = PressConfirmation()
+        #expect(confirmation.press("a", at: t0) == false)
+        #expect(confirmation.isArmed("a", at: t0 - 30) == false)
+        // An old press must not confirm just because the clock went back.
+        #expect(confirmation.press("a", at: t0 - 30) == false)
+        #expect(confirmation.press("a", at: t0 - 29) == true)
+        #expect(PressConfirmation().window == 3)
     }
 }

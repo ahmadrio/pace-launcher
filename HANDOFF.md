@@ -76,6 +76,10 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-20-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-20.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-20-ledger.md`
+- **Tahap 21** (ganti nama ke PACE Launcher) selesai di branch `tahap-21` (10 Nov 2026), menunggu keputusan merge.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-21-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-21.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-21-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -96,21 +100,21 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 | **Tema** | Settings › Appearance: preset (Default, Midnight, Paper, Sunset, Graphite), warna aksen, kepadatan kaca, dan mode System/Light/Dark. Perubahan langsung terlihat. Mode System ikut berganti saat macOS berganti terang/gelap tanpa relaunch (tint kaca dihitung ulang dari `NSApp.effectiveAppearance`). Perintah **Appearance Settings** (`tema`, `theme`, `appearance`, `tampilan`) membuka Settings langsung di Appearance. Notes dan editor snippet juga ikut berganti (warna sistem). |
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
 | **Script commands** | Skrip apa pun dengan header `# @dot.title` atau `# @raycast.title` di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown; form langsung fokus ke isian teks/password pertama — melewati dropdown — juga saat dibuka ulang lewat shortcut; isian password tidak memunculkan popup AutoFill "Passwords…" (`.textContentType(.oneTimeCode)`), jadi satu ↩ cukup; form yang hanya berisi dropdown tidak memfokus apa pun, ketikan awal tetap di kolom pencarian, dan ↩ menjalankan skrip dengan pilihan default; huruf yang diketik tepat setelah ↩ ikut pindah ke isian itu; Esc kembali ke pencarian) dan `needsConfirmation`. **Semua konfirmasi "tekan lagi"** (Log Out, baris skrip, form argumen, shortcut skrip lewat HUD) memakai `ConfirmationPrompt` (Core, diuji dengan jam palsu): tekan kedua hanya berlaku selama pesannya masih tampil, dan pesan hilang tepat saat tekan pertama habis (3 detik); mengubah isian form setelah pesan muncul meminta konfirmasi ulang. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
-| **Sync iCloud** | Settings › Sync › "Store data in iCloud Drive" (**default mati**). Saat menyala: Snippets, Notes, Scripts, dan `settings.json` pindah ke iCloud Drive › DOT Launcher, dan clipboard di-backup tiap 6 jam (5 backup terbaru disimpan) dan saat app ditutup. Restore memakai dua kali tekan. |
+| **Sync iCloud** | Settings › Sync › "Store data in iCloud Drive" (**default mati**). Saat menyala: Snippets, Notes, Scripts, dan `settings.json` pindah ke iCloud Drive › PACE Launcher, dan clipboard di-backup tiap 6 jam (5 backup terbaru disimpan) dan saat app ditutup. Restore memakai dua kali tekan. |
 | Menu bar | Status izin dan shortcut, Launch at Login, Hide Menu Bar Icon, Settings…, Quit. |
 
 ## Keputusan
-- Nama: **DOT Launcher**. Bundle ID: `com.pace.DOTLauncher`. Target: **khusus macOS 27**.
+- Nama: **DOT Launcher**. Bundle ID: `io.github.ahmadrio.PACELauncher`. Target: **khusus macOS 27**.
 - Build memakai SwiftPM + script, tanpa Xcode (hanya Command Line Tools). Tanpa dependensi eksternal. Pemakaian pribadi.
 - Tidak memakai nama, logo, atau kode Raycast. Yang dibaca hanya format komentar `@raycast.*` agar skrip lama tetap jalan. Kalau keduanya ada, `@dot.*` yang menang.
 - Shortcut **default** ⌃⌥ (window) dan ⇧⌥C (clipboard) hanya aktif kalau Rectangle/Maccy tidak berjalan. Kombinasi yang diganti di Settings › Shortcuts selalu aktif.
 - **Data:**
-  - Folder lokal `~/Library/Application Support/DOT Launcher/` menyimpan `launcher.sqlite`, `clipboard.sqlite`, `chat.sqlite`, dan `Clipboard Images/`. **SQLite dan gambar clipboard tidak pernah ditaruh di iCloud**, dan tidak ikut backup iCloud (backup hanya `clipboard.sqlite`; clip gambar hasil restore tampil "Image unavailable").
+  - Folder lokal `~/Library/Application Support/PACE Launcher/` menyimpan `launcher.sqlite`, `clipboard.sqlite`, `chat.sqlite`, dan `Clipboard Images/`. **SQLite dan gambar clipboard tidak pernah ditaruh di iCloud**, dan tidak ikut backup iCloud (backup hanya `clipboard.sqlite`; clip gambar hasil restore tampil "Image unavailable").
   - Snippets, Notes, Scripts, dan `settings.json` berada di folder data aktif: folder lokal, atau `iCloud Drive/DOT Launcher/` kalau sync menyala.
   - Pengaturan yang ikut sync ada di `settings.json`: tema, ikon menu bar, auto-expand, app yang dikecualikan, backup clipboard, dan `shortcuts` (id → `"ctrl+opt+left"`, `""` = tanpa shortcut, id tidak ada = default).
   - Yang khusus Mac ini disimpan di UserDefaults: status sync, folder skrip tambahan, dan posisi jendela.
 - **Sync bersifat opt-in.** Kalau dimatikan, DOT sama sekali tidak membaca atau menulis iCloud Drive. Satu-satunya pengecualian adalah tombol "Delete iCloud Backups".
-- **Internet hanya untuk kurs:** `GET https://open.er-api.com/v6/latest/USD`, hanya saat konversi mata uang tampil dan cache (`exchange-rates.json`, lokal) belum ada atau lebih dari 12 jam; gagal → tunggu 1 menit atau Retry. Kurs lebih dari 7 hari ditandai "rates may be outdated". Uji offline: `DOTRatesURLOverride`.
+- **Internet hanya untuk kurs:** `GET https://open.er-api.com/v6/latest/USD`, hanya saat konversi mata uang tampil dan cache (`exchange-rates.json`, lokal) belum ada atau lebih dari 12 jam; gagal → tunggu 1 menit atau Retry. Kurs lebih dari 7 hari ditandai "rates may be outdated". Uji offline: `PACERatesURLOverride`.
   - Pemindahan file selalu disalin dulu, diverifikasi isinya, baru yang lama dihapus. Kalau nama sudah ada, keduanya disimpan dan file yang masuk diberi akhiran `(from This Mac)` atau `(from iCloud)`.
   - Kalau `Backups/` sudah berisi backup saat sync dinyalakan (misalnya setelah reset), backup otomatis ditahan sampai dipilih "Restore from Backup" atau "Keep Current History".
   - Mematikan sync tidak menghapus backup di iCloud. Sync juga menolak dimatikan selama masih ada file yang belum terunduh dari iCloud.
@@ -120,16 +124,16 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 379 test Core (Swift Testing)
+make test     # 384 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
-make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
+make logs     # log stream subsystem io.github.ahmadrio.PACELauncher (termasuk debug)
 make reset-tcc   # reset izin Accessibility dan Automation (dialog izin muncul lagi)
 ```
 - Jangan pakai `swift run`. Tanpa bundle `.app`, TCC dan privasi pasteboard tidak berfungsi benar.
 - **Struktur kode:**
   - `Sources/DOTLauncherCore` berisi logika murni yang dites. Tambahan tahap 3: `Settings/` (SettingsData, SettingsFile, Theme), `Scripts/` (ScriptMetadata, ScriptScanner, ANSI), `Snippets/KeywordExpander`, dan `Sync/` (ICloudPlaceholder, FolderMigration, BackupRotation), ditambah backup/restore di `SQLiteDatabase`. Tambahan tahap 4: `Chat/` (ChatStore, ChatTitle), `Clipboard/` (ClipImage, ClipStats, file gambar di ClipboardStore), dan `Hotkeys/` (ShortcutID, Shortcuts, `KeyCombo.stringValue`). Tambahan tahap 5: `Calculator/` (Converter, MeasureUnit, ConversionFormat), `Currency/` (ExchangeRates, CurrencyNames), `Hotkeys/CommandShortcut` + `Shortcuts.registrationPlan`, `Clipboard/ClipboardRetention`, dan `Support/RunToken`.
   - `Sources/DOTLauncher` berisi app. Tambahan tahap 3: `Settings/` (SettingsStore, SettingsView, ThemeController), `Scripts/` (ScriptRunner, ScriptLibrary, HUD), `Snippets/` (KeystrokeMonitor, AutoExpandController), dan `Sync/SyncController`. Tambahan tahap 4: riwayat di `AI/AIChatController` (lanjut chat via `LanguageModelSession(transcript:)`), `Clipboard/ClipPreviewView`, dan `Settings/ShortcutsSettings` (ShortcutRecorder); `HotKeyCenter` kini `@Observable` dan `AppDelegate.applyShortcuts()` mendaftarkan shortcut dari settings. Tambahan tahap 5: `Calculator/RatesService`, `Clipboard/ClipboardMaintenance` (retensi, Clear History, file yatim), dan baris konversi di `UI/LauncherSearch`.
-- **Data uji:** `defaults write com.pace.DOTLauncher DOTDataRootOverride <folder>` dan `DOTiCloudRootOverride <folder>` mengalihkan semua data ke folder uji. Settings dan menu bar lalu menampilkan "Test data folders in use". Sync menolak menyala kalau hanya override lokal yang diisi. Setelah selesai, hapus kedua key dan `syncEnabled`.
+- **Data uji:** `defaults write io.github.ahmadrio.PACELauncher PACEDataRootOverride <folder>` dan `PACEiCloudRootOverride <folder>` mengalihkan semua data ke folder uji. Settings dan menu bar lalu menampilkan "Test data folders in use". Sync menolak menyala kalau hanya override lokal yang diisi. Setelah selesai, hapus kedua key dan `syncEnabled`.
 
 ## Jebakan yang sudah ditemukan
 - **Swift Testing di CLT:** plugin `TestingMacros` tidak dimuat otomatis. `Package.swift` menambahkan `-plugin-path`.
@@ -160,7 +164,7 @@ make reset-tcc   # reset izin Accessibility dan Automation (dialog izin muncul l
 - **⌘Space:** macOS tetap mendaftarkan ⌘Space (non-eksklusif) walaupun shortcut Spotlight dimatikan, sehingga pendaftaran eksklusif gagal `-9878`. `HotKeyCenter` lalu mendaftar bersama (status `.shared`, catatan abu-abu di Settings).
 - **Foundation `UnitVolume.cups` = 240 ml** (legal cup). DOT memakai US cup 236,588 ml lewat unit sendiri. "pound" adalah massa; poundsterling ditulis `gbp`/`£`.
 - **System Events `frontmost`** tidak bisa dipercaya untuk app tanpa Dock seperti DOT (selalu terbaca "Finder"). Cek fokus lewat `AXMain`/`AXFocusedWindow` atau efeknya.
-- **Uji UI Settings:** Settings yang dibuka dari launcher tidak membuat DOT jadi app aktif, dan klik AX juga tidak. Sebelum mengirim tombol keyboard, jalankan `tell application id "com.pace.DOTLauncher" to activate`. Tombol di Settings › Shortcuts punya `AXIdentifier` (`shortcut-<id>`, `reset-<id>`).
+- **Uji UI Settings:** Settings yang dibuka dari launcher tidak membuat DOT jadi app aktif, dan klik AX juga tidak. Sebelum mengirim tombol keyboard, jalankan `tell application id "io.github.ahmadrio.PACELauncher" to activate`. Tombol di Settings › Shortcuts punya `AXIdentifier` (`shortcut-<id>`, `reset-<id>`).
 - **Jangan tekan ⌥Space di atas Finder saat launcher dipindah ke kombinasi lain:** Finder membuka Quick Look layar penuh.
 - **Registry hotkey memakai id, bukan judul:** `HotKeyCenter` dikunci dengan `ShortcutID.rawValue` (`script.tools/deploy.sh`), karena dua skrip bisa berjudul sama. Menu bar dan log memakai `title`.
 - **Singkatan angka vs unit:** unit selalu dicek lebih dulu, jadi `10k to c` adalah kelvin dan `1 m to ft` meter. Singkatan hanya dipakai kalau sisanya bukan unit (`10k usd`, `1k km`). `M`/`B`/`T` sengaja tidak didukung.
@@ -171,7 +175,7 @@ make reset-tcc   # reset izin Accessibility dan Automation (dialog izin muncul l
 - **AX `set value` tidak sampai ke binding SwiftUI `TextField`:** di uji UI Settings, ketik sungguhan lewat penjaga yang memastikan app terdepan menurut `NSWorkspace.frontmostApplication` adalah DOT (System Events `frontmost` salah untuk app tanpa Dock) dan field yang dituju punya fokus.
 - **⌃⌘Q / ⇧⌘Q adalah shortcut menu Apple milik app terdepan:** DOT menyembunyikan diri dulu (`NSApp.hide`) dan menunggu fokus lepas sebelum mengirimnya; kalau tidak lepas, HUD. Kedua kombinasi itu ditolak sebagai shortcut DOT, karena DOT akan menangkap kirimannya sendiri. Lock dan Log Out sungguhan belum pernah dijalankan saat uji.
 - **Konfirmasi "press ↩ again" mempertahankan baris yang dipilih:** `.stay` mengingat id baris sebelum `refresh()`.
-- **Perintah sistem tidak pernah dijalankan saat uji:** `defaults write com.pace.DOTLauncher DOTSystemCommandDryRun -bool true` membuat DOT hanya mencatat "system command … (dry run)". Hapus lagi setelah uji. Uji dulu yang paling ringan (screen saver) untuk memastikan flag-nya terbaca.
+- **Perintah sistem tidak pernah dijalankan saat uji:** `defaults write io.github.ahmadrio.PACELauncher PACESystemCommandDryRun -bool true` membuat DOT hanya mencatat "system command … (dry run)". Hapus lagi setelah uji. Uji dulu yang paling ringan (screen saver) untuk memastikan flag-nya terbaca.
 - **Uji quicklink tanpa membuka browser:** app penangkap kecil dengan skema `dott7://` mencatat URL yang diterima. LaunchServices menolak mengikat skema untuk app di folder sementara (`launch-disabled in-temp-dir`), jadi app itu didaftarkan dari `~/Library/Caches/dot-launcher-tests` lalu dicabut (`lsregister -u`) dan dihapus.
 - **`URL(string:)` longgar:** spasi di path di-encode diam-diam, host non-ASCII jadi punycode. Quicklink menolak template yang berisi spasi, lalu memakai parsing longgar (supaya `bücher.de` dan `|` diterima). `URL.host()` mengembalikan bentuk percent-encoded (`b%C3%BCcher.de`); URL yang dibuka memakai punycode (`absoluteString`).
 - **Kalkulator tanggal (`DateQuery`) dites dengan `now`, zona waktu, dan locale yang ditetapkan.** en_ID memakai titik untuk jam ("14.59"). `TimeZoneNames` tidak lagi memakai `TimeZone(abbreviation:)`: Foundation tidak mengenal WIB/WITA/AEST, memetakan WIT ke Jakarta (padahal Jayapura) dan UTC ke GMT, serta mengenal kata biasa (EAT, CAT, ART). Singkatan berasal dari tabel tetap; `kolkata` butuh alias karena macOS memakai `Asia/Calcutta`. Jam harus berisi menit atau am/pm, supaya `10 in in cm` tetap konversi.
@@ -183,7 +187,7 @@ make reset-tcc   # reset izin Accessibility dan Automation (dialog izin muncul l
 - **Mengetik di uji:** cek fokus sebelum *setiap* tombol (alat `guardtype`/`gaprace` di scratchpad: AX focused element DOT + app terdepan bukan terminal), jangan AppleScript berisi beberapa tombol dengan jeda. CGEvent yang dikirim beruntun tanpa jeda bisa hilang (beri ~10 ms per tombol); dengan jeda itu, ketikan ke isian password juga sampai utuh. Nilai isian password tidak bisa dibaca lewat AX, jadi uji lewat file penanda skrip.
 - **Screenshot jendela DOT di uji:** panel Notes dan editor snippet bersembunyi saat DOT tidak aktif; aktifkan DOT dulu, lalu foto per jendela dengan `screencapture -l <CGWindowID>` (owner name "DOT Launcher"), bukan wilayah layar, yang bisa tertutup jendela lain. Saat Notes terbuka, `dotkeys.sh` juga menerima text area Notes; untuk mengetik ke launcher pakai `launcherkeys.sh` (cek placeholder kolom pencarian).
 - **Menu bar di uji:** `exists menu 1 of menu bar item 1 of menu bar 2` tetap `true` setelah menu tertutup, dan mengklik ikon lagi lewat System Events tidak menutup menu. Tutup dengan Esc hanya setelah screenshot menunjukkan menu terbuka dan app terdepan bukan terminal.
-- **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
+- **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `PACEDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
 
 ## Belum diuji / batasan yang diketahui
 - **Restart, Shut Down, Empty Trash, Toggle Dark Mode sudah dicoba Pace** (10 Nov 2026, 22:01): keempatnya berhasil, dan System Settings › Automation mencantumkan "DOT Launcher" (bukan `osascript`). Uji otomatis tetap hanya memakai mode uji, kecuali Toggle Dark Mode yang dipakai bolak-balik untuk menguji tema (tahap 18).
@@ -198,13 +202,35 @@ make reset-tcc   # reset izin Accessibility dan Automation (dialog izin muncul l
 - **Isian password form skrip memakai jenis isi "one-time code"** (tahap 20) supaya popup AutoFill "Passwords…" tidak muncul. Akibatnya: (a) AutoFill password dari Keychain/Passwords tidak lagi ditawarkan di isian itu; (b) kalau ada kode verifikasi baru dari Messages atau Mail, macOS bisa menawarkan kode itu selama beberapa menit, dan ↩ pertama bisa tertelan lagi (belum diuji dengan kode sungguhan).
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
+## Tahap 21: DOT Launcher → PACE Launcher (10 Nov 2026)
+- **Nama dan identitas baru:**
+  - App: "PACE Launcher".
+  - Bundle ID: `io.github.ahmadrio.PACELauncher`.
+  - Modul: `PACELauncher` dan `PACELauncherCore` (folder `Sources/PACELauncher*`, `Tests/PACELauncherCoreTests`).
+  - Kunci uji: `PACEDataRootOverride`, `PACEiCloudRootOverride`, `PACERatesURLOverride`, `PACESystemCommandDryRun`.
+  - Header skrip: `@pace.*`; `@dot.*` dan `@raycast.*` tetap diterima.
+- **Migrasi** (`LegacyMigration`, dipanggil di `PACELauncherApp.main()` sebelum apa pun membaca path):
+  - Defaults lama disalin sekali; posisi jendela ikut dengan nama baru, kunci uji tidak.
+  - Folder `…/DOT Launcher` dipindahkan ke `…/PACE Launcher`, tanpa menimpa.
+  - iCloud hanya disentuh kalau sync aktif.
+  - Di Mac Pace (10 Nov 23:21): 49 clip, 25 pemakaian, 6 gambar, dan `settings.json` cocok dengan backup.
+- **Disimpan di scratchpad sesi ini:**
+  - Backup: `real-backup-t21/` (folder data + `com.pace.DOTLauncher.plist`).
+  - App lama: `old-app/DOT Launcher.app`.
+- **Pace perlu memberi izin ulang untuk PACE Launcher:**
+  - Accessibility dan Input Monitoring di System Settings › Privacy & Security.
+  - Automation: diminta ulang saat Toggle Dark Mode / Empty Trash / Restart / Shut Down pertama.
+  - Launch at Login perlu diaktifkan lagi di Settings kalau sebelumnya aktif.
+  - Entri lama "DOT Launcher" di daftar izin boleh dihapus.
+- **Temuan lama (belum diperbaiki):** "Create Script Command" membuka file `.sh` baru dengan app default untuk `.sh`. Di Mac Pace itu Warp, yang **menjalankan** template alih-alih membukanya untuk diedit.
+
 ## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)
 - **Publik, tanpa Apple Developer Program**: tidak dinotarisasi; pengguna membuka lewat System Settings › Privacy & Security › Open Anyway. Ditandatangani dengan sertifikat **self-signed** (identitas tetap antar versi supaya izin pengguna bertahan setelah update), bukan sertifikat Apple Development.
 - **Open source di GitHub** (akun `ahmadrio`), rilis lewat **GitHub Releases**. Lisensi **GPL-3.0**.
 - **Nama baru: PACE Launcher** (menggantikan DOT Launcher). Bundle ID usulan Claude: `io.github.ahmadrio.PACELauncher`.
 - **Repo ini dipublikasikan apa adanya** (seluruh riwayat dan dokumen). Pemindaian 205 commit (10 Nov): tidak ada API key, token, kunci privat, atau file kredensial; yang ikut publik: email di metadata commit, satu path `/Users/pace`, satu sebutan Mattermost, dua kali "Ahmad" di dokumen.
 - **Urutan kerja usulan Claude:**
-  1. Tahap 21: ganti nama ke PACE Launcher (teks, bundle, modul, log), migrasi data `~/Library/Application Support/DOT Launcher` dan pengaturan lama, header skrip `@pace.*` (tetap menerima `@dot.*` dan `@raycast.*`). Izin Accessibility, Input Monitoring, dan Automation perlu diberi ulang sekali.
+  1. Tahap 21: ganti nama ke PACE Launcher (teks, bundle, modul, log), migrasi data `~/Library/Application Support/PACE Launcher` dan pengaturan lama, header skrip `@pace.*` (tetap menerima `@dot.*` dan `@raycast.*`). Izin Accessibility, Input Monitoring, dan Automation perlu diberi ulang sekali.
   2. Tahap 22: paket rilis (sertifikat self-signed, versi 1.0.0, DMG, checksum, panduan instalasi).
   3. Tahap 23: panduan izin saat pertama dibuka, cek update lewat GitHub Releases.
   4. Tahap 24: README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir; lalu membuat repo publik dan push — **hanya setelah Pace bilang ya saat itu**.

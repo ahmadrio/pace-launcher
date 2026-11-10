@@ -88,6 +88,10 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-11-tahap-23-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-11-tahap-23.md`
   - Ledger: `docs/superpowers/plans/2026-11-11-tahap-23-ledger.md`
+- **Tahap 24** (siap publik: README, LICENSE, PRIVACY, skrip rilis, pemindaian akhir) selesai di branch `tahap-24`, belum di-merge, **belum dipublikasikan** (11 Nov 2026).
+  - Desain: `docs/superpowers/specs/2026-11-11-tahap-24-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-11-tahap-24.md`
+  - Ledger: `docs/superpowers/plans/2026-11-11-tahap-24-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -178,7 +182,8 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   - Build `make run` (di `~/Applications`) dan rilis GitHub (di `/Applications`) memakai bundle ID yang sama. Jangan pasang keduanya sekaligus.
   - Kalau izin bermasalah, jalankan `make reset-tcc`.
 - **`hdiutil create/attach/detach` deprecated di macOS 27:** `package-release.sh` memakai `diskutil image create from`, `diskutil image attach`, dan `diskutil eject`. `hdiutil verify` masih dipakai.
-- **zsh:** `log` adalah builtin zsh, jadi pakai `/usr/bin/log`. `FileManager` mengubah `/var` menjadi `/private/var`.
+- **zsh:** `log` adalah builtin zsh, jadi pakai `/usr/bin/log`. `FileManager` mengubah `/var` menjadi `/private/var`. Glob yang tidak cocok (`rm -f build/release/.partial-*`) membatalkan **seluruh** perintah `rm` (nomatch).
+- **Path absolut di binary:** subclass `NSObject`/AppKit dengan init sendiri membuat Swift menyisipkan stub "unimplemented initializer" berisi `#filePath`. Dicegah dengan `-file-prefix-map` di `Package.swift` dan dicek oleh `make release`.
 - **Store actor + aksi `.stay`:** `.stay` langsung me-refresh daftar, padahal `ChatStore`/`ClipboardStore` adalah actor. Hapus/pin dijalankan dalam `Task`, lalu daftar di-refresh setelah `await`.
 - **Merekam shortcut:** semua hotkey DOT dilepas selama merekam (kalau tidak, ⌥Space ditangkap Carbon sebelum sampai ke jendela). Perekam hanya membaca tombol dari jendela Settings, berhenti saat Settings kehilangan fokus, dan batal sendiri kalau Settings tidak mendapat fokus dalam 1 detik, supaya hotkey tidak pernah tertahan. Kombinasi yang dipegang app lain secara global (Rectangle: ⌃⌥←; di Mac Pace juga ⌃⌥⌘M) tidak pernah sampai ke DOT, jadi tidak bisa direkam selama app itu berjalan.
 - **SQLite macOS memakai `secure_delete = FAST` secara default:** teks pendek yang dihapus sudah ditimpa, tetapi halaman overflow tidak. `chat.sqlite` dan `clipboard.sqlite` kini memakai `secure_delete = ON`, dan setiap penghapusan menjalankan `wal_checkpoint(TRUNCATE)` (koneksi tetap terbuka, jadi WAL menyimpan halaman lama). Untuk clipboard, indeks FTS5 juga di-`optimize`, karena tanpa itu trigram teks yang dihapus tetap ada di `clips_fts_data` bersama tombstone-nya. Test memeriksa saat store masih terbuka.
@@ -280,6 +285,13 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
 - **Uji UI** di folder uji dengan server lokal sebagai pengganti GitHub: HUD, menu, keempat dialog, toggle mati (0 permintaan) dan nyala (1 permintaan), relaunch (0 permintaan, item menu tetap), jendela sambutan (0 permintaan selama terbuka, 1 setelah Done), dan hanya kunci `.testData` yang tertulis. Tampilan terang tidak difoto: Toggle Dark Mode untuk bundle baru akan memunculkan dialog Automation yang harus dijawab Pace.
 - **Belum diuji:** halaman rilis GitHub sungguhan (repo belum ada; tahap 24), dan izin yang diberikan sambil jendela sambutan terbuka (butuh Pace di System Settings).
 
+## Tahap 24: siap publik (11 Nov 2026)
+- **Halaman repo:** `README.md` (ikon, screenshot launcher `half` dan jendela sambutan dari data uji, syarat, fitur, privasi, build), `LICENSE` (GPL-3.0 dari API lisensi GitHub), `PRIVACY.md` (setiap klaim dicocokkan dengan kode; header request dicek dengan `nc`), `docs/releases/v1.0.0.md` (catatan rilis dengan `SHA256_PLACEHOLDER`, diisi saat `gh release create`), tautan `releases/latest` di `docs/INSTALL.md`.
+- **Skrip rilis:** keenam minor tahap 22 beres (`-dirty`, tolak di luar git, DMG bernama sementara sampai semua cek lolos, `ls -A`, daftar identitas dibaca ke variabel, skrip sertifikat mencari di semua keychain dan tidak menyembunyikan error `openssl`). Skrip sertifikat tidak dijalankan.
+- **Path pembangun di binary rilis:** stub "unimplemented initializer" Swift menyimpan dua path absolut (`/Users/pace/Data/Sites/…`). `Package.swift` kini memakai `-file-prefix-map <checkout>=.`, dan `make release` gagal kalau path checkout ada di binary. Build debug tetap menyimpan path (tidak dibagikan).
+- **Pemindaian akhir (11 Nov 06:08):** `gitleaks` 240 commit + folder kerja: tidak ada kebocoran. Pola sendiri di seluruh riwayat: tidak ada kunci privat, token, atau kata sandi; email di isi file hanya `noreply@anthropic.com`; IP hanya contoh (`1.2.3.4`, `127.0.0.1`). **Ikut publik atas keputusan Pace ("apa adanya"):** "Ahmad Rio <ahmadrio28asia@gmail.com>" sebagai author 240 commit; path `/Users/pace/…` di beberapa dokumen; satu sebutan Mattermost (ledger tahap 12); profil browser "Ahmad"/"Work" (HANDOFF, spec tahap 13). File terbesar: `AppIcon.icns` 1 MB.
+- **DMG terakhir** dibuat dari commit di branch `tahap-24`; rilis sungguhan dibuat ulang dari `main` setelah merge.
+
 ## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)
 - **Publik, tanpa Apple Developer Program**: tidak dinotarisasi; pengguna membuka lewat System Settings › Privacy & Security › Open Anyway. Ditandatangani dengan sertifikat **self-signed** (identitas tetap antar versi supaya izin pengguna bertahan setelah update), bukan sertifikat Apple Development.
 - **Open source di GitHub** (akun `ahmadrio`), rilis lewat **GitHub Releases**. Lisensi **GPL-3.0**.
@@ -292,7 +304,7 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   4. Tahap 24: README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir; lalu membuat repo publik dan push — **hanya setelah Pace bilang ya saat itu**.
 
 ## Langkah berikutnya
-1. **Tahap 24:** README, LICENSE (GPL-3.0), kebijakan privasi (isi bagian "Network access" di `docs/INSTALL.md`), pemindaian akhir, tautan halaman Releases di `docs/INSTALL.md`, minor skrip rilis dari ledger tahap 22, `make release` ulang; lalu repo publik, push, dan rilis pertama — **hanya setelah Pace bilang ya saat itu**. Nama repo harus `ahmadrio/pace-launcher` (konstanta `UpdateCheck.repository`), atau ganti konstanta itu dulu.
+1. **Publikasi — hanya setelah Pace bilang ya saat itu:** di `main`, `make release`; `gh repo create ahmadrio/pace-launcher --public --source . --remote origin --description "…"`; `git push -u origin main`; tag `v1.0.0` + push; `gh release create` sesuai `docs/RELEASING.md` (notes dari `docs/releases/v1.0.0.md` dengan SHA-256 diisi). Lalu cek: lisensi dikenali GitHub, `releases/latest` di API mengembalikan `v1.0.0`, checksum unduhan cocok. Setelah itu Pace memasang dari GitHub (uji Gatekeeper / Open Anyway sungguhan).
 2. Minor yang ditunda di ledger tahap 23.
 3. Minor yang ditunda di ledger tahap 20 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test; runner perintah sistem hanya diverifikasi dengan membaca kode).
 4. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).

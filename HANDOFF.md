@@ -198,6 +198,17 @@ make reset-tcc   # reset izin Accessibility dan Automation (dialog izin muncul l
 - **Isian password form skrip memakai jenis isi "one-time code"** (tahap 20) supaya popup AutoFill "Passwords…" tidak muncul. Akibatnya: (a) AutoFill password dari Keychain/Passwords tidak lagi ditawarkan di isian itu; (b) kalau ada kode verifikasi baru dari Messages atau Mail, macOS bisa menawarkan kode itu selama beberapa menit, dan ↩ pertama bisa tertelan lagi (belum diuji dengan kode sungguhan).
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
+## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)
+- **Publik, tanpa Apple Developer Program**: tidak dinotarisasi; pengguna membuka lewat System Settings › Privacy & Security › Open Anyway. Ditandatangani dengan sertifikat **self-signed** (identitas tetap antar versi supaya izin pengguna bertahan setelah update), bukan sertifikat Apple Development.
+- **Open source di GitHub** (akun `ahmadrio`), rilis lewat **GitHub Releases**. Lisensi **GPL-3.0**.
+- **Nama baru: PACE Launcher** (menggantikan DOT Launcher). Bundle ID usulan Claude: `io.github.ahmadrio.PACELauncher`.
+- **Repo ini dipublikasikan apa adanya** (seluruh riwayat dan dokumen). Pemindaian 205 commit (10 Nov): tidak ada API key, token, kunci privat, atau file kredensial; yang ikut publik: email di metadata commit, satu path `/Users/pace`, satu sebutan Mattermost, dua kali "Ahmad" di dokumen.
+- **Urutan kerja usulan Claude:**
+  1. Tahap 21: ganti nama ke PACE Launcher (teks, bundle, modul, log), migrasi data `~/Library/Application Support/DOT Launcher` dan pengaturan lama, header skrip `@pace.*` (tetap menerima `@dot.*` dan `@raycast.*`). Izin Accessibility, Input Monitoring, dan Automation perlu diberi ulang sekali.
+  2. Tahap 22: paket rilis (sertifikat self-signed, versi 1.0.0, DMG, checksum, panduan instalasi).
+  3. Tahap 23: panduan izin saat pertama dibuka, cek update lewat GitHub Releases.
+  4. Tahap 24: README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir; lalu membuat repo publik dan push — **hanya setelah Pace bilang ya saat itu**.
+
 ## Langkah berikutnya
 1. Minor yang ditunda di ledger tahap 20 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test; runner perintah sistem hanya diverifikasi dengan membaca kode).
 2. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).

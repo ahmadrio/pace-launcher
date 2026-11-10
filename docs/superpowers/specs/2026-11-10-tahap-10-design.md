@@ -37,7 +37,7 @@ Sama seperti tahap 9.
 - **Singkatan zona waktu (keputusan Claude):** singkatan selalu berarti **jam yang berlaku sekarang di kota acuannya**, termasuk musim panas. Label menunjukkan kota dan offset yang benar, misalnya `time in est` di bulan Juli → "10.53 New York (UTC−4)".
   - Singkatan yang dikenali hanya daftar tetap berikut, tidak lagi semua singkatan Foundation:
     - PT/PST/PDT, MT/MST/MDT, CT/CST/CDT, ET/EST/EDT, AKST, HST
-    - GMT/UTC, BST, WET, CET/CEST, EET/EEST, MSK
+    - GMT/UTC, BST, CET/CEST, EET/EEST, MSK (WET tidak dimasukkan, karena `wet` adalah kata biasa; ketik `lisbon`)
     - IST, GST, ICT, PHT, MYT, SGT, HKT, JST, KST
     - AEST/AEDT, ACST/ACDT, AWST, NZST/NZDT
     - WIB/WITA/WIT

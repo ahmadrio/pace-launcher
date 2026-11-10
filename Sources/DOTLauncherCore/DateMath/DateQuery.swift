@@ -104,7 +104,7 @@ public enum DateQuery {
     private static func zoneTime(_ text: String, now: Date, calendar: Calendar) -> Result? {
         if let match = text.wholeMatch(of: /(?:time|jam|waktu) (?:in|di) (.+)/),
            let target = TimeZoneNames.zone(for: String(match.1)) {
-            return .time(now, zone: target.zone, place: target.place,
+            return .time(now, zone: target.zone, place: label(target, at: now),
                          dayChanged: !sameDay(now, calendar.timeZone, target.zone))
         }
         // A time needs minutes or am/pm: "5 in tokyo" is not one.
@@ -130,8 +130,20 @@ public enum DateQuery {
         components.hour = hour
         components.minute = minute
         guard let instant = source.date(from: components) else { return nil }
-        return .time(instant, zone: target.zone, place: target.place,
+        return .time(instant, zone: target.zone, place: label(target, at: instant),
                      dayChanged: !sameDay(instant, source.timeZone, target.zone))
+    }
+
+    /// "New York (UTC−4)" for an abbreviation, so the label matches the
+    /// clock shown even in summer time; names with fixed offsets stay as is.
+    private static func label(_ target: (zone: TimeZone, place: String, showsOffset: Bool), at date: Date) -> String {
+        guard target.showsOffset else { return target.place }
+        let seconds = target.zone.secondsFromGMT(for: date)
+        guard seconds != 0 else { return target.place + " (UTC)" }
+        let sign = seconds < 0 ? "\u{2212}" : "+"
+        let hours = abs(seconds) / 3600, minutes = abs(seconds) % 3600 / 60
+        let offset = minutes == 0 ? "\(hours)" : "\(hours):" + (minutes < 10 ? "0" : "") + "\(minutes)"
+        return target.place + " (UTC" + sign + offset + ")"
     }
 
     private static func sameDay(_ date: Date, _ first: TimeZone, _ second: TimeZone) -> Bool {

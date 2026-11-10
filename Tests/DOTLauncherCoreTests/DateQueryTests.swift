@@ -108,3 +108,32 @@ struct TimeZoneQueryTests {
     }
 }
 
+struct ZoneAbbreviationTests {
+    private func place(_ input: String, now: Date = tuesday) -> String? {
+        guard case .time(_, _, let place, _)? = evaluate(input, now: now) else { return nil }
+        return place
+    }
+
+    @Test func `abbreviations follow the city's clock`() {
+        #expect(place("time in est", now: wib(2026, 7, 10, 14, 53)) == "New York (UTC\u{2212}4)")
+        #expect(place("time in est") == "New York (UTC\u{2212}5)")
+        #expect(place("time in aest") == "Sydney (UTC+11)")
+        #expect(place("5pm in ist") == "Kolkata (UTC+5:30)")
+        #expect(place("9:30am jst to wib") == "WIB")
+        #expect(place("time in utc") == "UTC")
+    }
+
+    @Test func `ordinary words are not zones`() {
+        for word in ["eat", "cat", "art", "wet", "may"] {
+            #expect(TimeZoneNames.zone(for: word) == nil, "\(word)")
+        }
+        #expect(evaluate("5pm to eat") == nil)
+    }
+
+    @Test func `indian cities`() {
+        for name in ["kolkata", "bengaluru", "india"] {
+            #expect(TimeZoneNames.zone(for: name)?.zone.secondsFromGMT(for: tuesday) == 19_800, "\(name)")
+        }
+    }
+}
+

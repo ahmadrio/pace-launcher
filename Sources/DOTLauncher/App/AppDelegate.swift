@@ -547,7 +547,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private static func blocker(for id: ShortcutID) -> GatedHotKey.Blocker? {
         switch id {
-        case .launcher, .command: nil
+        case .launcher, .command, .script: nil
         case .clipboardHistory: maccy
         case .window: rectangle
         }

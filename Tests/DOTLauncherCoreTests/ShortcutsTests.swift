@@ -163,4 +163,59 @@ struct ShortcutsTests {
         #expect(Shortcuts.saved(combo("ctrl+opt+m"), for: .window(.almostMaximize), in: [:]) == ["window.almostMaximize": "ctrl+opt+m"])
         #expect(Shortcuts.saved(nil, for: .window(.almostMaximize), in: ["window.almostMaximize": "ctrl+opt+m"]) == [:])
     }
+
+    @Test func `script shortcut ids round-trip`() {
+        let id = ShortcutID.script("tools/deploy.sh")
+        #expect(id.rawValue == "script.tools/deploy.sh")
+        #expect(ShortcutID(rawValue: "script.tools/deploy.sh") == id)
+        #expect(ShortcutID(rawValue: "script.") == nil)
+        #expect(id.title == "deploy.sh")
+        #expect(id.group == .scripts)
+        #expect(id.defaultCombo == nil)
+        #expect(!id.isRequired)
+        #expect(!ShortcutID.allCases.contains { $0.group == .scripts })
+    }
+
+    @Test func `saved script shortcuts resolve`() {
+        let resolved = Shortcuts.resolve(["script.a.sh": "ctrl+opt+1", "script.b.sh": "", "script.c.sh": "nonsense"])
+        let scripts = resolved.filter { $0.key.group == .scripts }
+        #expect(scripts == [.script("a.sh"): combo("ctrl+opt+1")])
+    }
+
+    @Test func `unusable saved combos fall back`() {
+        #expect(Shortcuts.resolve(["launcher": "cmd+v"])[.launcher] == combo("opt+space"))
+        #expect(Shortcuts.resolve(["window.leftHalf": "a"])[.window(.leftHalf)] == ShortcutID.window(.leftHalf).defaultCombo)
+        #expect(Shortcuts.resolve(["command.translate": "cmd+1"])[.command(.translate)] == nil)
+        #expect(Shortcuts.resolve(["script.a.sh": "cmd+c"])[.script("a.sh")] == nil)
+    }
+
+    @Test func `more standard app shortcuts are refused`() {
+        for string in ["shift+cmd+t", "shift+cmd+n", "shift+cmd+v", "cmd+r", "cmd+b", "cmd+i", "cmd+l", "cmd+g",
+                       "cmd+k", "cmd+d", "cmd+e", "cmd+u", "cmd+1", "cmd+9"] {
+            #expect(Shortcuts.validate(combo(string), for: .command(.translate), current: [:], system: []) == .reservedByApps, "\(string)")
+        }
+        #expect(Shortcuts.validate(combo("ctrl+opt+cmd+1"), for: .command(.translate), current: [:], system: []) == nil)
+        #expect(Shortcuts.validate(combo("shift+cmd+e"), for: .command(.translate), current: [:], system: []) == nil)
+    }
+
+    @Test func `a script shortcut conflicts like any other`() {
+        let current: [ShortcutID: KeyCombo] = [.script("a.sh"): combo("ctrl+opt+1")]
+        let problem = Shortcuts.validate(combo("ctrl+opt+1"), for: .launcher, current: current, system: [])
+        #expect(problem == .usedBy(.script("a.sh")))
+        #expect(problem?.message(naming: { _ in "Deploy" }) == "Already used by Deploy.")
+        #expect(problem?.message == "Already used by a.sh.")
+    }
+
+    @Test func `registration plan covers script shortcuts`() {
+        let removed = Shortcuts.registrationPlan(registered: [.script("a.sh"): combo("ctrl+opt+1")], desired: [:])
+        #expect(removed.release == [.script("a.sh")])
+        #expect(removed.register.isEmpty)
+        let added = Shortcuts.registrationPlan(registered: [:], desired: [.script("b.sh"): combo("ctrl+opt+2"), .launcher: combo("opt+space")])
+        #expect(added.register == [.launcher, .script("b.sh")])
+    }
+
+    @Test func `ids are ordered built-ins first, then scripts by key`() {
+        let ids: [ShortcutID] = [.script("b.sh"), .window(.leftHalf), .script("a.sh"), .launcher, .launcher]
+        #expect(Shortcuts.ordered(ids) == [.launcher, .window(.leftHalf), .script("a.sh"), .script("b.sh")])
+    }
 }

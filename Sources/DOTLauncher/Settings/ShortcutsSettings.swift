@@ -150,6 +150,7 @@ struct ShortcutsSettings: View {
         switch group {
         case .launcher: "Launcher"
         case .commands: "Commands"
+        case .scripts: "Scripts"
         case .window: "Window"
         }
     }

@@ -69,7 +69,9 @@ public actor ChatStore {
 
     public init(path: String) throws {
         let db = try SQLiteDatabase(path: path)
-        try db.execute("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")
+        // secure_delete = ON (not macOS's default FAST): deleted text is
+        // zeroed on every page, overflow pages included.
+        try db.execute("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA secure_delete = ON;")
         try Migrator.migrate(db, steps: Self.migrations)
         self.db = db
     }
@@ -106,7 +108,7 @@ public actor ChatStore {
 
     /// Chats, most recently updated first. A query matches the title or
     /// any message (case-insensitive substring).
-    public func chats(matching query: String = "", limit: Int = 100) throws -> [ChatSummary] {
+    public func chats(matching query: String = "", limit: Int = 10_000) throws -> [ChatSummary] {
         let query = query.trimmingCharacters(in: .whitespaces)
         var sql = """
             SELECT c.id, c.title, c.updated_at,

@@ -288,6 +288,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.translator = translator
 
         let chat = AIChatController(translator: translator, store: Self.openChatStore())
+        /// True when AI Chats was opened with ⌘Y, so Esc goes back to the chat.
+        var chatHistoryFromAI = false
         let askAI: (String) -> Void = { query in
             model.reset(to: .ai)
             chat.send(query)
@@ -325,7 +327,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         action: .stay { chat.showOriginal.toggle() }
                     ))
                 }
-                actions.append(SecondaryAction(title: "History", shortcut: .command("y"), action: .enter(.chatHistory)))
+                actions.append(SecondaryAction(title: "History", shortcut: .command("y"), action: .stay {
+                    // Esc in the history then returns to this chat.
+                    chatHistoryFromAI = true
+                    model.reset(to: .chatHistory)
+                }))
                 return actions
             },
             escape: { chat.cancel() },
@@ -344,6 +350,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         accessory: "Chat",
                         actionTitle: "Open",
                         action: .stay {
+                            chatHistoryFromAI = false
                             Task {
                                 await chat.open(summary.id)
                                 model.reset(to: .ai)
@@ -373,6 +380,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         }
                     }
                 )]
+            },
+            escape: {
+                guard chatHistoryFromAI else { return false }
+                chatHistoryFromAI = false
+                model.reset(to: .ai)
+                return true
             }
         )
         self.chat = chat
@@ -398,6 +411,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.sync = sync
         notes.onPlaceholders = { sync.downloadPlaceholders() }
         panelController.onShow = { [weak self] in
+            chatHistoryFromAI = false
             indexer.refreshIfStale()
             sync.downloadPlaceholders()
             self?.settings.reloadIfDownloaded()

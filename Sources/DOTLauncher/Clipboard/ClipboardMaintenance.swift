@@ -21,8 +21,15 @@ final class ClipboardMaintenance {
         self.settings = settings
     }
 
-    /// Prunes now and then every hour.
+    /// Prunes now and then every hour; also removes image files no clip
+    /// refers to (after a crash or a restored backup).
     func start() {
+        if let store {
+            Task {
+                let removed = (try? await store.removeOrphanImages()) ?? 0
+                if removed > 0 { Log.clipboard.notice("removed \(removed) orphaned clipboard image files") }
+            }
+        }
         prune()
         timer?.cancel()
         timer = Task { [weak self] in

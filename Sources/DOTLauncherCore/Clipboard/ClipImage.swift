@@ -15,9 +15,17 @@ public struct ClipImage: Sendable, Equatable {
     public let height: Int
 
     /// Converts PNG or TIFF data. Nil when unreadable or over `maxBytes`.
-    public static func make(from data: Data, maxBytes: Int = maxSourceBytes) -> ClipImage? {
+    /// Larger pictures are refused before decoding: a small file can
+    /// still decode to gigapixels.
+    public static let maxPixels = 50_000_000
+
+    public static func make(from data: Data, maxBytes: Int = maxSourceBytes, maxPixels: Int = maxPixels) -> ClipImage? {
         guard data.count <= maxBytes,
               let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight] as? Int,
+              width * height <= maxPixels,
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
         else { return nil }
 

@@ -37,6 +37,8 @@ final class AIChatController {
     @ObservationIgnored private let store: ChatStore?
     @ObservationIgnored private var session = LanguageModelSession(instructions: AIChatController.instructions)
     @ObservationIgnored private var generation: Task<Void, Never>?
+    /// Only the latest answer's task may clear `generation`.
+    @ObservationIgnored private var runs = RunToken()
 
     init(translator: Translator, store: ChatStore?) {
         self.translator = translator
@@ -89,9 +91,10 @@ final class AIChatController {
         }
 
         showOriginal = false
+        let run = runs.begin()
         generation = Task {
             await respond(to: prompt, answerID: answer.id)
-            generation = nil
+            if runs.isCurrent(run) { generation = nil }
         }
     }
 
@@ -151,13 +154,14 @@ final class AIChatController {
     }
 
     func delete(_ id: UUID) async {
+        // The open chat is cleared first, so an answer finishing during the
+        // delete cannot save it again.
+        if id == chatID { reset() }
         do {
             try await store?.delete(id)
         } catch {
             Log.app.error("could not delete a chat: \(error.localizedDescription, privacy: .public)")
         }
-        // The open chat was deleted: start over so it is not saved again.
-        if id == chatID { reset() }
     }
 
     func deleteAll() async {
@@ -184,12 +188,14 @@ final class AIChatController {
         return Transcript(entries: entries)
     }
 
-    /// Saves a finished exchange (an answer stopped with Esc counts).
-    private func save(question: String, questionEnglish: String?, answerID: UUID, chat: UUID) async {
-        guard let store, let answer = messages.first(where: { $0.id == answerID }),
+    /// Saves a finished exchange (an answer stopped with Esc, ⌘N or by
+    /// opening another chat counts). The text comes from the answering task,
+    /// not from `messages`, which may already show another chat.
+    private func save(question: String, questionEnglish: String?, answer: String, answerEnglish: String?, chat: UUID) async {
+        guard let store,
               let exchange = SavedChatMessage.exchange(
                   question: question, questionEnglish: questionEnglish,
-                  answer: answer.text, answerEnglish: answer.original
+                  answer: answer, answerEnglish: answerEnglish
               )
         else { return }
         do {
@@ -203,6 +209,9 @@ final class AIChatController {
 
     private func respond(to prompt: String, answerID: UUID) async {
         let chat = chatID
+        // Opening another chat replaces `session`; this answer stays with its own.
+        let session = self.session
+        var answerText = ""
         let supported = Set(SystemLanguageModel.default.supportedLanguages.compactMap { $0.languageCode?.identifier })
         let route = ChatLanguageRoute.route(detected: LanguageDetector.dominantLanguage(of: prompt), supported: supported)
 
@@ -228,6 +237,11 @@ final class AIChatController {
                 update(answerID) { $0.phase = .failed("Could not translate the question: \(error.localizedDescription)") }
                 return
             }
+            // Stopped while translating: send nothing to the model.
+            guard !Task.isCancelled else {
+                update(answerID) { $0.phase = .done }
+                return
+            }
             bridgeLanguage = language
             update(answerID) { $0.isBridged = true }
         }
@@ -235,28 +249,28 @@ final class AIChatController {
         do {
             for try await snapshot in session.streamResponse(to: modelPrompt) {
                 if Task.isCancelled { break }
+                answerText = snapshot.content
                 update(answerID) { $0.text = snapshot.content }
             }
         } catch {
             if Task.isCancelled {
                 update(answerID) { $0.phase = .done }
-                await save(question: prompt, questionEnglish: bridgeLanguage == nil ? nil : modelPrompt, answerID: answerID, chat: chat)
+                await save(question: prompt, questionEnglish: bridgeLanguage == nil ? nil : modelPrompt, answer: answerText, answerEnglish: nil, chat: chat)
             } else {
                 update(answerID) { $0.phase = .failed(Self.message(for: error)) }
             }
             return
         }
 
-        guard let language = bridgeLanguage, !Task.isCancelled,
-              let english = messages.first(where: { $0.id == answerID })?.text
-        else {
+        guard let language = bridgeLanguage, !Task.isCancelled else {
             update(answerID) {
                 $0.phase = .done
                 $0.isBridged = false
             }
-            await save(question: prompt, questionEnglish: bridgeLanguage == nil ? nil : modelPrompt, answerID: answerID, chat: chat)
+            await save(question: prompt, questionEnglish: bridgeLanguage == nil ? nil : modelPrompt, answer: answerText, answerEnglish: nil, chat: chat)
             return
         }
+        let english = answerText
 
         update(answerID) { $0.phase = .translating }
         do {
@@ -267,7 +281,7 @@ final class AIChatController {
                 $0.phase = .done
                 $0.isBridged = false
             }
-            await save(question: prompt, questionEnglish: modelPrompt, answerID: answerID, chat: chat)
+            await save(question: prompt, questionEnglish: modelPrompt, answer: translated, answerEnglish: english, chat: chat)
         } catch {
             update(answerID) { $0.phase = .failed("Could not translate the answer: \(error.localizedDescription)") }
         }

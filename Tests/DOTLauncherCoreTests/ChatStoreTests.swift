@@ -60,6 +60,14 @@ struct ChatStoreTests {
         #expect(try await store.chats().map(\.id) == [b])
     }
 
+    @Test func `listing returns more than 100 chats`() async throws {
+        let store = try ChatStore(path: ":memory:")
+        for index in 0..<150 {
+            try await store.append(exchange("question \(index)", "answer"), to: UUID(), at: t0.addingTimeInterval(Double(index)))
+        }
+        #expect(try await store.chats().count == 150)
+    }
+
     @Test func `delete all empties the history`() async throws {
         let store = try ChatStore(path: ":memory:")
         try await store.append(exchange("a", "1"), to: UUID(), at: t0)

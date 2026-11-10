@@ -100,7 +100,8 @@ final class ClipboardController {
                 : .run { [weak self] in self?.paste(item) },
             secondaryActions: [
                 SecondaryAction(title: item.pinned ? "Unpin" : "Pin", shortcut: .command("p"), action: .stay { [weak self] in
-                    self?.change { try await $0.setPinned(item.id, !item.pinned) }
+                    // Toggled in the database: the row's `pinned` may be stale.
+                    self?.change { try await $0.togglePinned(item.id) }
                 }),
                 SecondaryAction(title: "Delete", shortcut: .delete, confirm: true, action: .stay { [weak self] in
                     self?.change { try await $0.delete(item.id) }

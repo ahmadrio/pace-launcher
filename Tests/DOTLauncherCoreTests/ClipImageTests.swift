@@ -47,6 +47,11 @@ struct ClipImageTests {
         #expect(ClipImage.make(from: makeImageData(width: 300, height: 200), maxBytes: 10) == nil)
     }
 
+    @Test func `images with too many pixels are refused`() {
+        #expect(ClipImage.make(from: makeImageData(width: 300, height: 200), maxPixels: 10_000) == nil)
+        #expect(ClipImage.make(from: makeImageData(width: 300, height: 200), maxPixels: 60_000) != nil)
+    }
+
     @Test func `unreadable data is refused`() {
         #expect(ClipImage.make(from: Data("not an image".utf8)) == nil)
     }
@@ -88,12 +93,15 @@ struct ClipImageTests {
 struct ClipboardImageStoreTests {
     private let folder = FileManager.default.temporaryDirectory.appending(path: "DOTLauncherTests-images-\(UUID().uuidString)")
 
+    private func removeFolder() { try? FileManager.default.removeItem(at: folder) }
+
     private func imageDraft(width: Int = 300, height: Int = 200, at date: Date = Date(timeIntervalSince1970: 1_800_000_000)) throws -> ClipDraft {
         let image = try #require(ClipImage.make(from: makeImageData(width: width, height: height)))
         return ClipDraft(text: image.description, kind: .image, representations: [], sourceBundleID: "com.apple.Preview", date: date, image: image)
     }
 
     @Test func `saving an image writes the picture and its thumbnail`() async throws {
+        defer { removeFolder() }
         let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
         let item = try await store.save(imageDraft())
 
@@ -107,6 +115,7 @@ struct ClipboardImageStoreTests {
     }
 
     @Test func `the same image copied again is bumped, not duplicated`() async throws {
+        defer { removeFolder() }
         let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
         try await store.save(imageDraft())
         try await store.save(imageDraft(at: Date(timeIntervalSince1970: 1_800_000_100)))
@@ -116,6 +125,7 @@ struct ClipboardImageStoreTests {
     }
 
     @Test func `different images are different clips`() async throws {
+        defer { removeFolder() }
         let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
         try await store.save(imageDraft(width: 300, height: 200))
         try await store.save(imageDraft(width: 10, height: 10))
@@ -124,6 +134,7 @@ struct ClipboardImageStoreTests {
     }
 
     @Test func `deleting an image clip removes its files`() async throws {
+        defer { removeFolder() }
         let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
         let item = try await store.save(imageDraft())
         let png = try #require(store.imageURL(for: item))
@@ -135,7 +146,31 @@ struct ClipboardImageStoreTests {
         #expect(!FileManager.default.fileExists(atPath: thumb.path))
     }
 
+    @Test func `toggling a pin twice restores it`() async throws {
+        defer { removeFolder() }
+        let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
+        let item = try await store.save(ClipDraft(text: "pin me", kind: .text, representations: [], sourceBundleID: nil, date: .now))
+        #expect(try await store.togglePinned(item.id) == true)
+        #expect(try await store.recent().first?.pinned == true)
+        #expect(try await store.togglePinned(item.id) == false)
+        #expect(try await store.recent().first?.pinned == false)
+    }
+
+    @Test func `orphan image files are removed`() async throws {
+        defer { removeFolder() }
+        let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
+        let item = try await store.save(imageDraft())
+        try Data("stray".utf8).write(to: folder.appending(path: "stray.png"))
+        try Data("stray".utf8).write(to: folder.appending(path: "stray-thumb.png"))
+
+        #expect(try await store.removeOrphanImages() == 2)
+        #expect(store.imageURL(for: item) != nil)
+        #expect(store.thumbnailURL(for: item) != nil)
+        #expect(!FileManager.default.fileExists(atPath: folder.appending(path: "stray.png").path))
+    }
+
     @Test func `a missing image file reports no url`() async throws {
+        defer { removeFolder() }
         let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
         let item = try await store.save(imageDraft())
         try FileManager.default.removeItem(at: try #require(store.imageURL(for: item)))
@@ -144,6 +179,7 @@ struct ClipboardImageStoreTests {
     }
 
     @Test func `text clips have no image url`() async throws {
+        defer { removeFolder() }
         let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
         let item = try await store.save(ClipDraft(text: "hi", kind: .text, representations: [], sourceBundleID: nil, date: .now))
 
@@ -152,6 +188,7 @@ struct ClipboardImageStoreTests {
     }
 
     @Test func `image clips are found by their description`() async throws {
+        defer { removeFolder() }
         let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder)
         try await store.save(imageDraft())
 

@@ -48,7 +48,9 @@ public actor ClipboardStore {
 
     public init(path: String, imagesDirectory: URL? = nil) throws {
         let db = try SQLiteDatabase(path: path)
-        try db.execute("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")
+        // secure_delete = ON (not macOS's default FAST): deleted text is
+        // zeroed on every page, overflow pages included.
+        try db.execute("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA secure_delete = ON;")
         try Migrator.migrate(db, steps: Self.migrations)
         self.db = db
         self.imagesDirectory = imagesDirectory
@@ -129,6 +131,33 @@ public actor ClipboardStore {
             "UPDATE clips SET last_used_at = ?, use_count = use_count + 1 WHERE id = ?",
             [.real(date.timeIntervalSince1970), .integer(id)]
         )
+    }
+
+    /// Flips the pin in the database and returns the new state, so two
+    /// quick presses always end where they started.
+    @discardableResult
+    public func togglePinned(_ id: Int64) throws -> Bool {
+        try db.transaction {
+            try db.run("UPDATE clips SET pinned = 1 - pinned WHERE id = ?", [.integer(id)])
+            return try db.query("SELECT pinned FROM clips WHERE id = ?", [.integer(id)]).first?.int("pinned") == 1
+        }
+    }
+
+    /// Deletes image files no clip refers to (left by a crash or by
+    /// restoring a backup). Returns how many files were removed.
+    @discardableResult
+    public func removeOrphanImages() throws -> Int {
+        guard let imagesDirectory,
+              let names = try? FileManager.default.contentsOfDirectory(atPath: imagesDirectory.path)
+        else { return 0 }
+        let used = Set(try db.query("SELECT hash FROM clips WHERE kind = ?", [.text(ClipKind.image.rawValue)]).compactMap { $0.string("hash") })
+        var removed = 0
+        for name in names where name.hasSuffix(".png") {
+            let hash = name.hasSuffix("-thumb.png") ? String(name.dropLast("-thumb.png".count)) : String(name.dropLast(".png".count))
+            guard !used.contains(hash) else { continue }
+            if (try? FileManager.default.removeItem(at: imagesDirectory.appending(path: name))) != nil { removed += 1 }
+        }
+        return removed
     }
 
     public func setPinned(_ id: Int64, _ pinned: Bool) throws {

@@ -29,6 +29,29 @@ enum Paster {
         return true
     }
 
+    /// Pastes only the clip's plain text (no fonts, colours or links). Like
+    /// a normal paste it stays on the clipboard, but it is not recorded as a
+    /// new clip. Returns false when it could only copy.
+    @discardableResult
+    static func pastePlainText(_ text: String, monitor: PasteboardMonitor) -> Bool {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        monitor.ignoreOwnWrite()
+
+        guard KeyboardPaste.canPost else {
+            Log.clipboard.notice("copied only: Accessibility is not granted, so ⌘V cannot be sent")
+            AccessibilityPermission.prompt()
+            return false
+        }
+        Task {
+            // Give the panel time to order out so the target window is key again.
+            try? await Task.sleep(for: .milliseconds(80))
+            KeyboardPaste.send()
+        }
+        return true
+    }
+
     /// False when an image clip's file is gone (nothing is written then).
     private static func write(_ item: ClipItem, representations: [ClipRepresentation], imageURL: URL?) -> Bool {
         let pasteboard = NSPasteboard.general

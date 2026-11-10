@@ -62,4 +62,7 @@ public struct ClipItem: Sendable, Identifiable, Equatable {
     public let lastUsedAt: Date
     public let useCount: Int
     public let pinned: Bool
+
+    /// What "Paste as Plain Text" pastes: the text (paths for files); nil for images.
+    public var plainText: String? { kind == .image ? nil : text }
 }

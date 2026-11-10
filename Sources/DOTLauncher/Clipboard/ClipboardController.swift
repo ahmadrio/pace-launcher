@@ -99,7 +99,7 @@ final class ClipboardController {
             action: missingImage
                 ? .stay { [weak self] in self?.onNotice?("Image unavailable") }
                 : .run { [weak self] in self?.paste(item) },
-            secondaryActions: [
+            secondaryActions: plainTextAction(for: item, missingImage: missingImage) + [
                 SecondaryAction(title: item.pinned ? "Unpin" : "Pin", shortcut: .command("p"), action: .stay { [weak self] in
                     // Toggled in the database: the row's `pinned` may be stale.
                     self?.change { try await $0.togglePinned(item.id) }
@@ -121,6 +121,27 @@ final class ClipboardController {
                 Log.clipboard.error("clip change failed: \(String(describing: error), privacy: .public)")
             }
             onChange?()
+        }
+    }
+
+    /// ⌘⇧↩ for clips that have text (not images).
+    private func plainTextAction(for item: ClipItem, missingImage: Bool) -> [SecondaryAction] {
+        guard !missingImage, let text = item.plainText else { return [] }
+        return [SecondaryAction(
+            title: "Paste as Plain Text",
+            shortcut: KeyShortcut(key: "\r", modifiers: [.command, .shift]),
+            action: .run { [weak self] in self?.pastePlainText(text, of: item) }
+        )]
+    }
+
+    private func pastePlainText(_ text: String, of item: ClipItem) {
+        Paster.pastePlainText(text, monitor: monitor)
+        Task {
+            do {
+                try await store.markUsed(item.id)
+            } catch {
+                Log.clipboard.error("could not mark a clip as used: \(String(describing: error), privacy: .public)")
+            }
         }
     }
 

@@ -181,3 +181,19 @@ struct SnapshotTypesTests {
         #expect(ClipboardFilter.snapshotTypes(["public.utf8-plain-text", "public.rtf"]) == (["public.utf8-plain-text", "public.rtf"], false))
     }
 }
+
+struct PlainTextTests {
+    @Test func `plain text of a clip`() async throws {
+        let folder = TemporaryFolder()
+        defer { folder.remove() }
+        let store = try ClipboardStore(path: ":memory:", imagesDirectory: folder.url)
+        let rich = try await store.save(ClipDraft(text: "Hello bold", kind: .richText,
+            representations: [ClipRepresentation(type: "public.rtf", data: Data("{\\rtf1 Hello \\b bold}".utf8))], sourceBundleID: nil, date: .now))
+        #expect(rich.plainText == "Hello bold")
+        let files = try await store.save(ClipDraft(text: "/tmp/a.txt\n/tmp/b.txt", kind: .files, representations: [], sourceBundleID: nil, date: .now))
+        #expect(files.plainText == "/tmp/a.txt\n/tmp/b.txt")
+        let image = try #require(ClipImage.make(from: makeImageData(width: 10, height: 10)))
+        let picture = try await store.save(ClipDraft(text: image.description, kind: .image, representations: [], sourceBundleID: nil, date: .now, image: image))
+        #expect(picture.plainText == nil)
+    }
+}

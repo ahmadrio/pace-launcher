@@ -1,5 +1,5 @@
+import AppKit
 import DOTLauncherCore
-import Foundation
 
 /// What a script row does: fix permissions, ask for arguments, confirm,
 /// run, and keep inline subtitles fresh.
@@ -107,6 +107,9 @@ final class ScriptActions {
 
     /// ↩ in the arguments form.
     func submitArguments() {
+        // A held ↩ repeats: the repeat must not run the script or count as
+        // the press that confirms it.
+        guard NSApp.currentEvent?.isARepeat != true else { return }
         guard let script = form.script, let arguments = form.arguments() else { return }
         if script.metadata.needsConfirmation {
             // Confirms these values: editing one after the prompt asks again.

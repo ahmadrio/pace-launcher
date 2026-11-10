@@ -7,7 +7,11 @@ import SwiftUI
 @Observable
 final class ScriptArgumentForm {
     private(set) var script: ScriptCommand?
-    var values: [String] = []
+    /// Editing a value clears the message: a missing-value hint is out of
+    /// date, and a confirmation prompt was for the old values.
+    var values: [String] = [] {
+        didSet { if values != oldValue { message = nil } }
+    }
     /// Shown under the fields (missing values, confirmation prompt).
     var message: String?
 

@@ -17,6 +17,11 @@ final class ShortcutRecorder {
     /// true while recording: the app releases or re-applies its hotkeys.
     @ObservationIgnored private let pause: (Bool) -> Void
     @ObservationIgnored private var monitor: Any?
+    /// The Settings window: only its key presses are recorded, and leaving
+    /// it stops recording (SettingsWindowController calls `stop()`).
+    @ObservationIgnored weak var window: NSWindow?
+    /// Counts recordings, so a late check never stops a newer one.
+    @ObservationIgnored private var attempt = 0
 
     init(settings: SettingsStore, hotKeys: HotKeyCenter, pause: @escaping (Bool) -> Void) {
         self.settings = settings
@@ -31,8 +36,26 @@ final class ShortcutRecorder {
         problems[id] = nil
         recording = id
         pause(true)
+        // Recording listens to the Settings window only, so make sure it
+        // is the one receiving keys.
+        NSApp.activate()
+        window?.makeKeyAndOrderFront(nil)
+        // macOS may refuse to activate DOT (the click came through
+        // Accessibility, or another app kept focus). Then keys go elsewhere
+        // and resign-key never fires: give up instead of leaving DOT's
+        // hotkeys paused.
+        attempt += 1
+        let thisAttempt = attempt
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard let self, self.attempt == thisAttempt, self.recording != nil, self.window?.isKeyWindow != true else { return }
+            Log.hotkeys.notice("shortcut recording cancelled: Settings did not get keyboard focus")
+            self.stop()
+        }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, self.recording != nil else { return event }
+            // Keys typed in other DOT windows (Notes, the snippet editor)
+            // pass through untouched.
+            guard let self, self.recording != nil, event.window === self.window else { return event }
             self.handle(event)
             return nil
         }

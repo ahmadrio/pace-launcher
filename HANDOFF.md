@@ -5,13 +5,13 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 ## Status (10 Nov 2026)
 - **Tahap 1 dan 2** selesai dan sudah di-merge ke `main`.
 - **Tahap 3** selesai dan sudah di-merge ke `main` (10 Nov 2026).
-- **Tahap 4** selesai di branch **`tahap-4`** dan belum di-merge ke `main`.
-  - Desain: `docs/superpowers/specs/2026-11-10-tahap-4-design.md`
-  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-4.md`
-  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-4-ledger.md`
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-3-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-3.md`
   - Ledger (semua `Ruling:`): `docs/superpowers/plans/2026-11-10-tahap-3-ledger.md`
+- **Tahap 4** selesai di branch **`tahap-4`** dan belum di-merge ke `main`.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-4-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-4.md`
+  - Ledger (semua `Ruling:` dan minor yang ditunda): `docs/superpowers/plans/2026-11-10-tahap-4-ledger.md`
 
 | Fitur | Cara pakai |
 |---|---|
@@ -36,7 +36,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 - Nama: **DOT Launcher**. Bundle ID: `com.pace.DOTLauncher`. Target: **khusus macOS 27**.
 - Build memakai SwiftPM + script, tanpa Xcode (hanya Command Line Tools). Tanpa dependensi eksternal. Pemakaian pribadi.
 - Tidak memakai nama, logo, atau kode Raycast. Yang dibaca hanya format komentar `@raycast.*` agar skrip lama tetap jalan. Kalau keduanya ada, `@dot.*` yang menang.
-- Shortcut ⌃⌥ (window) dan ⇧⌥C (clipboard) hanya aktif kalau Rectangle/Maccy tidak berjalan.
+- Shortcut **default** ⌃⌥ (window) dan ⇧⌥C (clipboard) hanya aktif kalau Rectangle/Maccy tidak berjalan. Kombinasi yang diganti di Settings › Shortcuts selalu aktif.
 - **Data:**
   - Folder lokal `~/Library/Application Support/DOT Launcher/` menyimpan `launcher.sqlite`, `clipboard.sqlite`, `chat.sqlite`, dan `Clipboard Images/`. **SQLite dan gambar clipboard tidak pernah ditaruh di iCloud**, dan tidak ikut backup iCloud (backup hanya `clipboard.sqlite`; clip gambar hasil restore tampil "Image unavailable").
   - Snippets, Notes, Scripts, dan `settings.json` berada di folder data aktif: folder lokal, atau `iCloud Drive/DOT Launcher/` kalau sync menyala.
@@ -85,10 +85,10 @@ make reset-tcc
 - **Tanda tangan:** setiap build ditandatangani dengan sertifikat Apple Development, sehingga izin bertahan setelah rebuild. Sertifikat ini **kedaluwarsa 2027-02-04**. Kalau izin bermasalah, jalankan `make reset-tcc`.
 - **zsh:** `log` adalah builtin zsh, jadi pakai `/usr/bin/log`. `FileManager` mengubah `/var` menjadi `/private/var`.
 - **Store actor + aksi `.stay`:** `.stay` langsung me-refresh daftar, padahal `ChatStore`/`ClipboardStore` adalah actor. Hapus/pin dijalankan dalam `Task`, lalu daftar di-refresh setelah `await`.
-- **Merekam shortcut:** semua hotkey DOT dilepas selama merekam (kalau tidak, ⌥Space ditangkap Carbon sebelum sampai ke jendela). Kombinasi yang dipegang app lain secara global (Rectangle: ⌃⌥←) tidak pernah sampai ke DOT, jadi tidak bisa direkam selama app itu berjalan.
+- **Merekam shortcut:** semua hotkey DOT dilepas selama merekam (kalau tidak, ⌥Space ditangkap Carbon sebelum sampai ke jendela). Perekam hanya membaca tombol dari jendela Settings, berhenti saat Settings kehilangan fokus, dan batal sendiri kalau Settings tidak mendapat fokus dalam 1 detik, supaya hotkey tidak pernah tertahan. Kombinasi yang dipegang app lain secara global (Rectangle: ⌃⌥←; di Mac Pace juga ⌃⌥⌘M) tidak pernah sampai ke DOT, jadi tidak bisa direkam selama app itu berjalan.
 - **Uji UI Settings:** Settings yang dibuka dari launcher tidak membuat DOT jadi app aktif, dan klik AX juga tidak. Sebelum mengirim tombol keyboard, jalankan `tell application id "com.pace.DOTLauncher" to activate`. Tombol di Settings › Shortcuts punya `AXIdentifier` (`shortcut-<id>`, `reset-<id>`).
 - **Jangan tekan ⌥Space di atas Finder saat launcher dipindah ke kombinasi lain:** Finder membuka Quick Look layar penuh.
-- **Clipboard di uji:** pakai `pbtool save/restore` (scratchpad) yang menyimpan semua tipe tiap item, lalu bandingkan hash-nya. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
+- **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
 
 ## Belum diuji / batasan yang diketahui
 - **Sync dengan iCloud Drive asli sudah dicek sekali (10 Nov 2026, izin Pace, data di-backup dulu):** nyala → file pindah ke iCloud dan ter-upload (`ubiquitousItemIsUploaded`), backup clipboard utuh (21 clip, `integrity_check` ok), snippet/note tetap muncul, quit menulis backup, relaunch tanpa pertanyaan restore. Mati → file kembali identik, backup tetap di iCloud sampai "Delete iCloud Backups" ditekan. Setelahnya data dan iCloud dikembalikan seperti semula.

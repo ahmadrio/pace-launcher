@@ -33,6 +33,19 @@ public struct ClipImage: Sendable, Equatable {
         return ClipImage(png: png, thumbnail: thumbnailPNG, width: image.width, height: image.height)
     }
 
+    /// A decoded, downsampled copy of an image file for the preview pane,
+    /// so the full-size bitmap is never decoded on the main thread.
+    public static func preview(at url: URL, maxPixelSize: Int) -> CGImage? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+        ]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+    }
+
     /// Searchable text for the clip, such as "Image 1440 × 900".
     public var description: String { "Image \(width) × \(height)" }
 

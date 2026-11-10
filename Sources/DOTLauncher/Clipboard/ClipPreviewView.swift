@@ -8,6 +8,8 @@ struct ClipPreviewView: View {
     let item: ClipItem
     let imageURL: URL?
     let appName: String?
+    /// `ClipStats.summary` of the text, computed once per clip by the caller.
+    let textSummary: String
     let images: PreviewImageLoader
 
     private static let relative: RelativeDateTimeFormatter = {
@@ -34,12 +36,20 @@ struct ClipPreviewView: View {
     @ViewBuilder private var content: some View {
         switch item.kind {
         case .text, .richText:
+            let preview = ClipStats.preview(of: item.text)
             ScrollView {
-                Text(item.text)
-                    .font(.system(size: 13))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(preview.text)
+                        .font(.system(size: 13))
+                        .textSelection(.enabled)
+                    if preview.isTruncated {
+                        Text("Showing the beginning. Paste to get the whole clip.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
             }
         case .image:
             ClipImagePreview(url: imageURL, images: images)
@@ -72,7 +82,7 @@ struct ClipPreviewView: View {
         parts.append(item.useCount == 1 ? "Used once" : "Used \(item.useCount) times")
         switch item.kind {
         case .text, .richText:
-            parts.append(ClipStats.summary(for: item.text))
+            parts.append(textSummary)
         case .image:
             parts.append(item.text.replacingOccurrences(of: "Image ", with: ""))
         case .files:
@@ -127,16 +137,26 @@ final class PreviewImageLoader {
     private(set) var url: URL?
     private(set) var image: NSImage?
 
+    /// Longest side of the decoded preview: about twice the pane's width.
+    private nonisolated static let maxPixelSize = 1600
+
     func load(_ url: URL?) async {
         guard let url, url != self.url else { return }
-        let data = await Self.read(url)
+        let decoded = await Self.decode(url)
         guard !Task.isCancelled else { return }
         self.url = url
-        image = data.flatMap(NSImage.init(data:))
+        image = decoded.map { NSImage(cgImage: $0.image, size: .zero) }
     }
 
+    /// Decodes and downsamples off the main thread, so a 6K screenshot is
+    /// never decoded at full size while scrolling the list.
     @concurrent
-    private nonisolated static func read(_ url: URL) async -> Data? {
-        try? Data(contentsOf: url)
+    private nonisolated static func decode(_ url: URL) async -> DecodedImage? {
+        ClipImage.preview(at: url, maxPixelSize: maxPixelSize).map(DecodedImage.init)
     }
+}
+
+/// A finished CGImage is immutable, so handing it to the main actor is safe.
+private struct DecodedImage: @unchecked Sendable {
+    let image: CGImage
 }

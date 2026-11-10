@@ -12,6 +12,8 @@ final class ClipboardController {
     private var thumbnails: [String: NSImage] = [:]
     /// The clips behind the rows currently listed, by row id.
     private var listed: [String: ClipItem] = [:]
+    /// `ClipStats.summary` by clip hash: counting a long clip is O(n).
+    private var textSummaries: [String: String] = [:]
     private let previewImages = PreviewImageLoader()
     /// Shows a one-line message in the panel footer.
     var onNotice: ((String) -> Void)?
@@ -55,10 +57,13 @@ final class ClipboardController {
 
     func preview(for result: LauncherResult) -> AnyView? {
         guard let item = listed[result.id] else { return nil }
+        let summary = textSummaries[item.hash] ?? ClipStats.summary(for: item.text)
+        textSummaries[item.hash] = summary
         return AnyView(ClipPreviewView(
             item: item,
             imageURL: store.imageURL(for: item),
             appName: item.sourceBundleID.flatMap(appName(for:)),
+            textSummary: summary,
             images: previewImages
         ))
     }

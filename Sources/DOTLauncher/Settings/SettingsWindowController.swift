@@ -35,6 +35,12 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         NSApp.deactivate()
     }
 
+    /// Leaving Settings (another app, the launcher, Notes) ends a pending
+    /// shortcut recording, so DOT's hotkeys never stay paused.
+    func windowDidResignKey(_ notification: Notification) {
+        shortcuts.stop()
+    }
+
     private func makeWindow() -> NSWindow {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 480),
@@ -45,6 +51,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.title = "DOT Launcher Settings"
         window.isReleasedWhenClosed = false
         window.delegate = self
+        shortcuts.window = window
         window.contentView = NSHostingView(rootView: SettingsView(model: model, settings: settings, scripts: scripts, autoExpand: autoExpand, sync: sync, shortcuts: shortcuts))
         if !window.setFrameUsingName("DOTSettingsWindow") {
             window.center()

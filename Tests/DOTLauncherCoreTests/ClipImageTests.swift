@@ -56,6 +56,28 @@ struct ClipImageTests {
         #expect(image.description == "Image 300 × 200")
     }
 
+    @Test func `a long text preview shows only its beginning`() {
+        let long = String(repeating: "abcdefghij", count: 10_000)
+        let preview = ClipStats.preview(of: long, limit: 2_000)
+        #expect(preview.text.count == 2_000)
+        #expect(preview.isTruncated)
+        #expect(long.hasPrefix(preview.text))
+
+        let short = ClipStats.preview(of: "hello", limit: 2_000)
+        #expect(short.text == "hello")
+        #expect(!short.isTruncated)
+    }
+
+    @Test func `the preview image is downsampled from the file`() throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "DOTLauncherTests-preview-\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try makeImageData(width: 3000, height: 2000, type: "public.png").write(to: url)
+
+        let image = try #require(ClipImage.preview(at: url, maxPixelSize: 800))
+        #expect(max(image.width, image.height) == 800)
+        #expect(ClipImage.preview(at: url.appending(path: "missing"), maxPixelSize: 800) == nil)
+    }
+
     @Test func `stats count characters and lines`() {
         #expect(ClipStats.summary(for: "a") == "1 character")
         #expect(ClipStats.summary(for: "ab\ncd") == "5 characters · 2 lines")

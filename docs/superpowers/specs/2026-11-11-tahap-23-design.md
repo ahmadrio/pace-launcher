@@ -84,3 +84,6 @@ Pace memilih langsung mulai, jadi semua detail di bawah adalah **keputusan Claud
 - Jendela sambutan sekali per Mac, ditandai saat tampil; tanda terpisah selama data uji dipakai.
 - Automation hanya dijelaskan, tidak dicek.
 - Alias `permissions` pindah ke "Welcome & Permissions".
+
+## Tambahan atas permintaan Pace (11 Nov 05:45)
+Ikon menu bar terlalu kecil: huruf P setinggi 12 pt, sedangkan ikon app lain di menu bar Pace 16–17 pt. Huruf P kini 16 pt (garis kecepatan ikut berskala), kanvas 24×18 pt, dan item status selebar ikonnya (`variableLength`), supaya ikon tidak diperkecil di menu bar yang lebih pendek.

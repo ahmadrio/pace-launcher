@@ -4,7 +4,8 @@ import PACELauncherCore
 /// The menu bar icon and its menu. The menu is rebuilt each time it opens,
 /// so status lines are always current.
 final class StatusMenuController: NSObject, NSMenuDelegate {
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    /// As wide as the icon: a square item would shrink it on shorter menu bars.
+    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
     private let hotKeys: HotKeyCenter
     private let blockedGroups: () -> [GatedHotKey.Blocker]

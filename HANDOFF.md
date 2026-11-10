@@ -17,6 +17,10 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-5.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-5-ledger.md`
 - **Tahap 6** selesai dan sudah di-merge ke `main` (10 Nov 2026).
+- **Tahap 7** selesai di branch `tahap-7` (10 Nov 2026), belum di-merge.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-7-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-7.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-7-ledger.md`
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-6-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-6.md`
   - Ledger: `docs/superpowers/plans/2026-11-10-tahap-6-ledger.md`
@@ -25,14 +29,15 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 |---|---|
 | Launcher | ⌥Space membuka panel. App yang sedang aktif tetap di depan. ⌘C, ⌘V, ⌘A, dan ⌘Z berfungsi di kolom pencarian. |
 | Cari & buka aplikasi | Pencarian fuzzy (`vsc` → Visual Studio Code). Urutan hasil belajar dari pemakaian. |
-| Kalkulator | Ketik `(2+3)*4/3`, lalu ⏎ untuk menyalin. Titik dan koma sama-sama diterima sebagai desimal. **Konversi unit**: `10 km to mi`, `100 f in c`, `1 GiB to MB`, `3 meters ke feet` (panjang, massa, suhu, volume, luas, kecepatan, waktu, data). **Kurs**: `100 usd to idr`, `€50 in usd`, `$25` (ke mata uang locale), kurs dari ExchangeRate-API; hasil di bawah 1 memakai 3 digit signifikan (`1 idr to usd` = 0,0000553 USD). **Singkatan angka**: `1jt + 500rb`, `10k usd to idr`, `Rp 50rb`, `1 juta rupiah to usd` (k/rb/ribu, jt/juta, miliar, triliun, thousand/million/billion/trillion). `Mb`/`Gb` = bit, `mb`/`MB` = byte. ⏎ menyalin angka tanpa pemisah ribuan. |
+| Kalkulator | Ketik `(2+3)*4/3`, lalu ⏎ untuk menyalin. Titik dan koma sama-sama diterima sebagai desimal. Hasil ditampilkan dengan pemisah ribuan locale (`1.500.001`), tetapi disalin tanpa pemisah. **Konversi unit**: `10 km to mi`, `100 f in c`, `1 GiB to MB`, `3 meters ke feet` (panjang, massa, suhu, volume, luas, kecepatan, waktu, data). **Kurs**: `100 usd to idr`, `€50 in usd`, `$25` (ke mata uang locale), kurs dari ExchangeRate-API; hasil di bawah 1 memakai 3 digit signifikan (`1 idr to usd` = 0,0000553 USD). **Singkatan angka**: `1jt + 500rb`, `10k usd to idr`, `Rp 50rb`, `1 juta rupiah to usd` (k/rb/ribu, jt/juta, miliar, triliun, thousand/million/billion/trillion). `Mb`/`Gb` = bit, `mb`/`MB` = byte. ⏎ menyalin angka tanpa pemisah ribuan. |
 | Clipboard history | Ketik "clip" atau ⇧⌥C, lalu ⏎ untuk paste. Isi password manager tidak disimpan. **Gambar** ikut tercatat (PNG di `Clipboard Images/`, maks. 20 MB / 50 megapiksel). Preview clip terpilih di kanan. ⌘P pin/unpin, ⌃X hapus (dua kali). Settings › General › Clipboard History: **Keep history** (Forever … 1 day; clip yang di-pin tidak pernah dihapus; mempersingkat meminta konfirmasi dengan jumlah clip) dan **Clear History…** (dua kali tekan). |
 | Window snapping | "Left Half", "Maximize", "Restore", dan lainnya. Shortcut ⌃⌥ mengikuti Rectangle. |
 | Translator | Ketik "tr", ⏎, lalu tulis teks. Arah Indonesia ↔ Inggris dipilih otomatis, ⌘L membalik arah. Semuanya on-device. |
 | AI chat | Ketik pertanyaan di root, lalu **Tab**. Model on-device, dengan jembatan terjemahan untuk bahasa Indonesia. **Tersimpan otomatis**: "AI Chat History" (atau ⌘Y di mode AI) untuk mencari, membuka, dan melanjutkan chat lama. ⌃X hapus satu, ⌘⇧⌫ hapus semua. |
 | Snippets | Ketik nama atau keyword di root, lalu ⏎ untuk paste. Placeholder: `{date}`, `{time}`, `{datetime}`, `{clipboard}`. |
 | Notes | "Open Notes", "Create Note", "Search Notes". Jendela floating Markdown dengan autosave. |
-| **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, Scripts, Sync. |
+| **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, **Quicklinks**, Scripts, Sync. |
+| **Quicklinks** | URL tersimpan dengan `{query}` (Settings › Quicklinks atau perintah "Create Quicklink"). Ketik `gh dot launcher` untuk langsung mencari di GitHub; memilih quicklink lewat namanya meminta teksnya dulu; quicklink tanpa `{query}` langsung dibuka. Teks di-percent-encode. Bawaan: Google (`g`), YouTube (`yt`), GitHub (`gh`), Google Maps (`maps`). Disimpan di `settings.json` (ikut sync). |
 | **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi setelah file kembali dan daftar skrip dibaca ulang (saat launcher atau Settings dibuka; belum ada pemantauan folder). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
 | **Tema** | Settings › Appearance: preset (Default, Midnight, Paper, Sunset, Graphite), warna aksen, kepadatan kaca, dan mode System/Light/Dark. Perubahan langsung terlihat. |
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
@@ -61,7 +66,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 301 test Core (Swift Testing)
+make test     # 313 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -109,6 +114,10 @@ make reset-tcc
 - **Snapshot clipboard tidak membaca TIFF di samping PNG:** membaca TIFF yang ditawarkan lazy akan membuatnya di tengah paste (auto-expand sensitif terhadap jeda). Snapshot menyalin PNG saja dan menawarkan TIFF lazy lagi saat restore (`ClipboardFilter.snapshotTypes`).
 - **Ketikan uji UI harus dijaga:** panel DOT bisa tertutup di antara langkah, dan ketikan berikutnya jatuh ke app terdepan (Warp: ⌘N membuka jendela baru). Kirim tombol hanya setelah memastikan `AXFocusedUIElement` DOT adalah kolom teks. Jangan kirim Esc/⌘W tanpa penjaga: Esc di terminal tempat Claude Code berjalan menghentikan sesi. Tutup Settings lewat tombol close AX.
 - **Menunggu "Translating…" di uji UI:** pakai OCR Vision (`VNRecognizeTextRequest`) pada screenshot panel, lalu kirim Esc dari alat yang sama.
+- **AX `set value` tidak sampai ke binding SwiftUI `TextField`:** di uji UI Settings, ketik sungguhan lewat penjaga yang memastikan app terdepan menurut `NSWorkspace.frontmostApplication` adalah DOT (System Events `frontmost` salah untuk app tanpa Dock) dan field yang dituju punya fokus.
+- **Uji quicklink tanpa membuka browser:** app penangkap kecil dengan skema `dott7://` mencatat URL yang diterima. LaunchServices menolak mengikat skema untuk app di folder sementara (`launch-disabled in-temp-dir`), jadi app itu didaftarkan dari `~/Library/Caches/dot-launcher-tests` lalu dicabut (`lsregister -u`) dan dihapus.
+- **`URL(string:)` kini longgar:** spasi dan karakter tak valid di-encode diam-diam. Quicklink memakai `URL(string:encodingInvalidCharacters: false)` agar `https://exa mple.com` ditolak.
+- **Folder skrip dipantau FSEvents** (`ScriptFolderWatcher`, jeda 0,5 detik). Shortcut didaftarkan ulang hanya kalau kunci/judul skrip berubah (`ScriptShortcut.fingerprint`).
 - **Dokumen TextEdit uji:** `make new document with properties {name: …}` memunculkan dialog "You don't own the file" saat isinya diubah. Klik Cancel lalu tutup dengan `saving no`.
 - **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
 
@@ -124,6 +133,6 @@ make reset-tcc
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Hasil kalkulator dikelompokkan sesuai locale (`1.500.000`), seperti hasil konversi.
-2. Minor yang ditunda di ledger tahap 6 dan sisa tahap 5 (daftar ISO statis, gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap).
-3. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): quicklinks (URL dengan parameter), emoji picker, paste clip sebagai teks polos.
+1. Merge `tahap-7` ke `main` (keputusan Pace).
+2. Minor yang ditunda di ledger tahap 7 (dan sisa: gambar dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap).
+3. Ide fitur berikutnya (usulan Claude, perlu keputusan Pace): emoji picker, paste clip sebagai teks polos, quicklink yang dibuka di browser tertentu.

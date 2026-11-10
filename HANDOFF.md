@@ -9,6 +9,10 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-3.md`
   - Ledger (semua `Ruling:`): `docs/superpowers/plans/2026-11-10-tahap-3-ledger.md`
 - **Tahap 4** selesai dan sudah di-merge ke `main` (10 Nov 2026).
+- **Tahap 5** selesai di branch **`tahap-5`** dan belum di-merge ke `main`. Pace sudah meng-uninstall Raycast; DOT kini satu-satunya launcher.
+  - Desain: `docs/superpowers/specs/2026-11-10-tahap-5-design.md`
+  - Rencana: `docs/superpowers/plans/2026-11-10-tahap-5.md`
+  - Ledger: `docs/superpowers/plans/2026-11-10-tahap-5-ledger.md`
   - Desain: `docs/superpowers/specs/2026-11-10-tahap-4-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-10-tahap-4.md`
   - Ledger (semua `Ruling:` dan minor yang ditunda): `docs/superpowers/plans/2026-11-10-tahap-4-ledger.md`
@@ -17,15 +21,15 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 |---|---|
 | Launcher | ⌥Space membuka panel. App yang sedang aktif tetap di depan. ⌘C, ⌘V, ⌘A, dan ⌘Z berfungsi di kolom pencarian. |
 | Cari & buka aplikasi | Pencarian fuzzy (`vsc` → Visual Studio Code). Urutan hasil belajar dari pemakaian. |
-| Kalkulator | Ketik `(2+3)*4/3`, lalu ⏎ untuk menyalin. Titik dan koma sama-sama diterima sebagai desimal. |
-| Clipboard history | Ketik "clip" atau ⇧⌥C, lalu ⏎ untuk paste. Isi password manager tidak disimpan. **Gambar** ikut tercatat (PNG di `Clipboard Images/`, maks. 20 MB). Preview clip terpilih di kanan. ⌘P pin/unpin, ⌃X hapus (dua kali). |
+| Kalkulator | Ketik `(2+3)*4/3`, lalu ⏎ untuk menyalin. Titik dan koma sama-sama diterima sebagai desimal. **Konversi unit**: `10 km to mi`, `100 f in c`, `1 GiB to MB`, `3 meters ke feet` (panjang, massa, suhu, volume, luas, kecepatan, waktu, data). **Kurs**: `100 usd to idr`, `€50 in usd`, `$25` (ke mata uang locale), kurs dari ExchangeRate-API. ⏎ menyalin angka tanpa pemisah ribuan. |
+| Clipboard history | Ketik "clip" atau ⇧⌥C, lalu ⏎ untuk paste. Isi password manager tidak disimpan. **Gambar** ikut tercatat (PNG di `Clipboard Images/`, maks. 20 MB / 50 megapiksel). Preview clip terpilih di kanan. ⌘P pin/unpin, ⌃X hapus (dua kali). Settings › General › Clipboard History: **Keep history** (Forever … 1 day; clip yang di-pin tidak pernah dihapus) dan **Clear History…** (dua kali tekan). |
 | Window snapping | "Left Half", "Maximize", "Restore", dan lainnya. Shortcut ⌃⌥ mengikuti Rectangle. |
 | Translator | Ketik "tr", ⏎, lalu tulis teks. Arah Indonesia ↔ Inggris dipilih otomatis, ⌘L membalik arah. Semuanya on-device. |
 | AI chat | Ketik pertanyaan di root, lalu **Tab**. Model on-device, dengan jembatan terjemahan untuk bahasa Indonesia. **Tersimpan otomatis**: "AI Chat History" (atau ⌘Y di mode AI) untuk mencari, membuka, dan melanjutkan chat lama. ⌃X hapus satu, ⌘⇧⌫ hapus semua. |
 | Snippets | Ketik nama atau keyword di root, lalu ⏎ untuk paste. Placeholder: `{date}`, `{time}`, `{datetime}`, `{clipboard}`. |
 | Notes | "Open Notes", "Create Note", "Search Notes". Jendela floating Markdown dengan autosave. |
 | **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, Scripts, Sync. |
-| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. |
+| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Shortcut standar app (⌘C, ⌘V, ⌘Q, …) ditolak. |
 | **Tema** | Settings › Appearance: preset (Default, Midnight, Paper, Sunset, Graphite), warna aksen, kepadatan kaca, dan mode System/Light/Dark. Perubahan langsung terlihat. |
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
 | **Script commands** | Skrip apa pun dengan header `# @dot.title` atau `# @raycast.title` di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown) dan `needsConfirmation`. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
@@ -43,6 +47,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Pengaturan yang ikut sync ada di `settings.json`: tema, ikon menu bar, auto-expand, app yang dikecualikan, backup clipboard, dan `shortcuts` (id → `"ctrl+opt+left"`, `""` = tanpa shortcut, id tidak ada = default).
   - Yang khusus Mac ini disimpan di UserDefaults: status sync, folder skrip tambahan, dan posisi jendela.
 - **Sync bersifat opt-in.** Kalau dimatikan, DOT sama sekali tidak membaca atau menulis iCloud Drive. Satu-satunya pengecualian adalah tombol "Delete iCloud Backups".
+- **Internet hanya untuk kurs:** `GET https://open.er-api.com/v6/latest/USD`, hanya saat konversi mata uang tampil dan cache (`exchange-rates.json`, lokal) belum ada atau lebih dari 12 jam; gagal → tunggu 1 menit atau Retry. Kurs lebih dari 7 hari ditandai "rates may be outdated". Uji offline: `DOTRatesURLOverride`.
   - Pemindahan file selalu disalin dulu, diverifikasi isinya, baru yang lama dihapus. Kalau nama sudah ada, keduanya disimpan dan file yang masuk diberi akhiran `(from This Mac)` atau `(from iCloud)`.
   - Kalau `Backups/` sudah berisi backup saat sync dinyalakan (misalnya setelah reset), backup otomatis ditahan sampai dipilih "Restore from Backup" atau "Keep Current History".
   - Mematikan sync tidak menghapus backup di iCloud. Sync juga menolak dimatikan selama masih ada file yang belum terunduh dari iCloud.
@@ -52,15 +57,15 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 226 test Core (Swift Testing)
+make test     # 263 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
 ```
 - Jangan pakai `swift run`. Tanpa bundle `.app`, TCC dan privasi pasteboard tidak berfungsi benar.
 - **Struktur kode:**
-  - `Sources/DOTLauncherCore` berisi logika murni yang dites. Tambahan tahap 3: `Settings/` (SettingsData, SettingsFile, Theme), `Scripts/` (ScriptMetadata, ScriptScanner, ANSI), `Snippets/KeywordExpander`, dan `Sync/` (ICloudPlaceholder, FolderMigration, BackupRotation), ditambah backup/restore di `SQLiteDatabase`. Tambahan tahap 4: `Chat/` (ChatStore, ChatTitle), `Clipboard/` (ClipImage, ClipStats, file gambar di ClipboardStore), dan `Hotkeys/` (ShortcutID, Shortcuts, `KeyCombo.stringValue`).
-  - `Sources/DOTLauncher` berisi app. Tambahan tahap 3: `Settings/` (SettingsStore, SettingsView, ThemeController), `Scripts/` (ScriptRunner, ScriptLibrary, HUD), `Snippets/` (KeystrokeMonitor, AutoExpandController), dan `Sync/SyncController`. Tambahan tahap 4: riwayat di `AI/AIChatController` (lanjut chat via `LanguageModelSession(transcript:)`), `Clipboard/ClipPreviewView`, dan `Settings/ShortcutsSettings` (ShortcutRecorder); `HotKeyCenter` kini `@Observable` dan `AppDelegate.applyShortcuts()` mendaftarkan shortcut dari settings.
+  - `Sources/DOTLauncherCore` berisi logika murni yang dites. Tambahan tahap 3: `Settings/` (SettingsData, SettingsFile, Theme), `Scripts/` (ScriptMetadata, ScriptScanner, ANSI), `Snippets/KeywordExpander`, dan `Sync/` (ICloudPlaceholder, FolderMigration, BackupRotation), ditambah backup/restore di `SQLiteDatabase`. Tambahan tahap 4: `Chat/` (ChatStore, ChatTitle), `Clipboard/` (ClipImage, ClipStats, file gambar di ClipboardStore), dan `Hotkeys/` (ShortcutID, Shortcuts, `KeyCombo.stringValue`). Tambahan tahap 5: `Calculator/` (Converter, MeasureUnit, ConversionFormat), `Currency/` (ExchangeRates, CurrencyNames), `Hotkeys/CommandShortcut` + `Shortcuts.registrationPlan`, `Clipboard/ClipboardRetention`, dan `Support/RunToken`.
+  - `Sources/DOTLauncher` berisi app. Tambahan tahap 3: `Settings/` (SettingsStore, SettingsView, ThemeController), `Scripts/` (ScriptRunner, ScriptLibrary, HUD), `Snippets/` (KeystrokeMonitor, AutoExpandController), dan `Sync/SyncController`. Tambahan tahap 4: riwayat di `AI/AIChatController` (lanjut chat via `LanguageModelSession(transcript:)`), `Clipboard/ClipPreviewView`, dan `Settings/ShortcutsSettings` (ShortcutRecorder); `HotKeyCenter` kini `@Observable` dan `AppDelegate.applyShortcuts()` mendaftarkan shortcut dari settings. Tambahan tahap 5: `Calculator/RatesService`, `Clipboard/ClipboardMaintenance` (retensi, Clear History, file yatim), dan baris konversi di `UI/LauncherSearch`.
 - **Data uji:** `defaults write com.pace.DOTLauncher DOTDataRootOverride <folder>` dan `DOTiCloudRootOverride <folder>` mengalihkan semua data ke folder uji. Settings dan menu bar lalu menampilkan "Test data folders in use". Sync menolak menyala kalau hanya override lokal yang diisi. Setelah selesai, hapus kedua key dan `syncEnabled`.
 
 ## Jebakan yang sudah ditemukan
@@ -86,6 +91,9 @@ make reset-tcc
 - **zsh:** `log` adalah builtin zsh, jadi pakai `/usr/bin/log`. `FileManager` mengubah `/var` menjadi `/private/var`.
 - **Store actor + aksi `.stay`:** `.stay` langsung me-refresh daftar, padahal `ChatStore`/`ClipboardStore` adalah actor. Hapus/pin dijalankan dalam `Task`, lalu daftar di-refresh setelah `await`.
 - **Merekam shortcut:** semua hotkey DOT dilepas selama merekam (kalau tidak, ⌥Space ditangkap Carbon sebelum sampai ke jendela). Perekam hanya membaca tombol dari jendela Settings, berhenti saat Settings kehilangan fokus, dan batal sendiri kalau Settings tidak mendapat fokus dalam 1 detik, supaya hotkey tidak pernah tertahan. Kombinasi yang dipegang app lain secara global (Rectangle: ⌃⌥←; di Mac Pace juga ⌃⌥⌘M) tidak pernah sampai ke DOT, jadi tidak bisa direkam selama app itu berjalan.
+- **SQLite macOS memakai `secure_delete = FAST` secara default:** teks pendek yang dihapus sudah ditimpa, tetapi halaman overflow tidak. `chat.sqlite` dan `clipboard.sqlite` kini memakai `secure_delete = ON`; test-nya memakai teks ±20 KB.
+- **Foundation `UnitVolume.cups` = 240 ml** (legal cup). DOT memakai US cup 236,588 ml lewat unit sendiri. "pound" adalah massa; poundsterling ditulis `gbp`/`£`.
+- **System Events `frontmost`** tidak bisa dipercaya untuk app tanpa Dock seperti DOT (selalu terbaca "Finder"). Cek fokus lewat `AXMain`/`AXFocusedWindow` atau efeknya.
 - **Uji UI Settings:** Settings yang dibuka dari launcher tidak membuat DOT jadi app aktif, dan klik AX juga tidak. Sebelum mengirim tombol keyboard, jalankan `tell application id "com.pace.DOTLauncher" to activate`. Tombol di Settings › Shortcuts punya `AXIdentifier` (`shortcut-<id>`, `reset-<id>`).
 - **Jangan tekan ⌥Space di atas Finder saat launcher dipindah ke kombinasi lain:** Finder membuka Quick Look layar penuh.
 - **Clipboard di uji:** pakai alat kecil (Swift, `NSPasteboard.pasteboardItems`) yang menyimpan semua tipe tiap item ke plist lalu memulihkannya, dan bandingkan hash-nya sebelum/sesudah. Selama `DOTDataRootOverride` aktif, salinan Pace masuk ke database uji, jadi kembalikan app ke data asli setelah setiap uji UI.
@@ -96,12 +104,13 @@ make reset-tcc
 - Auto-expand berjalan tanpa izin Input Monitoring baru di Mac ini. Di Mac lain, izin itu mungkin perlu diberikan (Settings › Snippets menampilkan statusnya).
 - Paste memakai `kVK_ANSI_V`, jadi bisa meleset di layout keyboard non-QWERTY.
 - Snapping app Chromium/Electron dan multi-monitor belum diuji manual.
-- Kalkulator belum mendukung unit/kurs.
+- Kalkulator belum mendukung singkatan angka (`1jt`, `10k`) dan kripto. Kurs tanpa target hanya untuk simbol, nama, dan 21 kode umum; kode lain butuh target (`10 nok to idr`).
+- Di Mac Pace, ⌃⌥⌘M dipakai app lain sehingga tidak bisa direkam.
 - Gambar clipboard tidak dibatasi total ukurannya (riwayat tanpa batas, sama seperti teks).
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.
 
 ## Langkah berikutnya
-1. Kalkulator: konversi unit dan kurs.
-2. Shortcut untuk command lain (Translate, AI Chat, Notes).
-3. Batas ukuran riwayat clipboard (opsional).
-4. Minor yang ditunda dari review tahap 4 (lihat ledger), terutama siklus `generation` di AI chat dan menolak ⌘C/⌘V sebagai hotkey global.
+1. Review akhir branch `tahap-5`, lalu merge ke `main`.
+2. Shortcut untuk script command.
+3. Singkatan angka di kalkulator (`1jt`, `10rb`, `10k`).
+4. Minor yang masih ditunda (lihat ledger tahap 4 dan 5): TIFF lazy saat paste, gambar dibaca di main thread sebelum cek ukuran, batas cache thumbnail.

@@ -42,4 +42,5 @@ security import "$WORK/identity.p12" -k "$KEYCHAIN" -f pkcs12 -P "$P12_PASS" -T 
 
 SHA1="$("$OPENSSL" x509 -in "$WORK/cert.pem" -noout -fingerprint -sha1 | sed 's/.*=//; s/://g')"
 echo "Created \"$NAME\" ($SHA1) in the login keychain."
-echo "If this is a new identity, set DEFAULT_IDENTITY in scripts/build-app.sh to $SHA1."
+echo "To sign your builds with it: export PACE_SIGN_IDENTITY=$SHA1"
+echo "Releases always use DEFAULT_IDENTITY in scripts/build-app.sh; set it to this SHA-1 only if this is the new release identity."

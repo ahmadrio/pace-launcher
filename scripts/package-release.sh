@@ -18,12 +18,17 @@ fi
 VERSION="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version '$VERSION' in Resources/Info.plist is not x.y.z"
 
-# build-app.sh refuses a release without the signing identity.
-scripts/build-app.sh release
+# Releases are always signed with DEFAULT_IDENTITY: another certificate would
+# reset every user's privacy permissions. PACE_SIGN_IDENTITY may only name it.
+DEFAULT_IDENTITY="$(sed -n 's/^DEFAULT_IDENTITY="\(.*\)"$/\1/p' scripts/build-app.sh)"
+IDENTITY="${PACE_SIGN_IDENTITY:-$DEFAULT_IDENTITY}"
+IDENTITIES="$(security find-identity -p codesigning)"
+HASH="$(grep -iF -- "$IDENTITY" <<<"$IDENTITIES" | head -1 | awk '{print $2}' || true)"
+[[ "$HASH" =~ ^[0-9A-Fa-f]{40}$ ]] || fail "signing identity $IDENTITY not found; see docs/RELEASING.md"
+[[ "$(tr 'a-f' 'A-F' <<<"$HASH")" == "$(tr 'a-f' 'A-F' <<<"$DEFAULT_IDENTITY")" ]] \
+  || fail "releases must be signed with DEFAULT_IDENTITY ($DEFAULT_IDENTITY), not $HASH; unset PACE_SIGN_IDENTITY"
 
-IDENTITY="${PACE_SIGN_IDENTITY:-$(sed -n 's/^DEFAULT_IDENTITY="\(.*\)"$/\1/p' scripts/build-app.sh)}"
-HASH="$(security find-identity -p codesigning | grep -iF -- "$IDENTITY" | head -1 | awk '{print $2}')"
-[[ "$HASH" =~ ^[0-9A-Fa-f]{40}$ ]] || fail "could not resolve signing identity $IDENTITY"
+scripts/build-app.sh release
 
 check_app() {
   local app="$1"

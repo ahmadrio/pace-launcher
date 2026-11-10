@@ -12,7 +12,7 @@
    make signing-identity
    ```
    The private key is generated in a temporary folder and imported into the login keychain. The folder is then deleted. If an identity with that name already exists, the script refuses to run.
-2. A new identity has a new SHA-1. Put it in `DEFAULT_IDENTITY` in `scripts/build-app.sh`.
+2. A new identity has a new SHA-1. Put it in `DEFAULT_IDENTITY` in `scripts/build-app.sh`; releases are only ever signed with that identity.
 3. The first build may ask for permission for `codesign` to use the key. Enter your login password and choose **Always Allow**.
 
 ## Back up the key
@@ -35,7 +35,7 @@ security import PACE-Launcher-Signing.p12 -k ~/Library/Keychains/login.keychain-
    ```
 3. `make release` (`scripts/package-release.sh`) does the following, and stops on the first failure:
    1. It refuses uncommitted changes. `PACE_ALLOW_DIRTY=1` makes a test package.
-   2. It builds the release configuration and signs it. Without the identity, it stops.
+   2. It refuses any identity other than `DEFAULT_IDENTITY`, because another certificate would reset every user's permissions. `PACE_SIGN_IDENTITY` may only name that same certificate. It then builds the release configuration and signs it.
    3. It checks the app:
       - the signature verifies
       - the designated requirement holds the identity's SHA-1

@@ -28,7 +28,7 @@ enum CommandCatalog {
                 id: "settings",
                 title: "Settings",
                 subtitle: "Appearance, snippets, scripts, sync",
-                aliases: ["preferences", "settings"],
+                aliases: ["preferences", "settings", "theme", "tema", "appearance"],
                 symbol: "gearshape",
                 actionTitle: "Open",
                 action: .run(openSettings)

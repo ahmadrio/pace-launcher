@@ -77,7 +77,30 @@ enum SystemCommandRunner {
     /// osascript is a child of DOT, so macOS asks (and remembers) Automation
     /// for DOT Launcher; it runs off the main thread, which matters while
     /// the permission dialog or macOS's restart dialog is up.
+    private typealias ScriptRun = (source: String, onEnd: @MainActor (AppleScriptEnd) -> Void)
+    /// Runs waiting per command: Toggle Dark Mode reads then sets the
+    /// appearance, so two overlapping runs could cancel out wrongly.
+    private static var waitingScripts: [SystemCommand: [ScriptRun]] = [:]
+    private static var runningScripts: Set<SystemCommand> = []
+
     private static func runAppleScript(_ source: String, for command: SystemCommand, onEnd: @escaping @MainActor (AppleScriptEnd) -> Void) {
+        waitingScripts[command, default: []].append((source, onEnd))
+        startNextScript(for: command)
+    }
+
+    private static func startNextScript(for command: SystemCommand) {
+        guard !runningScripts.contains(command), var waiting = waitingScripts[command], !waiting.isEmpty else { return }
+        let run = waiting.removeFirst()
+        waitingScripts[command] = waiting
+        runningScripts.insert(command)
+        start(run.source, for: command) { end in
+            run.onEnd(end)
+            runningScripts.remove(command)
+            startNextScript(for: command)
+        }
+    }
+
+    private static func start(_ source: String, for command: SystemCommand, onEnd: @escaping @MainActor (AppleScriptEnd) -> Void) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", source]

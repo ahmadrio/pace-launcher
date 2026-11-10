@@ -363,7 +363,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 [SecondaryAction(title: "Skin Tone", shortcut: .command("t"), action: .stay {
                     let tone = settings.data.emojiSkinTone.next
                     settings.data.emojiSkinTone = tone
-                    model.notice = "Skin tone: \(tone.title)" + (tone.modifier.map { " \($0)" } ?? "")
+                    var notice = "Skin tone: \(tone.title)" + (tone.modifier.map { " \($0)" } ?? "")
+                    // The selected emoji may not change: say why.
+                    if let id = model.selected?.id, id.hasPrefix("emoji:"),
+                       let base = EmojiCatalog.emoji(for: String(id.dropFirst("emoji:".count))),
+                       let own = settings.data.emojiSkinTones[base.character], EmojiCatalog.canTone(base) {
+                        notice += " · \(EmojiCatalog.toned(base, skinTone: own).character) keeps its own tone"
+                    }
+                    model.notice = notice
                 })]
             },
             entered: {

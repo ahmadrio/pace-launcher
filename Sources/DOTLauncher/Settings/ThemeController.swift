@@ -9,9 +9,15 @@ final class ThemeController {
     private(set) var theme: ThemeSettings
 
     @ObservationIgnored private var windows: [(window: () -> NSWindow?, glass: () -> NSGlassEffectView?, content: () -> NSView?)] = []
+    @ObservationIgnored private var appearanceObservation: NSKeyValueObservation?
 
     init(theme: ThemeSettings) {
         self.theme = theme
+        // System mode resolves its tint for the current appearance, so a
+        // switch between light and dark has to apply it again.
+        appearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            Task { @MainActor in self?.applyToAll() }
+        }
     }
 
     /// The accent for selections and chips; the system accent by default.
@@ -38,18 +44,31 @@ final class ThemeController {
         }
     }
 
-    /// The glass tint, resolved explicitly for a forced mode.
+    /// The glass tint, resolved for the system's current appearance or the
+    /// forced mode: the glass keeps the colour it was given, so a dynamic
+    /// colour would stay as it was when first applied.
     private var tintColor: NSColor {
         switch theme.appearance {
-        case .system: NSColor.windowBackgroundColor.withAlphaComponent(theme.glassTint)
-        case .light: NSColor(white: 0.96, alpha: theme.glassTint)
-        case .dark: NSColor(white: 0.11, alpha: theme.glassTint)
+        case .system:
+            var resolved = NSColor.windowBackgroundColor.withAlphaComponent(theme.glassTint)
+            NSApp.effectiveAppearance.performAsCurrentDrawingAppearance {
+                resolved = NSColor.windowBackgroundColor.withAlphaComponent(theme.glassTint).usingColorSpace(.sRGB) ?? resolved
+            }
+            return resolved
+        case .light:
+            return NSColor(white: 0.96, alpha: theme.glassTint)
+        case .dark:
+            return NSColor(white: 0.11, alpha: theme.glassTint)
         }
     }
 
     func update(_ theme: ThemeSettings) {
         guard theme != self.theme else { return }
         self.theme = theme
+        applyToAll()
+    }
+
+    private func applyToAll() {
         windows.removeAll { $0.window() == nil }
         for entry in windows {
             apply(to: entry.window(), glass: entry.glass(), content: entry.content())

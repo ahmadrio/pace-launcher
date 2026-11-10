@@ -88,7 +88,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-11-tahap-23-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-11-tahap-23.md`
   - Ledger: `docs/superpowers/plans/2026-11-11-tahap-23-ledger.md`
-- **Tahap 24** (siap publik: README, LICENSE, PRIVACY, skrip rilis, pemindaian akhir) selesai di branch `tahap-24`, belum di-merge, **belum dipublikasikan** (11 Nov 2026).
+- **Tahap 24** (siap publik: README, LICENSE, PRIVACY, skrip rilis, pemindaian akhir) selesai dan sudah di-merge ke `main` (11 Nov 2026). Publikasi disetujui Pace ("ya", 11 Nov 06:15).
   - Desain: `docs/superpowers/specs/2026-11-11-tahap-24-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-11-tahap-24.md`
   - Ledger: `docs/superpowers/plans/2026-11-11-tahap-24-ledger.md`

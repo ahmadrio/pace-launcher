@@ -67,8 +67,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcutActions: [ShortcutID: () -> Void] = [:]
     /// True while Settings records a shortcut: hotkeys stay released.
     private var shortcutsPaused = false
-    /// Log Out runs on a second ↩ while its notice shows (3 s).
-    private let logOutPrompt = ConfirmationPrompt()
+    /// Log Out, Restart, Shut Down and Empty Trash run on a second ↩ while
+    /// their notice shows (3 s).
+    private let systemPrompt = ConfirmationPrompt()
     /// Script keys and titles at the last shortcut apply; a reload that
     /// leaves them alone does not re-register anything.
     private var scriptFingerprint: [String: String] = [:]
@@ -672,26 +673,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         snippetEditor?.open(snippet)
     }
 
-    private static let logOutNotice = "Press ↩ again to log out"
-
-    /// Lock, sleep, screen saver and log out. Log Out asks for a second ↩.
+    /// Lock, sleep, screen saver, log out, restart, shut down, empty trash
+    /// and dark mode. The ones with a confirmation notice ask for a second ↩.
     private func systemCommands(model: LauncherModel, usage: UsageStore?) -> [LauncherCommand] {
         SystemCommand.allCases.map { command in
             let run = { [weak self] in
                 let stuck: @MainActor () -> Void = { [weak self] in
                     self?.hud?.show("Could not \(command.title.lowercased()): DOT kept the keyboard focus.", isError: true)
                 }
-                if !SystemCommandRunner.run(command, onFocusStuck: stuck) {
+                let ended: @MainActor (AppleScriptEnd) -> Void = { [weak self] end in
+                    self?.systemCommandEnded(command, end)
+                }
+                if !SystemCommandRunner.run(command, onFocusStuck: stuck, onScriptEnd: ended) {
                     self?.hud?.show("Allow Accessibility to lock or log out.", isError: true)
                 }
             }
-            let action: LauncherResult.Action = command.needsConfirmation
-                ? .stay { [weak self] in
+            let action: LauncherResult.Action = if let notice = command.confirmationNotice {
+                .stay { [weak self] in
                     guard let self else { return }
                     // Typing, moving or reopening the panel clears the
                     // notice, and with it the first press.
-                    let notice = Self.logOutNotice
-                    guard self.logOutPrompt.press(
+                    guard self.systemPrompt.press(
                         command.rawValue,
                         isShown: { model.notice == notice }, show: { model.notice = notice }, hide: { model.notice = nil }
                     ) else { return }
@@ -704,12 +706,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                     run()
                 }
-                : .run(run)
+            } else {
+                .run(run)
+            }
             return LauncherCommand(
                 id: command.rawValue, title: command.title, subtitle: command.subtitle, aliases: command.aliases,
-                symbol: command.symbol, actionTitle: command.needsConfirmation ? "Log Out" : "Run", action: action,
+                symbol: command.symbol, actionTitle: command.needsConfirmation ? command.title : "Run", action: action,
                 recordsUse: !command.needsConfirmation
             )
+        }
+    }
+
+    /// What to tell after an AppleScript command (Automation) finished.
+    private func systemCommandEnded(_ command: SystemCommand, _ end: AppleScriptEnd) {
+        switch end {
+        case .done:
+            if command == .emptyTrash { hud?.show("Emptied the Trash.", isError: false) }
+        case .canceled:
+            break
+        case .notPermitted:
+            guard case .appleScript(_, let target) = command.action else { return }
+            hud?.show("Allow DOT Launcher to control \(target) in Privacy & Security › Automation.", isError: true)
+            if let settings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+                NSWorkspace.shared.open(settings)
+            }
+        case .failed(let message):
+            hud?.show("Could not \(command.title.lowercased()): \(message)", isError: true)
         }
     }
 

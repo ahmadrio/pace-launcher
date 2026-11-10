@@ -54,6 +54,9 @@ struct SearchField: NSViewRepresentable {
             case #selector(NSResponder.moveDown(_:)):
                 model.moveSelection(by: 1)
             case #selector(NSResponder.insertNewline(_:)):
+                // A held ↩ repeats: the repeat must not count as the second
+                // press that confirms Log Out or a script.
+                if NSApp.currentEvent?.isARepeat == true { return true }
                 model.performSelected()
             case #selector(NSResponder.cancelOperation(_:)):
                 model.escape()

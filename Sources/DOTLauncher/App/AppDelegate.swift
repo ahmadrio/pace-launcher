@@ -108,6 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         let clipboardStore = Self.openClipboardStore()
         let clipboard = clipboardStore.map { ClipboardController(store: $0, icons: icons) }
+        clipboard?.onNotice = { model.notice = $0 }
 
         let snippets = SnippetLibrary(store: SnippetStore(directory: AppPaths.snippetsDirectory))
         let snippetRow: (Snippet) -> LauncherResult = { [weak self] snippet in
@@ -558,7 +559,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private static func openClipboardStore() -> ClipboardStore? {
         do {
-            return try ClipboardStore(path: AppPaths.clipboardDatabase.path)
+            return try ClipboardStore(path: AppPaths.clipboardDatabase.path, imagesDirectory: AppPaths.clipboardImagesDirectory)
         } catch {
             Log.clipboard.error("clipboard store unavailable: \(String(describing: error), privacy: .public)")
             return nil

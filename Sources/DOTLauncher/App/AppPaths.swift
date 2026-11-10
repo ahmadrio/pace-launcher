@@ -41,6 +41,8 @@ enum AppPaths {
 
     static var launcherDatabase: URL { localRoot.appending(path: "launcher.sqlite") }
     static var clipboardDatabase: URL { localRoot.appending(path: "clipboard.sqlite") }
+    /// Image clips as PNG files (local only, never synced or backed up).
+    static var clipboardImagesDirectory: URL { localRoot.appending(path: "Clipboard Images") }
     /// Saved AI chats (local only, never synced or backed up).
     static var chatDatabase: URL { localRoot.appending(path: "chat.sqlite") }
     /// One JSON file per snippet.

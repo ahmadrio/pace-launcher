@@ -78,13 +78,19 @@ final class PasteboardMonitor {
             forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
         ) as? [URL]) ?? []
         let text = pasteboard.string(forType: .string)
+        let isImage = ClipboardFilter.isImageCopy(types: types, text: text, hasFiles: !fileURLs.isEmpty)
 
-        guard !ClipboardFilter.shouldIgnore(types: types, text: text, hasFiles: !fileURLs.isEmpty) else {
+        guard !ClipboardFilter.shouldIgnore(types: types, text: text, hasFiles: !fileURLs.isEmpty, hasImage: isImage) else {
             Log.clipboard.info("skipped a copy (secret, temporary, or unsupported)")
             return
         }
 
         let source = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        if isImage {
+            captureImage(from: source)
+            return
+        }
+
         let draft: ClipDraft
         if !fileURLs.isEmpty {
             draft = ClipDraft(
@@ -106,5 +112,28 @@ final class PasteboardMonitor {
 
         Log.clipboard.info("captured \(draft.kind.rawValue, privacy: .public) clip, \(draft.text.count) chars, from \(source ?? "unknown", privacy: .public)")
         onCapture?(draft)
+    }
+
+    /// Converts the picture off the main thread (large screenshots take a
+    /// moment), then records it.
+    private func captureImage(from source: String?) {
+        guard let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) else { return }
+        let date = Date.now
+        Task {
+            guard let image = await Self.convert(data) else {
+                Log.clipboard.info("skipped an image (too large or unreadable)")
+                return
+            }
+            Log.clipboard.info("captured image clip \(image.width)×\(image.height), from \(source ?? "unknown", privacy: .public)")
+            onCapture?(ClipDraft(
+                text: image.description, kind: .image, representations: [],
+                sourceBundleID: source, date: date, image: image
+            ))
+        }
+    }
+
+    @concurrent
+    private nonisolated static func convert(_ data: Data) async -> ClipImage? {
+        ClipImage.make(from: data)
     }
 }

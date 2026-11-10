@@ -8,6 +8,9 @@ final class ClipboardController {
     private let store: ClipboardStore
     private let icons: IconCache
     private var appNames: [String: String] = [:]
+    private var thumbnails: [String: NSImage] = [:]
+    /// Shows a one-line message in the panel footer.
+    var onNotice: ((String) -> Void)?
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
@@ -60,14 +63,19 @@ final class ClipboardController {
         case .image: "Image"
         }
 
+        // An image whose file is gone (restored from a backup) cannot be
+        // pasted: say so and keep the panel open.
+        let missingImage = item.kind == .image && store.imageURL(for: item) == nil
         return LauncherResult(
             id: "clip:\(item.id)",
             title: String(firstLine.prefix(200)),
-            subtitle: details.joined(separator: " · "),
+            subtitle: missingImage ? "Image unavailable" : details.joined(separator: " · "),
             icon: icon(for: item),
             accessory: kind,
             actionTitle: "Paste",
-            action: .run { [weak self] in self?.paste(item) }
+            action: missingImage
+                ? .stay { [weak self] in self?.onNotice?("Image unavailable") }
+                : .run { [weak self] in self?.paste(item) }
         )
     }
 
@@ -75,7 +83,7 @@ final class ClipboardController {
         Task {
             do {
                 let representations = try await store.representations(of: item.id)
-                Paster.paste(item, representations: representations, monitor: monitor)
+                Paster.paste(item, representations: representations, imageURL: store.imageURL(for: item), monitor: monitor)
                 try await store.markUsed(item.id)
             } catch {
                 Log.clipboard.error("paste failed: \(String(describing: error), privacy: .public)")
@@ -84,6 +92,12 @@ final class ClipboardController {
     }
 
     private func icon(for item: ClipItem) -> LauncherResult.Icon {
+        if item.kind == .image {
+            if let cached = thumbnails[item.hash] { return .image(cached) }
+            guard let url = store.thumbnailURL(for: item), let thumbnail = NSImage(contentsOf: url) else { return .symbol("photo") }
+            thumbnails[item.hash] = thumbnail
+            return .image(thumbnail)
+        }
         if item.kind == .files, let first = item.text.split(separator: "\n").first {
             return .image(icons.icon(forPath: String(first)))
         }

@@ -99,4 +99,19 @@ struct QuicklinkTests {
         #expect(Quicklink(name: "Slack", keyword: nil, url: "https://{query}.slack.com").displayHost == "{query}.slack.com")
         #expect(Quicklink(name: "Vercel", keyword: nil, url: "https://{QUERY}.vercel.app/x").displayHost == "{query}.vercel.app")
     }
+
+    @Test func `quicklinks remember their browser`() throws {
+        func decode(_ json: String) throws -> [Quicklink] {
+            try JSONDecoder().decode(SettingsData.self, from: Data(json.utf8)).quicklinks
+        }
+        let safari = try decode(#"{"quicklinks": [{"name": "A", "url": "https://a.test", "browser": "com.apple.Safari"}]}"#)
+        #expect(safari.first?.browser == "com.apple.Safari")
+        #expect(try decode(#"{"quicklinks": [{"name": "A", "url": "https://a.test"}]}"#).first?.browser == nil)
+        let odd = try decode(#"{"quicklinks": [{"name": "A", "url": "https://a.test", "browser": 42}]}"#)
+        #expect(odd.count == 1)
+        #expect(odd.first?.browser == nil)
+        let link = Quicklink(name: "B", keyword: "b", url: "https://b.test/{query}", browser: "com.brave.Browser")
+        #expect(try JSONDecoder().decode(Quicklink.self, from: JSONEncoder().encode(link)) == link)
+    }
 }
+

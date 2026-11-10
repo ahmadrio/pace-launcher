@@ -349,7 +349,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Quicklinks: rows in root search, and a mode that asks for the text.
         var activeQuicklink: Quicklink?
         let openQuicklink: (Quicklink, String) -> Void = { [weak self] link, text in
-            if !QuicklinkOpener.open(link, query: text) {
+            switch QuicklinkOpener.open(link, query: text) {
+            case .opened:
+                break
+            case .openedInDefault(let missing):
+                self?.hud?.show("\(missing) not found; opened in the default browser.", isError: true)
+            case .failed:
                 self?.hud?.show("Could not open this quicklink.", isError: true)
             }
         }

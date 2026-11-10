@@ -10,12 +10,15 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
     public var keyword: String?
     /// The template: "{query}" (any case) marks where the text goes.
     public var url: String
+    /// The bundle id of the app to open it with; nil for the default browser.
+    public var browser: String?
 
-    public init(id: UUID = UUID(), name: String, keyword: String?, url: String) {
+    public init(id: UUID = UUID(), name: String, keyword: String?, url: String, browser: String? = nil) {
         self.id = id
         self.name = name
         self.keyword = keyword
         self.url = url
+        self.browser = browser
     }
 
     /// A stable id for an entry written without one (settings.json by hand):
@@ -28,7 +31,7 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
                            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
     }
 
-    private enum CodingKeys: String, CodingKey { case id, name, keyword, url }
+    private enum CodingKeys: String, CodingKey { case id, name, keyword, url, browser }
 
     /// A missing id (an entry written by hand) gets `derivedID`, so the entry
     /// is kept and keeps the same id every time it is read.
@@ -37,6 +40,7 @@ public struct Quicklink: Codable, Sendable, Equatable, Identifiable {
         name = try container.decode(String.self, forKey: .name)
         url = try container.decode(String.self, forKey: .url)
         keyword = try container.decodeIfPresent(String.self, forKey: .keyword)
+        browser = try? container.decodeIfPresent(String.self, forKey: .browser)
         // A hand-written id that is not a UUID ("wiki") counts as no id.
         id = (try? container.decodeIfPresent(UUID.self, forKey: .id)) ?? Self.derivedID(name: name, url: url)
     }

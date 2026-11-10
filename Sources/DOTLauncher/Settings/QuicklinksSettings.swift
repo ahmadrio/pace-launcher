@@ -1,3 +1,4 @@
+import AppKit
 import DOTLauncherCore
 import Observation
 import SwiftUI
@@ -112,6 +113,16 @@ struct QuicklinksSettings: View {
         }
     }
 
+    /// Installed browsers, plus the saved one when it is not installed here.
+    private var browserChoices: [(name: String, bundleID: String)] {
+        var choices = QuicklinkOpener.browsers()
+        if let saved = editor.draft?.browser, !choices.contains(where: { $0.bundleID == saved }) {
+            let installed = NSWorkspace.shared.urlForApplication(withBundleIdentifier: saved) != nil
+            choices.append((installed ? QuicklinkOpener.name(of: saved) : saved + " (not found)", saved))
+        }
+        return choices
+    }
+
     private var form: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider()
@@ -123,6 +134,13 @@ struct QuicklinksSettings: View {
                 .accessibilityIdentifier("quicklink-keyword")
             TextField("URL, such as https://example.com/search?q={query}", text: Binding(get: { editor.draft?.url ?? "" }, set: { editor.draft?.url = $0 }))
                 .accessibilityIdentifier("quicklink-url")
+            Picker("Open with", selection: Binding(get: { editor.draft?.browser ?? "" }, set: { editor.draft?.browser = $0.isEmpty ? nil : $0 })) {
+                Text("Default browser").tag("")
+                ForEach(browserChoices, id: \.bundleID) { browser in
+                    Text(browser.name).tag(browser.bundleID)
+                }
+            }
+            .accessibilityIdentifier("quicklink-browser")
             if let message = editor.message {
                 Text(message)
                     .font(.system(size: 11))

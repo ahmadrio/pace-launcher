@@ -1,0 +1,43 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-11-11-tahap-23.md
+
+Pre-flight:
+- Task 1 → Task 3: AppVersion/GitHubRelease/UpdateCheck/checkForUpdates produced = consumed. OK.
+- Task 2 → Task 4: PermissionChecklist/PermissionFacts/ClipboardPermission/MachineDefaults produced = consumed. OK.
+- Task 2 → Task 3: MachineDefaults.key used for lastUpdateCheck/announcedUpdateVersion. OK.
+- Task 3 → Task 4: UpdateChecker.isPaused/checkIfDue produced in 3, set in 4. OK.
+Task 1: complete (commits 6d0a78d..2166a89, tests: swift test → ✔ Test run with 392 tests in 68 suites passed after 0.603 seconds.)
+Task 2: Ruling: rows are a PermissionRow struct (Identifiable), not a tuple — SwiftUI ForEach needs Identifiable and key paths on tuples are fragile — cost if wrong: none, same fields; PermissionState/Kind also Hashable.
+Task 2: complete (commits 2166a89..54079c4, tests: swift test → ✔ Test run with 398 tests in 69 suites passed after 0.613 seconds.)
+Task 3: Ruling: the found release is remembered (UserDefaults `availableUpdateTag`, scoped) and restored at launch while newer than this build — plan step 5.2 expected the menu item to vanish after a relaunch, but Review Focus #4 says it stays; test `restores a remembered release from its tag` RED→GREEN, UI: relaunch kept "Download PACE Launcher 9.9.9…" with no new GET, a stored v1.0.0 was ignored — cost if wrong: one extra defaults key.
+Task 3: Ruling: HUD measured one line only (fittingSize), so lineLimit(2) never wrapped and long messages were cut (also the existing Automation message) — fixed by measuring with the 520 pt width when the one-line size hits it; UI RED screenshot t23-hud (cut "…with…") → GREEN t23-hud-wrap (two lines) — cost if wrong: HUD layout only.
+Task 3: Ruling: announce HUD text depends on the menu bar icon ("Download it from the menu bar." / "Run “Check for Updates” to download it.") so it fits — cost if wrong: copy only.
+Task 3: Ruling: launcher command title becomes "Download PACE Launcher <v>" when a release is known (⏎ then downloads); alias "check for updates" keeps it findable — cost if wrong: copy only.
+Task 3: Ruling: scratchpad guardtype gained a guarded ESC token (same focus guard) to close the launcher in UI checks — test tool only.
+Task 3: UI check (test folders, local server): auto check 1 GET → HUD; relaunch within 24 h → 0 GET; manual: available/up to date/no release/offline dialogs read through AX and closed with their buttons; toggle off + relaunch → 0 GET in 20 s; toggle on → 1 GET at once; Settings section and launcher row screenshotted. Download never clicked.
+Task 3: complete (commits 54079c4..ae5a85d, tests: swift test → ✔ Test run with 399 tests in 69 suites passed after 0.621 seconds.)
+Task 4: Ruling: Input Monitoring counts as granted whenever auto-expand's keyboard tap runs — on Pace's Mac the tap runs while CGPreflightListenEventAccess says no (HANDOFF already notes it), and the first screenshot showed "Not granted" next to a menu saying "granted"; test case in `maps each permission` RED→GREEN — cost if wrong: a Mac where the tap runs without the grant shows Granted, which matches what works.
+Task 4: Ruling: long texts in the welcome window got `.fixedSize(horizontal: false, vertical: true)` and the state column a fixed 160 pt width — the first screenshot cut purposes and the Automation label; second screenshot shows everything — cost if wrong: layout only.
+Task 4: Ruling: "Open Settings…" for Paste from Other Apps opens the Privacy & Security pane (as the menu bar does), not a `Privacy_Pasteboard` anchor — an unknown anchor fails silently and cannot be checked — cost if wrong: one extra click for the user.
+Task 4: Ruling: no light-mode screenshot — switching appearance needs Toggle Dark Mode, whose Automation grant for the new bundle ID would show a macOS prompt Pace has to answer; the window uses only semantic colours (.green/.orange/.secondary, quaternary fills) like Settings, checked in light in tahap 18–19 — cost if wrong: a contrast issue in light mode.
+Task 4: Ruling: Done and Open Launcher got AX identifiers (`welcome-done`, `welcome-open-launcher`) for UI checks; SwiftUI buttons have no AX title.
+Task 4: UI check (test folders): fresh flag → welcome shown, 0 GET in 20 s while open; Done → closed + 1 GET; relaunch → no window; menu "Welcome & Permissions…" reopens; Open Launcher closes it and shows the panel; `izin` finds the command; defaults hold only `.testData` keys.
+Task 4: complete (commits ae5a85d..b0d23f0, tests: swift test → ✔ Test run with 399 tests in 69 suites passed after 0.638 seconds.)
+Task 5: cleanup done — app quit and removed from ~/Applications, override and .testData keys deleted (defaults back to the 4 earlier keys), server stopped, clipboard hash unchanged (empty before and after).
+Task 5: complete (commits b0d23f0..1013409, tests: swift test → ✔ Test run with 399 tests in 69 suites passed after 0.599 seconds.)
+Extra (Pace's request 05:45): menu bar icon too small — measured in the real menu bar: P 12 pt tall vs other apps' icons 16–17 pt (RED); letter scaled to 16 pt, lines scale with it, canvas 24×18, status item variableLength; real menu bar after: 16.0 pt, same top/bottom as the globe icon (GREEN); off-main draw harness exit 0; menu still opens. Commit after the review range.
+Task 4: Ruling: the welcome window is centred on every open, without a saved frame (plan said autosave `PACEWelcomeWindow`) — a first-run window belongs in the middle — cost if wrong: none.
+Final review: Opus reviewer on 048c9a6..1013409 — no Critical, 1 Important, 9 Minor; all 5 Review Focus items pass; no ruling judged wrong.
+Final: fixed Important 1 (closing the launcher while the welcome window is open hid it behind other apps and lifted the update pause) — UI RED on the pre-fix build: after a guarded Esc PACE inactive and the welcome window gone from the screen (full-screen screenshot, frontapp = Warp); GREEN: PACE active, window in front (screenshot); `isOpen` flag drives both `isPaused` and `canHideApp`; suite 401/401.
+Final: fixed Minor 3 re-graded Important (a non-version tag counted as failure → hourly retries on every install, against spec and RELEASING.md) — test `a release whose tag is not a version is not new` RED→GREEN, suite 401/401.
+Final: fixed Minor 4 re-graded Important (one request despite "off" while settings.json is an iCloud placeholder; spec anti-goal) — test `automatic checks need every condition` RED (missing function) → GREEN; UpdateChecker uses `UpdateCheck.mayCheckAutomatically`; suite 401/401.
+Final: fixed Minor 2 re-graded Important (Download then deactivate() could leave the browser behind) — no deactivate after Download; NOT verified by a failing test: clicking Download opens github.com, which tests must not do. Reasoned from cooperative activation only.
+Final: fixed Minor 5 (INSTALL.md described the launcher command wrongly once an update is known) — doc only; also HANDOFF alias list gained `onboarding` (Minor 9).
+Final: Ruling: Minor 1 (closing Settings sends the welcome window behind) — not reproduced: with the welcome window open, opening and closing Settings left PACE frontmost (t6/frontapp) and the window listed; code stands — cost if wrong: the welcome window falls behind after Settings, reopenable from the menu bar.
+Final: Ruling: "Declined to judge" — after "Open Launcher", window commands in that launcher session target the last remembered app (PanelController keeps the previous targetApp when PACE is frontmost) — rare path, no data at risk — cost if wrong: one snap acts on the earlier app.
+Final: Ruling: "Declined to judge" — commit 2dea3cc (menu bar icon size) was outside the review range; verified by measurement in the real menu bar (16.0 pt, same as neighbours) and the off-main draw harness — cost if wrong: icon looks off.
+Final: Ruling: the Paste from Other Apps row says "Granted" where the spec table says "Allowed" — one word for all rows reads more consistently — cost if wrong: copy only.
+Final: Ruling: UI check measurement — System Events `visible of process` always reads false for PACE; the first "RED" was invalid and redone with NSRunningApplication.isHidden/isActive plus full-screen screenshots.
+Final: minor (deferred): a manual check without CFBundleShortVersionString shows no dialog (never happens in a built app).
+Final: minor (deferred): the 10 s timeout is an idle timeout; a trickling server can keep "Check Now" disabled longer (set timeoutIntervalForResource ≈ 15 s).
+Final: minor (deferred): runModal runs a nested run loop; a second alert could stack if two manual checks finish while one is shown.
+Final: minor (deferred): PermissionStatus refreshes once more after cancellation (harmless).

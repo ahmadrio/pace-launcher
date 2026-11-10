@@ -33,7 +33,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 | Snippets | Ketik nama atau keyword di root, lalu ⏎ untuk paste. Placeholder: `{date}`, `{time}`, `{datetime}`, `{clipboard}`. |
 | Notes | "Open Notes", "Create Note", "Search Notes". Jendela floating Markdown dengan autosave. |
 | **Settings** | ⌘, atau perintah "Settings". Bagian General, Appearance, **Shortcuts**, Snippets, Scripts, Sync. |
-| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi saat file kembali. Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
+| **Shortcuts** | Settings › Shortcuts: klik, tekan kombinasi baru. Esc batal, ⌫ hapus. Konflik dengan shortcut DOT lain atau macOS ditolak. Open DOT Launcher wajib punya shortcut. Shortcut default clipboard/jendela tetap mati selama Maccy/Rectangle berjalan; kombinasi pilihan sendiri tidak. Grup **Commands**: Translate, AI Chat, AI Chat History, Open/Create/Search Notes, Search/Create Snippet, Settings (default kosong). Grup **Scripts**: setiap script command (default kosong); skrip dengan konfirmasi dijalankan dengan menekan shortcut-nya dua kali, skrip berargumen membuka form, `fullOutput` membuka panel, sisanya berjalan dengan HUD. Shortcut skrip yang filenya hilang tetap tersimpan ("Not found on this Mac") dan aktif lagi setelah file kembali dan daftar skrip dibaca ulang (saat launcher atau Settings dibuka; belum ada pemantauan folder). Shortcut standar app (⌘C, ⌘V, ⌘Q, ⌘1–9, …) ditolak, juga kalau ditulis langsung di `settings.json`. |
 | **Tema** | Settings › Appearance: preset (Default, Midnight, Paper, Sunset, Graphite), warna aksen, kepadatan kaca, dan mode System/Light/Dark. Perubahan langsung terlihat. |
 | **Auto-expand snippet** | Ketik keyword snippet (misalnya `;addr`) di app mana pun, dan teksnya langsung diganti. Tidak berjalan di DOT sendiri atau di app yang dikecualikan (Settings › Snippets). Clipboard dikembalikan setelahnya. Editor snippet memperingatkan keyword yang bentrok. |
 | **Script commands** | Skrip apa pun dengan header `# @dot.title` atau `# @raycast.title` di folder `Scripts/`, atau di folder tambahan (Settings › Scripts › Add Folder…). Mode `fullOutput` (output di panel), `compact`/`silent` (HUD), dan `inline` (subtitle diperbarui). Mendukung argumen (text, password, dropdown) dan `needsConfirmation`. Esc menghentikan skrip, output dibatasi 1 MB. ⌘⇧X menjadikan skrip executable. Perintah "Create Script Command". |
@@ -61,7 +61,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
 
 ## Cara kerja
 ```
-make test     # 297 test Core (Swift Testing)
+make test     # 301 test Core (Swift Testing)
 make run      # build, tanda tangani, pasang ke ~/Applications, buka
 make logs     # log stream subsystem com.pace.DOTLauncher (termasuk debug)
 make reset-tcc
@@ -105,7 +105,8 @@ make reset-tcc
 - **Jangan tekan ⌥Space di atas Finder saat launcher dipindah ke kombinasi lain:** Finder membuka Quick Look layar penuh.
 - **Registry hotkey memakai id, bukan judul:** `HotKeyCenter` dikunci dengan `ShortcutID.rawValue` (`script.tools/deploy.sh`), karena dua skrip bisa berjudul sama. Menu bar dan log memakai `title`.
 - **Singkatan angka vs unit:** unit selalu dicek lebih dulu, jadi `10k to c` adalah kelvin dan `1 m to ft` meter. Singkatan hanya dipakai kalau sisanya bukan unit (`10k usd`, `1k km`). `M`/`B`/`T` sengaja tidak didukung.
-- **Translation framework tidak berhenti saat dibatalkan:** Esc saat "Translating…" membiarkan terjemahan jawaban selesai (tanpa error). Jalur yang melempar error (batal/gagal) ditangani `ChatRunEnd` dan dites di Core.
+- **Translation framework tidak berhenti saat dibatalkan:** panggilan terjemahan yang sedang berjalan tetap selesai. Karena itu jawaban diterjemahkan balik per paragraf (`MarkdownSegments.translateProse`), dengan cek pembatalan sebelum tiap paragraf. Esc saat "Translating…" berhenti di paragraf berikutnya dan menyimpan jawaban bahasa Inggris (`ChatRunEnd`). Membuka chat yang sedang menjawab menunggu paling lama satu paragraf.
+- **Snapshot clipboard tidak membaca TIFF di samping PNG:** membaca TIFF yang ditawarkan lazy akan membuatnya di tengah paste (auto-expand sensitif terhadap jeda). Snapshot menyalin PNG saja dan menawarkan TIFF lazy lagi saat restore (`ClipboardFilter.snapshotTypes`).
 - **Ketikan uji UI harus dijaga:** panel DOT bisa tertutup di antara langkah, dan ketikan berikutnya jatuh ke app terdepan (Warp: ⌘N membuka jendela baru). Kirim tombol hanya setelah memastikan `AXFocusedUIElement` DOT adalah kolom teks. Jangan kirim Esc/⌘W tanpa penjaga: Esc di terminal tempat Claude Code berjalan menghentikan sesi. Tutup Settings lewat tombol close AX.
 - **Menunggu "Translating…" di uji UI:** pakai OCR Vision (`VNRecognizeTextRequest`) pada screenshot panel, lalu kirim Esc dari alat yang sama.
 - **Dokumen TextEdit uji:** `make new document with properties {name: …}` memunculkan dialog "You don't own the file" saat isinya diubah. Klik Cancel lalu tutup dengan `saving no`.
@@ -117,7 +118,7 @@ make reset-tcc
 - Auto-expand berjalan tanpa izin Input Monitoring baru di Mac ini. Di Mac lain, izin itu mungkin perlu diberikan (Settings › Snippets menampilkan statusnya).
 - Paste memakai `kVK_ANSI_V`, jadi bisa meleset di layout keyboard non-QWERTY.
 - Snapping app Chromium/Electron dan multi-monitor belum diuji manual.
-- Kalkulator belum mendukung singkatan angka (`1jt`, `10k`) dan kripto. Kurs tanpa target hanya untuk simbol, nama, dan 21 kode umum; kode lain butuh target (`10 nok to idr`).
+- Kalkulator belum mendukung kripto dan singkatan huruf tunggal selain `k` (`M`, `B`, `T` sengaja ditolak). Kurs tanpa target hanya untuk simbol, nama, dan 21 kode umum; kode lain butuh target (`10 nok to idr`).
 - Di Mac Pace, ⌃⌥⌘M dipakai app lain sehingga tidak bisa direkam.
 - Gambar clipboard tidak dibatasi total ukurannya (riwayat tanpa batas, sama seperti teks).
 - Konflik shortcut dengan app lain hanya terdeteksi saat macOS menolak mendaftarkannya ("Couldn't register"); app yang menangkap kombinasi lewat event tap tidak terdeteksi.

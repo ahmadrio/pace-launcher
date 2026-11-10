@@ -320,25 +320,11 @@ final class AIChatController {
         await save(end.saved, chat: chat)
     }
 
-    /// Translates prose back to `language`; code is left as written.
+    /// Translates prose back to `language`, a paragraph at a time; code is
+    /// left as written. Esc stops before the next paragraph.
     private func translateProse(of markdown: String, to language: String) async throws -> String {
         let direction = TranslationDirection(source: "en", target: language)
-        var result: [MarkdownSegment] = []
-        for segment in MarkdownSegments.split(markdown) {
-            guard case .prose(let prose) = segment else {
-                result.append(segment)
-                continue
-            }
-            // Translate the words but keep surrounding blank lines and spaces.
-            let core = prose.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !core.isEmpty, let range = prose.range(of: core) else {
-                result.append(segment)
-                continue
-            }
-            let translated = try await translator.translate(core, direction)
-            result.append(.prose(String(prose[..<range.lowerBound]) + translated + String(prose[range.upperBound...])))
-        }
-        return MarkdownSegments.join(result)
+        return try await MarkdownSegments.translateProse(markdown) { try await self.translator.translate($0, direction) }
     }
 
     private func update(_ id: UUID, _ change: (inout ChatMessage) -> Void) {

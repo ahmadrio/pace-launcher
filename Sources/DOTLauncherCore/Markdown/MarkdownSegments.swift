@@ -63,4 +63,42 @@ public enum MarkdownSegments {
         }
         return nil
     }
+
+    /// Translates the prose of `markdown` paragraph by paragraph, keeping
+    /// code and the blank lines and spaces around each paragraph. Checks for
+    /// cancellation before every paragraph, because a translation already
+    /// under way may not stop when asked.
+    public static func translateProse(_ markdown: String, using translate: (String) async throws -> String) async throws -> String {
+        var result: [MarkdownSegment] = []
+        for segment in split(markdown) {
+            guard case .prose(let prose) = segment else {
+                result.append(segment)
+                continue
+            }
+            var translated = ""
+            for paragraph in paragraphs(of: prose) {
+                let core = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !core.isEmpty, let range = paragraph.range(of: core) else {
+                    translated += paragraph
+                    continue
+                }
+                try Task.checkCancellation()
+                translated += paragraph[..<range.lowerBound] + (try await translate(core)) + paragraph[range.upperBound...]
+            }
+            result.append(.prose(translated))
+        }
+        return join(result)
+    }
+
+    /// `prose` cut after each blank line; joining the pieces gives it back.
+    private static func paragraphs(of prose: String) -> [Substring] {
+        var pieces: [Substring] = []
+        var rest = prose[...]
+        while let gap = rest.range(of: #"\n[ \t]*\n\s*"#, options: .regularExpression) {
+            pieces.append(rest[..<gap.upperBound])
+            rest = rest[gap.upperBound...]
+        }
+        if !rest.isEmpty { pieces.append(rest) }
+        return pieces
+    }
 }

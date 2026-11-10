@@ -40,9 +40,7 @@ enum Paster {
             // built only if one asks (≈60 MB for a 5K image).
             let pasteItem = NSPasteboardItem()
             pasteItem.setData(png, forType: .png)
-            let provider = LazyTIFFProvider(png: png)
-            pasteItem.setDataProvider(provider, forTypes: [.tiff])
-            LazyTIFFProvider.current = provider
+            LazyTIFFProvider.attach(to: pasteItem, png: png)
             pasteboard.writeObjects([pasteItem])
             return true
         }
@@ -68,12 +66,19 @@ enum Paster {
 
 /// Makes the TIFF copy of a pasted image when an app asks for it. Kept
 /// alive until the pasteboard no longer needs it.
-private final class LazyTIFFProvider: NSObject, NSPasteboardItemDataProvider {
-    static var current: LazyTIFFProvider?
+final class LazyTIFFProvider: NSObject, NSPasteboardItemDataProvider {
+    private static var current: LazyTIFFProvider?
     private let png: Data
 
-    init(png: Data) {
+    private init(png: Data) {
         self.png = png
+    }
+
+    /// Offers `.tiff` on `item`, made from `png` only if someone reads it.
+    static func attach(to item: NSPasteboardItem, png: Data) {
+        let provider = LazyTIFFProvider(png: png)
+        item.setDataProvider(provider, forTypes: [.tiff])
+        current = provider
     }
 
     nonisolated func pasteboard(_ pasteboard: NSPasteboard?, item: NSPasteboardItem, provideDataForType type: NSPasteboard.PasteboardType) {

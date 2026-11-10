@@ -17,6 +17,15 @@ public enum ClipboardFilter {
     /// Picture types an image clip is read from.
     public static let imageTypes: Set<String> = ["public.png", "public.tiff"]
 
+    /// The types a snapshot copies from one pasteboard item. A TIFF next to
+    /// a PNG is skipped: DOT's own image pastes make it only on request,
+    /// and building it is slow. `lazyTIFF` says to offer it again on restore.
+    public static func snapshotTypes(_ types: [String]) -> (copy: [String], lazyTIFF: Bool) {
+        let tiff: Set<String> = ["public.tiff", "NeXT TIFF v4.0 pasteboard type"]
+        guard types.contains("public.png"), types.contains(where: tiff.contains) else { return (types, false) }
+        return (types.filter { !tiff.contains($0) }, true)
+    }
+
     /// A copy is an image clip when it carries a picture and nothing else
     /// worth keeping: no files and no text. Spreadsheet cells come with a
     /// picture of themselves, but their text is what people paste.

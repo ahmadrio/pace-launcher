@@ -45,3 +45,41 @@ struct MarkdownSegmentsTests {
         #expect(MarkdownSegments.join(MarkdownSegments.split(text)) == text)
     }
 }
+
+struct ProseTranslationTests {
+    private let markdown = "First paragraph.\n\nSecond paragraph.\n\n```\ncode\n```\n\nThird."
+
+    @Test func `prose is translated paragraph by paragraph and code is kept`() async throws {
+        var calls: [String] = []
+        let result = try await MarkdownSegments.translateProse(markdown) { text in
+            calls.append(text)
+            return text.uppercased()
+        }
+        #expect(result == "FIRST PARAGRAPH.\n\nSECOND PARAGRAPH.\n\n```\ncode\n```\n\nTHIRD.")
+        #expect(calls == ["First paragraph.", "Second paragraph.", "Third."])
+    }
+
+    @Test func `translation stops before the next paragraph once cancelled`() async {
+        let text = markdown
+        let task = Task { () -> (Result<String, any Error>, Int) in
+            var calls = 0
+            do {
+                let result = try await MarkdownSegments.translateProse(text) { paragraph in
+                    calls += 1
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    return paragraph
+                }
+                return (.success(result), calls)
+            } catch {
+                return (.failure(error), calls)
+            }
+        }
+        let (result, calls) = await task.value
+        #expect(calls == 1)
+        guard case .failure(let error) = result else {
+            Issue.record("expected a cancellation")
+            return
+        }
+        #expect(error is CancellationError)
+    }
+}

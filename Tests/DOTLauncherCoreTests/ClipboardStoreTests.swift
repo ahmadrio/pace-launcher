@@ -167,3 +167,17 @@ struct ClipboardFilterTests {
         #expect(!ClipboardFilter.shouldIgnore(types: ["public.file-url"], text: nil, hasFiles: true))
     }
 }
+
+struct SnapshotTypesTests {
+    @Test func `a TIFF next to a PNG is skipped and offered again lazily`() {
+        let types = ["public.png", "Apple PNG pasteboard type", "public.tiff", "NeXT TIFF v4.0 pasteboard type"]
+        let plan = ClipboardFilter.snapshotTypes(types)
+        #expect(plan.copy == ["public.png", "Apple PNG pasteboard type"])
+        #expect(plan.lazyTIFF)
+    }
+
+    @Test func `a TIFF alone and other types are copied as they are`() {
+        #expect(ClipboardFilter.snapshotTypes(["public.tiff"]) == (["public.tiff"], false))
+        #expect(ClipboardFilter.snapshotTypes(["public.utf8-plain-text", "public.rtf"]) == (["public.utf8-plain-text", "public.rtf"], false))
+    }
+}

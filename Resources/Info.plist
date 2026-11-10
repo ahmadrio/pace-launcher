@@ -24,6 +24,8 @@
 	<string>27.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>DOT Launcher sends commands to macOS, Finder and System Events to restart, shut down, empty the Trash and switch dark mode.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

@@ -2,15 +2,20 @@ import AppKit
 import DOTLauncherCore
 
 /// Carries out a `SystemCommand`. `DOTSystemCommandDryRun` (a test hook,
-/// like DOTDataRootOverride) only logs, so UI checks never lock, sleep or
-/// log out the Mac.
+/// like DOTDataRootOverride) only logs, so UI checks never lock, sleep, log
+/// out, restart, shut down, empty the Trash or switch the appearance.
 enum SystemCommandRunner {
     static var isDryRun: Bool { UserDefaults.standard.bool(forKey: "DOTSystemCommandDryRun") }
 
     /// False when the command posts keys and Accessibility is not granted.
-    /// `onFocusStuck` runs when DOT could not give up keyboard focus.
+    /// `onFocusStuck` runs when DOT could not give up keyboard focus;
+    /// `onScriptEnd` when an AppleScript command's osascript has finished.
     @discardableResult
-    static func run(_ command: SystemCommand, onFocusStuck: @escaping @MainActor () -> Void = {}) -> Bool {
+    static func run(
+        _ command: SystemCommand,
+        onFocusStuck: @escaping @MainActor () -> Void = {},
+        onScriptEnd: @escaping @MainActor (AppleScriptEnd) -> Void = { _ in }
+    ) -> Bool {
         // A dry run posts nothing, so it needs no permission (and no prompt).
         if command.needsAccessibility, !isDryRun, !KeyboardPaste.canPost {
             AccessibilityPermission.prompt()
@@ -63,8 +68,38 @@ enum SystemCommandRunner {
             NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: path), configuration: NSWorkspace.OpenConfiguration()) { _, error in
                 if let error { log.error("opening \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)") }
             }
+        case .appleScript(let source, _):
+            runAppleScript(source, for: command, onEnd: onScriptEnd)
         }
         return true
+    }
+
+    /// osascript is a child of DOT, so macOS asks (and remembers) Automation
+    /// for DOT Launcher; it runs off the main thread, which matters while
+    /// the permission dialog or macOS's restart dialog is up.
+    private static func runAppleScript(_ source: String, for command: SystemCommand, onEnd: @escaping @MainActor (AppleScriptEnd) -> Void) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", source]
+        let errors = Pipe()
+        process.standardError = errors
+        process.standardOutput = FileHandle.nullDevice
+        let log = Log.app
+        let name = command.rawValue
+        process.terminationHandler = { process in
+            let output = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            let end = AppleScriptEnd(status: process.terminationStatus, errorOutput: output)
+            if end != .done {
+                log.notice("system command \(name, privacy: .public) ended: \(String(describing: end), privacy: .public)")
+            }
+            Task { @MainActor in onEnd(end) }
+        }
+        do {
+            try process.run()
+        } catch {
+            log.error("\(name, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            onEnd(.failed(error.localizedDescription))
+        }
     }
 
     private static func post(_ combo: KeyCombo) {

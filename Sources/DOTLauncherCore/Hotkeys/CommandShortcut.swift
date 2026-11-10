@@ -15,6 +15,7 @@ public enum CommandShortcut: String, CaseIterable, Sendable {
     case sleep
     case sleepDisplays = "sleep-displays"
     case screenSaver = "screen-saver"
+    case toggleDarkMode = "toggle-dark-mode"
 
     public var title: String {
         switch self {
@@ -32,6 +33,7 @@ public enum CommandShortcut: String, CaseIterable, Sendable {
         case .sleep: "Sleep"
         case .sleepDisplays: "Sleep Displays"
         case .screenSaver: "Start Screen Saver"
+        case .toggleDarkMode: "Toggle Dark Mode"
         }
     }
 }

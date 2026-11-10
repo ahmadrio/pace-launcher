@@ -72,13 +72,28 @@ struct EmojiCatalogTests {
         for character in ["❤️", "🔥", "🇮🇩"] {
             #expect(toned(character, .medium) == character, "\(character)")
         }
-        #expect(toned("👍", .none) == "👍")
+        #expect(toned("👍", .default) == "👍")
         let thumbs = EmojiCatalog.toned(Emoji(character: "👍", name: "Thumbs up", keywords: ["like"]), skinTone: .light)
         #expect(thumbs.name == "Thumbs up")
         #expect(thumbs.keywords == ["like"])
-        #expect(EmojiSkinTone.dark.next == .none)
-        #expect(EmojiSkinTone.none.next == .light)
+        #expect(EmojiSkinTone.dark.next == .default)
+        #expect(EmojiSkinTone.default.rawValue == "none")
+        #expect(EmojiSkinTone.default.next == .light)
         #expect(EmojiSkinTone.allCases.map(\.title) == ["Default", "Light", "Medium-Light", "Medium", "Medium-Dark", "Dark"])
         #expect(EmojiSkinTone.allCases.map { $0.modifier ?? "" } == ["", "🏻", "🏼", "🏽", "🏾", "🏿"])
+    }
+
+    @Test func `toned emoji are base plus modifier or unchanged`() {
+        let medium = Unicode.Scalar(0x1F3FD)!
+        for emoji in all {
+            let toned = EmojiCatalog.toned(emoji, skinTone: .medium).character
+            guard toned != emoji.character else { continue }
+            #expect(Array(toned.unicodeScalars) == [emoji.character.unicodeScalars.first!, medium], "\(emoji.name)")
+        }
+        // Unicode bases with no standard toned form.
+        for character in ["👪", "👯", "🤼"] {
+            let emoji = Emoji(character: character, name: "x", keywords: [])
+            #expect(EmojiCatalog.toned(emoji, skinTone: .medium).character == character, "\(character)")
+        }
     }
 }

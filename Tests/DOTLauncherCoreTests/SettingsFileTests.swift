@@ -116,10 +116,13 @@ struct SettingsFileTests {
         }
         #expect(try decode(#"{"emojiSkinTone": "medium"}"#).emojiSkinTone == .medium)
         let unknown = try decode(#"{"emojiSkinTone": "purple", "showMenuBarIcon": false}"#)
-        #expect(unknown.emojiSkinTone == .none)
+        #expect(unknown.emojiSkinTone == .default)
         #expect(!unknown.showMenuBarIcon)
-        #expect(try decode(#"{"emojiSkinTone": 3}"#).emojiSkinTone == .none)
-        #expect(try decode("{}").emojiSkinTone == .none)
+        #expect(try decode(#"{"emojiSkinTone": 3}"#).emojiSkinTone == .default)
+        #expect(try decode(#"{"emojiSkinTone": "none"}"#).emojiSkinTone == .default)
+        #expect(try decode("{}").emojiSkinTone == .default)
+        let written = String(decoding: try JSONEncoder().encode(SettingsData()), as: UTF8.self)
+        #expect(written.contains(#""emojiSkinTone":"none""#))
         var data = SettingsData()
         data.emojiSkinTone = .mediumDark
         let copy = try JSONDecoder().decode(SettingsData.self, from: JSONEncoder().encode(data))

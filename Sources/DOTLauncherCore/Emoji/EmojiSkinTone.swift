@@ -1,11 +1,13 @@
 /// One skin tone for every hand and person emoji, as Unicode's five
 /// modifiers (Fitzpatrick types) plus the default yellow.
 public enum EmojiSkinTone: String, CaseIterable, Codable, Sendable {
-    case none, light, mediumLight, medium, mediumDark, dark
+    /// Stored as "none" in settings.json.
+    case `default` = "none"
+    case light, mediumLight, medium, mediumDark, dark
 
     public var title: String {
         switch self {
-        case .none: "Default"
+        case .default: "Default"
         case .light: "Light"
         case .mediumLight: "Medium-Light"
         case .medium: "Medium"
@@ -17,7 +19,7 @@ public enum EmojiSkinTone: String, CaseIterable, Codable, Sendable {
     /// The modifier placed after the base emoji; nil for the default.
     public var modifier: String? {
         switch self {
-        case .none: nil
+        case .default: nil
         case .light: "\u{1F3FB}"
         case .mediumLight: "\u{1F3FC}"
         case .medium: "\u{1F3FD}"

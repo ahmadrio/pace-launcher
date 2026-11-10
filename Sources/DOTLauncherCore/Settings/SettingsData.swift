@@ -16,7 +16,7 @@ public struct SettingsData: Codable, Sendable, Equatable {
     /// Saved URLs for the launcher.
     public var quicklinks: [Quicklink] = Quicklink.defaults
     /// Applied to hand and person emoji when they are pasted.
-    public var emojiSkinTone = EmojiSkinTone.none
+    public var emojiSkinTone = EmojiSkinTone.default
 
     public init() {}
 

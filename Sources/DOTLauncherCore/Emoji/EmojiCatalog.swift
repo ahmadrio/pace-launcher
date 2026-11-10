@@ -43,10 +43,15 @@ public enum EmojiCatalog {
     /// since the modifier already asks for colour (☝️ → ☝🏽).
     public static func toned(_ emoji: Emoji, skinTone: EmojiSkinTone) -> Emoji {
         guard let modifier = skinTone.modifier,
-              let base = emoji.character.unicodeScalars.first, base.properties.isEmojiModifierBase
+              let base = emoji.character.unicodeScalars.first, base.properties.isEmojiModifierBase,
+              !untonedBases.contains(base.value)
         else { return emoji }
         return Emoji(character: String(base) + modifier, name: emoji.name, keywords: emoji.keywords)
     }
+
+    /// Modifier bases with no standard toned form (👪 👯 🤼): apps that
+    /// draw their own emoji would show the base plus a colour swatch.
+    private static let untonedBases: Set<UInt32> = [0x1F46A, 0x1F46F, 0x1F93C]
 
     // Prepared once: building the fuzzy targets on every keystroke is slow.
     private static let candidates = all.map { SearchCandidate(id: $0.character, title: $0.name, aliases: $0.keywords) }

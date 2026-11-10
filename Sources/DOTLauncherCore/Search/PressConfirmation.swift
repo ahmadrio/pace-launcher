@@ -21,6 +21,20 @@ public struct PressConfirmation {
         return false
     }
 
+    /// For a press whose "press again" notice can disappear (typing,
+    /// moving, reopening): once the notice is gone, the earlier press no
+    /// longer counts, so this one only arms again.
+    public mutating func press(_ id: String, at date: Date, stillShown: Bool) -> Bool {
+        if !stillShown { reset() }
+        return press(id, at: date)
+    }
+
+    /// True while a press of `id` would confirm.
+    public func isArmed(_ id: String, at date: Date) -> Bool {
+        guard armedID == id, let armedAt else { return false }
+        return date.timeIntervalSince(armedAt) < window
+    }
+
     public mutating func reset() {
         armedID = nil
         armedAt = nil

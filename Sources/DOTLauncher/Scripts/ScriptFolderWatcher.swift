@@ -1,4 +1,5 @@
 import CoreServices
+import DOTLauncherCore
 import Foundation
 
 /// Tells the app when files change in the script folders (FSEvents, half a
@@ -8,14 +9,18 @@ final class ScriptFolderWatcher {
     private let onChange: () -> Void
     private var stream: FSEventStreamRef?
     private var watched: [String] = []
+    /// The script folders themselves, for telling which changes matter.
+    private var folders: [String] = []
 
     init(onChange: @escaping () -> Void) {
         self.onChange = onChange
     }
 
-    /// Watches the folders that exist; does nothing when that set is unchanged.
+    /// Watches the folders, or the parent of one that does not exist yet;
+    /// does nothing when that is unchanged.
     func watch(_ folders: [URL]) {
-        let paths = folders.map(\.path).filter { FileManager.default.fileExists(atPath: $0) }.sorted()
+        self.folders = folders.map(\.path)
+        let paths = ScriptFolderEvents.watchPaths(for: self.folders) { FileManager.default.fileExists(atPath: $0) }
         guard paths != watched else { return }
         stop()
         watched = paths
@@ -25,7 +30,8 @@ final class ScriptFolderWatcher {
         )
         guard let stream = FSEventStreamCreate(
             nil, scriptFolderEventCallback, &context, paths as CFArray,
-            FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.5, FSEventStreamCreateFlags(kFSEventStreamCreateFlagNone)
+            FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.5,
+            FSEventStreamCreateFlags(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents)
         ) else {
             Log.app.error("could not watch the script folders")
             return
@@ -43,7 +49,11 @@ final class ScriptFolderWatcher {
         self.stream = nil
     }
 
-    fileprivate func changed() {
+    /// Reloads only for changes the scanner can see: not .git, not deeper
+    /// than it looks, not Notes next to a missing Scripts folder.
+    fileprivate func changed(paths: [String]) {
+        guard paths.contains(where: { ScriptFolderEvents.isRelevant($0, folders: folders) }) else { return }
+        Log.app.debug("script folders changed")
         onChange()
     }
 }
@@ -54,11 +64,13 @@ private nonisolated func scriptFolderEventCallback(
     _ paths: UnsafeMutableRawPointer, _ flags: UnsafePointer<FSEventStreamEventFlags>, _ ids: UnsafePointer<FSEventStreamEventId>
 ) {
     guard let info else { return }
+    // With kFSEventStreamCreateFlagUseCFTypes, `paths` is a CFArray of CFString.
+    let changedPaths = (unsafeBitCast(paths, to: NSArray.self) as? [String]) ?? []
     // Raw pointers are not Sendable; pass the address. The watcher lives
     // as long as the app (AppDelegate keeps it).
     let address = UInt(bitPattern: info)
     MainActor.assumeIsolated {
         guard let pointer = UnsafeMutableRawPointer(bitPattern: address) else { return }
-        Unmanaged<ScriptFolderWatcher>.fromOpaque(pointer).takeUnretainedValue().changed()
+        Unmanaged<ScriptFolderWatcher>.fromOpaque(pointer).takeUnretainedValue().changed(paths: changedPaths)
     }
 }

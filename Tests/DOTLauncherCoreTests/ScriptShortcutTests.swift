@@ -91,4 +91,21 @@ struct ScriptShortcutTests {
         #expect(ScriptShortcut.shouldReapply(previous: same, current: same, anyUnavailable: true))
         #expect(ScriptShortcut.shouldReapply(previous: same, current: ["a.sh": "B"], anyUnavailable: false))
     }
+
+    @Test func `only script-relevant paths trigger a reload`() {
+        let folders = ["/tmp/main", "/x/extra"]
+        for path in ["/tmp/main", "/tmp/main/a.sh", "/tmp/main/a/b/c/d.sh", "/x/extra/tool.sh", "/tmp/main/"] {
+            #expect(ScriptFolderEvents.isRelevant(path, folders: folders), "\(path)")
+        }
+        for path in ["/tmp/main/a/b/c/d/e.sh", "/tmp/main/.git/index", "/tmp/main/sub/.hidden.sh", "/tmp/mainly/a.sh", "/tmp/Notes/n.md", "/tmp"] {
+            #expect(!ScriptFolderEvents.isRelevant(path, folders: folders), "\(path)")
+        }
+    }
+
+    @Test func `a missing folder is watched through its parent`() {
+        let existing: Set<String> = ["/tmp", "/x/extra"]
+        #expect(ScriptFolderEvents.watchPaths(for: ["/tmp/main", "/x/extra"], exists: existing.contains) == ["/tmp", "/x/extra"])
+        #expect(ScriptFolderEvents.watchPaths(for: ["/nowhere/main"], exists: existing.contains).isEmpty)
+    }
 }
+

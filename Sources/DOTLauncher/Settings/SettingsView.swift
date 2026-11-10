@@ -188,9 +188,19 @@ private struct GeneralSettings: View {
             }
             .frame(maxWidth: 260)
             .accessibilityIdentifier("emoji-skin-tone")
-            Text("Used for hand and person emoji. In the emoji picker, ⌘T switches it.")
+            Text("Used for hand and person emoji. In the emoji picker, ⌘T switches it, and ⌘⇧T gives one emoji its own.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
+            let own = settings.data.emojiSkinTones.count
+            if own > 0 {
+                HStack {
+                    Text(own == 1 ? "1 emoji has its own skin tone" : "\(own) emoji have their own skin tone")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Button("Reset") { settings.data.emojiSkinTones = [:] }
+                        .accessibilityIdentifier("reset-emoji-tones")
+                }
+            }
         }
     }
 }

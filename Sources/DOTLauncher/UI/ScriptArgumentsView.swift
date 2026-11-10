@@ -51,7 +51,8 @@ struct ScriptArgumentsView: View {
     let form: ScriptArgumentForm
     let submit: () -> Void
     let cancel: () -> Void
-    /// Runs once the first field has the keyboard (moves typed-ahead text).
+    /// Runs after focus is requested; moves typed-ahead text once the field
+    /// has the keyboard.
     let onFocused: () async -> Void
 
     @FocusState private var focused: Int?

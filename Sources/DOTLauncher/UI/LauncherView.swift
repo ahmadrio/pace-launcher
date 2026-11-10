@@ -109,8 +109,11 @@ private struct Footer: View {
     var body: some View {
         HStack(spacing: 16) {
             if let notice = model.notice {
+                // One line: a long notice is cut short rather than pushing
+                // the hints onto two lines.
                 Label(notice, systemImage: "info.circle")
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             } else {
                 Text(model.mode.title).foregroundStyle(.tertiary)
             }
@@ -138,12 +141,13 @@ private struct KeyHint: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(label).foregroundStyle(.secondary)
+            Text(label).foregroundStyle(.secondary).lineLimit(1)
             Text(key)
                 .font(.system(size: 11, weight: .medium))
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1)
                 .background(.quaternary, in: .rect(cornerRadius: 4))
         }
+        .fixedSize()
     }
 }

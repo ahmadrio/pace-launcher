@@ -315,8 +315,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.translator = translator
 
         // Emoji picker: ⏎ pastes into the previous app (the clipboard is put
-        // back), ⌘C copies, ⌘T changes the skin tone. Use is learned per base
-        // emoji, so changing the tone keeps the order.
+        // back), ⌘C copies, ⌘T changes the default skin tone and ⌘⇧T one
+        // emoji's own. Use is learned per base emoji, so tones keep the order.
         let settings = self.settings
         var emojiUsage: [String: Double] = [:]
         let recordEmojiUse: (String) -> Void = { id in
@@ -328,10 +328,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         model.handlers[.emoji] = LauncherModel.ModeHandler(
             results: { query in
-                let tone = settings.data.emojiSkinTone
-                return EmojiCatalog.search(query, usage: emojiUsage, limit: 60).map { found in
+                EmojiCatalog.search(query, usage: emojiUsage, limit: 60).map { found in
                     let id = "emoji:" + found.character
-                    let emoji = EmojiCatalog.toned(found, skinTone: tone)
+                    let emoji = EmojiCatalog.toned(found, skinTone: settings.data.skinTone(for: found))
+                    var actions = [SecondaryAction(title: "Copy", shortcut: .command("c"), action: .run {
+                        recordEmojiUse(id)
+                        TextPaster.copy(emoji.character)
+                    })]
+                    if EmojiCatalog.canTone(found) {
+                        actions.append(SecondaryAction(title: "Own Tone", shortcut: .command("t", shift: true), action: .stay {
+                            let own = EmojiSkinTone.cycleOverride(settings.data.emojiSkinTones[found.character])
+                            settings.data.emojiSkinTones[found.character] = own
+                            if let own {
+                                // The toned emoji already shows the colour.
+                                model.notice = "\(EmojiCatalog.toned(found, skinTone: own).character) skin tone: \(own.title)"
+                            } else {
+                                model.notice = "\(found.character) follows the default skin tone (\(settings.data.emojiSkinTone.title))"
+                            }
+                        }))
+                    }
                     return LauncherResult(
                         id: id, title: emoji.name, subtitle: emoji.keywords.joined(separator: ", "),
                         icon: .text(emoji.character), accessory: "Emoji", actionTitle: "Paste",
@@ -339,10 +354,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                             recordEmojiUse(id)
                             TextPaster.paste(emoji.character, monitor: clipboard?.monitor)
                         },
-                        secondaryActions: [SecondaryAction(title: "Copy", shortcut: .command("c"), action: .run {
-                            recordEmojiUse(id)
-                            TextPaster.copy(emoji.character)
-                        })]
+                        secondaryActions: actions
                     )
                 }
             },

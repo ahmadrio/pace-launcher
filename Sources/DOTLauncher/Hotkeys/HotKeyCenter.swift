@@ -102,6 +102,8 @@ final class HotKeyCenter {
     /// Records a hotkey that is intentionally not registered, so the status
     /// menu can explain why.
     func markDisabled(_ combo: KeyCombo, name: String, title: String, reason: String) {
+        // Already shown this way: rewriting it would only reorder the menu.
+        if entries.contains(where: { $0.name == name && $0.title == title && $0.combo == combo && $0.status == .disabled(reason) }) { return }
         unregister(name: name)
         record(Entry(name: name, title: title, combo: combo, status: .disabled(reason)))
     }

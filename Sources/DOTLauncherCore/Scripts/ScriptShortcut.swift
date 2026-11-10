@@ -15,6 +15,21 @@ public enum ScriptShortcut {
         scripts.first { self.key(for: $0, mainFolder: mainFolder) == key }
     }
 
+    /// key → title of every found script, to tell whether shortcuts need re-applying.
+    public static func fingerprint(of scripts: [ScriptCommand], mainFolder: URL) -> [String: String] {
+        Dictionary(scripts.map { (key(for: $0, mainFolder: mainFolder), $0.metadata.title) }) { first, _ in first }
+    }
+
+    /// Where a script lives, for telling same-titled scripts apart:
+    /// "Scripts", "Scripts/sub", or "~/bin" for an extra folder.
+    static func folderLabel(for script: ScriptCommand, mainFolder: URL) -> String {
+        let key = key(for: script, mainFolder: mainFolder)
+        let folder = (key as NSString).deletingLastPathComponent
+        if key.hasPrefix("/") { return (folder as NSString).abbreviatingWithTildeInPath }
+        let name = mainFolder.standardizedFileURL.lastPathComponent
+        return folder.isEmpty ? name : name + "/" + folder
+    }
+
     public enum Step: Equatable, Sendable { case notExecutable, fillArguments, confirm, runInPanel, runInBackground }
 
     /// The launcher's order: executable → arguments → confirmation → mode.
@@ -48,8 +63,13 @@ public enum ScriptShortcut {
     /// Found scripts sorted by title (case-insensitive), then saved script
     /// shortcuts with no script, sorted by key.
     public static func rows(scripts: [ScriptCommand], mainFolder: URL, saved: [String: String]) -> [Row] {
+        // Same titles keep a fixed order (by key) from launch to launch.
         let sorted = scripts.sorted {
-            $0.metadata.title.localizedCaseInsensitiveCompare($1.metadata.title) == .orderedAscending
+            switch $0.metadata.title.localizedCaseInsensitiveCompare($1.metadata.title) {
+            case .orderedAscending: true
+            case .orderedDescending: false
+            case .orderedSame: key(for: $0, mainFolder: mainFolder) < key(for: $1, mainFolder: mainFolder)
+            }
         }
         var titleCounts: [String: Int] = [:]
         for script in scripts { titleCounts[script.metadata.title, default: 0] += 1 }
@@ -59,7 +79,7 @@ public enum ScriptShortcut {
             return Row(
                 id: .script(key(for: script, mainFolder: mainFolder)),
                 title: script.metadata.title,
-                detail: shared ? script.url.deletingLastPathComponent().lastPathComponent : nil,
+                detail: shared ? folderLabel(for: script, mainFolder: mainFolder) : nil,
                 isMissing: false
             )
         }

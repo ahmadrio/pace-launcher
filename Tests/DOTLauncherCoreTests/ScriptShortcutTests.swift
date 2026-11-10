@@ -56,7 +56,7 @@ struct ScriptShortcutTests {
             script("/tmp/main/apple.sh", title: "apple"),
         ], mainFolder: main, saved: [:])
         #expect(rows.map(\.title) == ["apple", "Hello", "Hello", "Zeta"])
-        #expect(Set(rows.filter { $0.title == "Hello" }.map(\.detail)) == ["main", "sub"])
+        #expect(rows.filter { $0.title == "Hello" }.map(\.detail) == ["main", "main/sub"])
         #expect(rows.first { $0.title == "Zeta" }?.detail == nil)
         #expect(rows.allSatisfy { !$0.isMissing })
         #expect(rows.first { $0.title == "Zeta" }?.id == .script("zeta.sh"))
@@ -67,5 +67,21 @@ struct ScriptShortcutTests {
                                        saved: ["script.gone.sh": "ctrl+opt+2", "script.none.sh": "", "launcher": "opt+space"])
         #expect(rows.count == 2)
         #expect(rows.last == ScriptShortcut.Row(id: .script("gone.sh"), title: "gone.sh", detail: "Not found on this Mac", isMissing: true))
+    }
+
+    @Test func `duplicate titles in same-named folders stay distinct`() {
+        let rows = ScriptShortcut.rows(scripts: [
+            script("/tmp/main/work/deploy.sh", title: "Deploy"), script("/Users/x/work/deploy.sh", title: "Deploy"),
+        ], mainFolder: main, saved: [:])
+        #expect(rows.map(\.detail) == ["/Users/x/work", "main/work"])
+        #expect(rows.map(\.id) == [.script("/Users/x/work/deploy.sh"), .script("work/deploy.sh")])
+    }
+
+    @Test func `fingerprint changes only with keys and titles`() {
+        let before = ScriptShortcut.fingerprint(of: [script("/tmp/main/a.sh", title: "A")], mainFolder: main)
+        #expect(before == ["a.sh": "A"])
+        #expect(ScriptShortcut.fingerprint(of: [script("/tmp/main/a.sh", title: "A", mode: "fullOutput")], mainFolder: main) == before)
+        #expect(ScriptShortcut.fingerprint(of: [script("/tmp/main/a.sh", title: "B")], mainFolder: main) != before)
+        #expect(ScriptShortcut.fingerprint(of: [script("/tmp/main/b.sh", title: "A")], mainFolder: main) != before)
     }
 }

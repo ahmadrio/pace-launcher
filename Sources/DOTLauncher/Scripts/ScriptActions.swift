@@ -9,6 +9,8 @@ final class ScriptActions {
     private let model: LauncherModel
     private let start: (ScriptCommand, [String]) -> Void
     private var confirmation = PressConfirmation()
+    /// Separate from ↩'s, so one press of each never adds up to a run.
+    private var shortcutConfirmation = PressConfirmation()
     private var inline: [String: (text: String, updated: Date)] = [:]
 
     /// Called when an inline script produced a new subtitle.
@@ -70,7 +72,7 @@ final class ScriptActions {
     /// confirmation is asked with a HUD (press the shortcut again) and
     /// background scripts run without opening the panel.
     func runFromShortcut(_ script: ScriptCommand, comboText: String, showPanel: () -> Void, notify: (String, Bool) -> Void) {
-        switch ScriptShortcut.step(for: script, isConfirmed: confirmation.press(script.id, at: .now)) {
+        switch ScriptShortcut.step(for: script, isConfirmed: shortcutConfirmation.press(script.id, at: .now)) {
         case .notExecutable:
             notify("Not executable. Select it in DOT and press ⌘⇧X.", true)
         case .confirm:

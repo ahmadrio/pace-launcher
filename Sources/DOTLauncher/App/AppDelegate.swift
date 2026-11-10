@@ -67,6 +67,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcutActions: [ShortcutID: () -> Void] = [:]
     /// True while Settings records a shortcut: hotkeys stay released.
     private var shortcutsPaused = false
+    /// Script keys and titles at the last shortcut apply; a reload that
+    /// leaves them alone does not re-register anything.
+    private var scriptFingerprint: [String: String] = [:]
+    private var scriptWatcher: ScriptFolderWatcher?
     private var clipboardMaintenance: ClipboardMaintenance?
     /// Blockers the user chose to ignore ("Enable anyway").
     private var overriddenBlockers: Set<GatedHotKey.Blocker> = []
@@ -248,9 +252,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             submitTitle: "Run",
             queryChanged: { _ in }
         )
+        let scriptWatcher = ScriptFolderWatcher { [weak self] in self?.scriptLibrary.reload() }
+        self.scriptWatcher = scriptWatcher
         scriptLibrary.onChange = { [weak self] in
             search.rebuild()
-            self?.applyShortcuts()
+            guard let self else { return }
+            // Extra folders, sync moves and new folders change what to watch.
+            scriptWatcher.watch(self.scriptLibrary.folders)
+            let fingerprint = ScriptShortcut.fingerprint(of: self.scriptLibrary.scripts, mainFolder: AppPaths.scriptsDirectory)
+            if fingerprint != self.scriptFingerprint {
+                self.scriptFingerprint = fingerprint
+                self.applyShortcuts()
+            }
         }
 
         model.search = { query in search.results(for: query) }

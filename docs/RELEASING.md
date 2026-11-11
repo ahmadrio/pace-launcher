@@ -64,3 +64,10 @@ security import PACE-Launcher-Signing.p12 -k ~/Library/Keychains/login.keychain-
    gh release create v<version> --title "PACE Launcher <version>" --notes-file "${TMPDIR:-/tmp}/release-notes.md" \
      build/release/PACE-Launcher-<version>.dmg build/release/PACE-Launcher-<version>.dmg.sha256
    ```
+
+## Social preview
+The image shown when the repository is shared is `docs/images/social-preview.png` (1280×640), drawn by `scripts/make-social-preview.swift` from the app icon and `docs/images/launcher.png`:
+```sh
+swiftc -O scripts/make-social-preview.swift -o /tmp/make-social-preview && /tmp/make-social-preview docs/images/social-preview.png
+```
+GitHub has no API for it: upload the file in the repository's **Settings › General › Social preview › Edit › Upload an image…**.

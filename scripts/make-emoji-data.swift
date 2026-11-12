@@ -98,6 +98,9 @@ func isSequence(_ scalars: [UInt32]) -> Bool {
 // counting glyphs. (A font may also drop a tone silently: 👪🏽 draws as 👪,
 // but so do 🏂🏽 and 🛌🏽 by design, so same-glyph is not a failure.)
 let font = CTFontCreateWithName("AppleColorEmoji" as CFString, 32, nil)
+// CoreText falls back to another font for an unknown name; measuring that
+// one would pass everything.
+guard CTFontCopyPostScriptName(font) as String == "AppleColorEmoji" else { fail("Apple Color Emoji font not found") }
 func width(_ text: String) -> Double {
     let attributed = NSAttributedString(string: text, attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font])
     return CTLineGetTypographicBounds(CTLineCreateWithAttributedString(attributed), nil, nil, nil)

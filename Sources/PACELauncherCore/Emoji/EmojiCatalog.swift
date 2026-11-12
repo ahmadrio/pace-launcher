@@ -85,12 +85,12 @@ public enum EmojiCatalog {
     private static let popular = Dictionary(popularTable.map { (withoutVariationSelectors($0.emoji), $0) }) { first, _ in first }
 
     /// One sequence from `sequenceData` and its medium-tone form, if any.
-    private struct Sequence {
+    private struct SequenceEntry {
         let emoji: Emoji
         let mediumTone: [Unicode.Scalar]?
     }
 
-    private static let sequences: [Sequence] = sequenceData.split(separator: "\n").map { line in
+    private static let sequences: [SequenceEntry] = sequenceData.split(separator: "\n").map { line in
         let fields = line.split(separator: ";", omittingEmptySubsequences: false)
         func scalars(_ field: Substring) -> [Unicode.Scalar] {
             field.split(separator: " ").map { Unicode.Scalar(UInt32($0, radix: 16)!)! }
@@ -100,7 +100,7 @@ public enum EmojiCatalog {
         // CLDR names keep their capitals ("flag: England" → "Flag: England").
         let name = fields[1].prefix(1).uppercased() + fields[1].dropFirst()
         let emoji = Emoji(character: character, name: entry?.name ?? name, keywords: entry?.keywords ?? [])
-        return Sequence(emoji: emoji, mediumTone: fields.count > 2 ? scalars(fields[2]) : nil)
+        return SequenceEntry(emoji: emoji, mediumTone: fields.count > 2 ? scalars(fields[2]) : nil)
     }
 
     private static let sequenceTones: [String: [Unicode.Scalar]] = Dictionary(

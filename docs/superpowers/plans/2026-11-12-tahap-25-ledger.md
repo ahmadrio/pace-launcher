@@ -1,0 +1,13 @@
+# Ledger — plan: docs/superpowers/plans/2026-11-12-tahap-25.md
+
+Pre-flight: diff of the catalog against emoji-test.txt 17.0 (fully-qualified, no tone modifiers): 1914 listed, 1648 in the catalog, 266 missing, 0 extra. Swift 6.4.2 stdlib reports Unicode 17 ages (🫪 1FAEA, 🪊 1FA8A present). Apple Color Emoji on macOS 27.2.1 draws all 17.0 sequences at one emoji's width; Emoji 18.0 singles (🫫 🛙 🪋) fall back (width 35 vs 32).
+Task 1: generator output — Unicode 17.0: 1914 emoji, 264 sequences (197 take a skin tone), 330 medium-tone forms; no medium form without a base.
+Task 1: Ruling: couples (👩‍❤️‍👨) are two layered glyphs in one 32 pt advance, so "drawn" means one emoji's width, not one glyph — cost if wrong: none (checked visually in the picker).
+Task 1: Ruling: a "toned glyph differs from base" check was tried and dropped — 🏂🏽 and 🛌🏽 are RGI yet draw the base glyph, like the unsupported 👪🏽; width remains the only check (catches base + swatch fallbacks) — cost if wrong: a silently dropped tone would pass.
+Task 1: Ruling: the test list is `UnicodeEmojiList.swift` (version-neutral name, `version` constant) instead of the planned `EmojiUnicode17.swift`, so regenerating does not rename files — cost if wrong: none.
+Task 2: RED — `every Unicode emoji is in the catalog`: 266 missing (😶‍🌫️ 😮‍💨 🙂‍↔️ …); toned/sequence/order tests fail as expected.
+Task 3: finding — Unicode 17 added skin tones to 👯 and 🤼 (`toned emoji match Unicode` reported 👯🏽 🤼🏽 unreached); Apple's font has their own glyphs (1575, 2724 vs base 1566, 2715), while 👪🏽 maps to the 👪 glyph. `untonedBases` is now 👪 only; tests updated (👯‍♀️ → 👯🏽‍♀️).
+Task 3: finding — CLDR names must keep their capitals ("flag: England" → "Flag: England"), so sequences only capitalise the first letter.
+Task 3: GREEN — EmojiCatalogTests 13/13; full suite 405/405.
+Task 3: Observation: `the catalog holds only Unicode emoji` passed before the change too (0 extra in pre-flight); it guards future edits, not new behaviour.
+Task 4: UI (test folders, guarded typing over a new TextEdit document): search emoji → `technologist` 🧑‍💻 👨‍💻 👩‍💻 with Own Tone; ⌘T ×3 → "Skin tone: Medium" and all three toned; ⏎ → TextEdit text = 1F9D1 1F3FD 200D 1F4BB; `keycap` → Keycap: * # 0–5…; `england` → Flag: England first; `shrug` → Shrug, Man shrugging, Woman shrugging; `family man woman` → untoned families, no Own Tone. Clipboard SHA-1 before/after equal (empty). Test app removed, override and `.testData` keys deleted, /Applications/PACE Launcher.app reopened.

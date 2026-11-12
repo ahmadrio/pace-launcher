@@ -92,7 +92,7 @@ Launcher macOS gratis ala Raycast, termasuk fitur yang di Raycast hanya ada di p
   - Desain: `docs/superpowers/specs/2026-11-11-tahap-24-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-11-tahap-24.md`
   - Ledger: `docs/superpowers/plans/2026-11-11-tahap-24-ledger.md`
-- **Tahap 25** (semua emoji Unicode 17: ZWJ, keycap, ©️ ®️, bendera England/Scotland/Wales) selesai di branch `tahap-25-emoji` (12 Nov 2026). Belum di-push dan belum dirilis.
+- **Tahap 25** (semua emoji Unicode 17: ZWJ, keycap, ©️ ®️, bendera England/Scotland/Wales) selesai, di-merge ke `main`, dan dirilis sebagai **v1.0.1** (12 Nov 2026, disetujui Pace: "Merge + push + rilis v1.0.1"): https://github.com/ahmadrio/pace-launcher/releases/tag/v1.0.1.
   - Desain: `docs/superpowers/specs/2026-11-12-tahap-25-design.md`
   - Rencana: `docs/superpowers/plans/2026-11-12-tahap-25.md`
   - Ledger: `docs/superpowers/plans/2026-11-12-tahap-25-ledger.md`
@@ -301,6 +301,13 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
 - **Pemindaian akhir (11 Nov 06:08):** `gitleaks` 240 commit + folder kerja: tidak ada kebocoran. Pola sendiri di seluruh riwayat: tidak ada kunci privat, token, atau kata sandi; email di isi file hanya `noreply@anthropic.com`; IP hanya contoh (`1.2.3.4`, `127.0.0.1`). **Ikut publik atas keputusan Pace ("apa adanya"):** nama dan email author di metadata semua commit; path `/Users/pace/…` di beberapa dokumen; satu sebutan Mattermost (ledger tahap 12); profil browser "Ahmad"/"Work" (HANDOFF, spec tahap 13). File terbesar: `AppIcon.icns` 1 MB.
 - **Rilis v1.0.0 (11 Nov 06:33):** DMG dibuat dari `de869c3` (tag `v1.0.0`, annotated), SHA-256 `25d55a8636a5e2a456d24582aba7b94bc116f1c4800a74b56c5d4937352725a0`, tanpa path dari Mac Pace. Dicek setelah terbit: GitHub mengenali GPL-3.0; `releases/latest` (tanpa login, header seperti app) mengembalikan `v1.0.0`; DMG yang diunduh dari GitHub lolos `shasum -c` dan identik dengan file lokal. Deskripsi repo: "A free, open-source launcher for macOS 27: apps, calculator, clipboard history, snippets, window snapping and more."
 
+## Tahap 25: semua emoji Unicode 17 (12 Nov 2026)
+- **Permintaan Pace:** "tolong daftarkan semua emoji karena saya cek masih ada beberapa emoji yang belum ada". Sebab: katalog hanya memuat emoji satu code point, sehingga 266 dari 1914 emoji RGI Unicode 17 hilang (ZWJ, keycap, ©️ ®️, bendera England/Scotland/Wales).
+- **Hasil:** 1914/1914 emoji tanpa tone, 0 entri di luar daftar, 1650/1650 varian satu tone bisa dibuat lewat ⌘T/⌘⇧T. Dicek ulang atas permintaan Pace ("apakah sudah lengkap?") dengan katalog hasil build.
+- **Sengaja belum ada:** 380 varian dengan tone berbeda per orang (🧑🏻‍🤝‍🧑🏿, 🫱🏻‍🫲🏿) karena butuh UI pilih tone per orang, dan 9 emoji Unicode 18.0 (🫫 🫹 🫺 🫌 🫝 🛙 🪋 🪌 🪍) yang di macOS 27.2.1 masih digambar font LastResort.
+- **Review:** reviewer independen tidak menemukan cacat; dua catatan kecil diperbaiki (generator gagal kalau font Apple Color Emoji tidak ditemukan, `struct Sequence` diganti `SequenceEntry`).
+- **Rilis v1.0.1 (12 Nov 2026):** DMG dari `7c54009` (tag `v1.0.1`, annotated), SHA-256 `51f53d936cdf78a2d45fc114a80d515cf4cc9d4866e205454fac8c4f4ad0dece`. Dicek setelah terbit: `releases/latest` mengembalikan `v1.0.1` (bukan draft/pre-release), DMG yang diunduh dari GitHub lolos `shasum -c` dan identik dengan file lokal. Push ini juga membawa commit social preview (`c7dcc01`) yang sebelumnya belum di-push.
+
 ## Rencana rilis publik (keputusan Pace, 10 Nov 2026, 23:00–23:12)
 - **Publik, tanpa Apple Developer Program**: tidak dinotarisasi; pengguna membuka lewat System Settings › Privacy & Security › Open Anyway. Ditandatangani dengan sertifikat **self-signed** (identitas tetap antar versi supaya izin pengguna bertahan setelah update), bukan sertifikat Apple Development.
 - **Open source di GitHub** (akun `ahmadrio`), rilis lewat **GitHub Releases**. Lisensi **GPL-3.0**.
@@ -313,7 +320,9 @@ make signing-identity   # sekali saja: buat sertifikat "PACE Launcher Signing" (
   4. Tahap 24 (selesai, dipublikasikan 11 Nov 2026): README, LICENSE (GPL-3.0), kebijakan privasi, pemindaian akhir, repo publik, rilis v1.0.0.
 
 ## Langkah berikutnya
-1. **Rilis berikutnya** mengikuti `docs/RELEASING.md` (naikkan versi, catatan di `docs/releases/`, `make release`, tag, `gh release create`). `origin` = `https://github.com/ahmadrio/pace-launcher.git`; push ke `main`, tag, dan rilis hanya dengan persetujuan Pace. v1.0.0 sudah terpasang dari GitHub di Mac Pace (11 Nov 06:37); izin diberikan lewat jendela sambutan.
-2. Minor yang ditunda di ledger tahap 23.
-3. Minor yang ditunda di ledger tahap 20 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test; runner perintah sistem hanya diverifikasi dengan membaca kode).
-4. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).
+1. **Mac Pace masih menjalankan v1.0.0** dari `/Applications` (per 12 Nov 2026). Update ke v1.0.1 lewat notifikasi update atau DMG, lalu Open Anyway sekali.
+2. **Rilis berikutnya** mengikuti `docs/RELEASING.md` (naikkan versi, catatan di `docs/releases/`, `make release`, tag, `gh release create`). `origin` = `https://github.com/ahmadrio/pace-launcher.git`; push ke `main`, tag, dan rilis hanya dengan persetujuan Pace. v1.0.0 sudah terpasang dari GitHub di Mac Pace (11 Nov 06:37); izin diberikan lewat jendela sambutan.
+3. Minor yang ditunda di ledger tahap 23.
+4. Minor yang ditunda di ledger tahap 20 (dan sisa: gambar clipboard dibaca di main thread sebelum cek 20 MB, konflik dengan app yang memakai event tap tidak terdeteksi, `recordsUse` belum punya unit test; runner perintah sistem hanya diverifikasi dengan membaca kode).
+5. **Emoji:** tone berbeda per orang (380 varian) kalau Pace mau; regenerasi data ke Unicode 18 setelah macOS mendukungnya (lihat "Jebakan").
+6. Ide fitur berikutnya: tanya Pace apa yang masih ia kerjakan lewat app lain. **Profil browser per quicklink ditunda:** per 10 Nov 2026 Chrome ("Ahmad") dan Brave ("Work") masing-masing hanya punya satu profil, dan pilihan browser per quicklink sudah memisahkan keduanya. Bila nanti dibuat: daftar profil ada di `Local State` (`profile.info_cache`), buka dengan `--profile-directory=` sebagai instance baru (`createsNewApplicationInstance`), dan jangan pernah mengirim nama profil yang tidak ada di daftar itu (Chrome akan membuat profil baru).
